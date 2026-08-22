@@ -7,6 +7,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { VLCPlayer } from 'react-native-vlc-media-player';
 import GoogleCast, { useCastState, useRemoteMediaClient } from 'react-native-google-cast';
 import { SymbolView } from 'expo-symbols';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { decideEngine, type Engine } from '@/player/decide';
@@ -297,6 +298,22 @@ function Player({
   onExit: () => void;
   onNativeError: () => void;
 }) {
+  // Unlock rotation while the player is mounted; restore portrait on exit.
+  useEffect(() => {
+    (async () => {
+      try {
+        await ScreenOrientation.unlockAsync();
+      } catch {}
+    })();
+    return () => {
+      (async () => {
+        try {
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+        } catch {}
+      })();
+    };
+  }, []);
+
   return (
     <View style={styles.playerContainer}>
       {config.engine === 'native' ? (
@@ -323,6 +340,7 @@ function NativePlayer({ url, onError }: { url: string; onError: () => void }) {
   const player = useVideoPlayer(url, p => {
     p.play();
   });
+  const [tracksOpen, setTracksOpen] = useState(false);
 
   useEffect(() => {
     const sub = player.addListener('statusChange', ({ status }) => {
@@ -332,13 +350,122 @@ function NativePlayer({ url, onError }: { url: string; onError: () => void }) {
   }, [player, onError]);
 
   return (
-    <VideoView
-      player={player}
-      style={{ flex: 1 }}
-      fullscreenOptions={{ enable: true, autoExitOnRotate: false }}
-      allowsPictureInPicture
-      nativeControls
-    />
+    <>
+      <VideoView
+        player={player}
+        style={{ flex: 1 }}
+        fullscreenOptions={{ enable: true, autoExitOnRotate: false }}
+        allowsPictureInPicture
+        nativeControls
+      />
+      <TouchableOpacity style={styles.subsBtn} onPress={() => setTracksOpen(true)} activeOpacity={0.8}>
+        <SymbolView
+          name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }}
+          tintColor={colors.text}
+          size={22}
+        />
+      </TouchableOpacity>
+      <TrackPickerModal
+        visible={tracksOpen}
+        player={player}
+        onClose={() => setTracksOpen(false)}
+      />
+    </>
+  );
+}
+
+function TrackPickerModal({
+  visible,
+  player,
+  onClose,
+}: {
+  visible: boolean;
+  player: ReturnType<typeof useVideoPlayer>;
+  onClose: () => void;
+}) {
+  const [subtitles, setSubtitles] = useState<any[]>([]);
+  const [audios, setAudios] = useState<any[]>([]);
+  const [activeSub, setActiveSub] = useState<any>(null);
+  const [activeAudio, setActiveAudio] = useState<any>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    try {
+      const subs = (player as any).availableSubtitleTracks ?? [];
+      const auds = (player as any).availableAudioTracks ?? [];
+      setSubtitles(subs);
+      setAudios(auds);
+      setActiveSub((player as any).subtitleTrack ?? null);
+      setActiveAudio((player as any).audioTrack ?? null);
+    } catch {}
+  }, [visible, player]);
+
+  function pickSub(track: any | null) {
+    try {
+      (player as any).subtitleTrack = track;
+      setActiveSub(track);
+    } catch {}
+  }
+
+  function pickAudio(track: any) {
+    try {
+      (player as any).audioTrack = track;
+      setActiveAudio(track);
+    } catch {}
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable style={styles.modalSheet} onPress={() => {}}>
+          <View style={styles.modalHandle} />
+
+          <Text style={styles.modalTitle}>Subtitles</Text>
+          {subtitles.length === 0 ? (
+            <Text style={styles.modalEmpty}>No subtitle tracks in this file</Text>
+          ) : (
+            <>
+              <TrackRow label="Off" selected={!activeSub} onPress={() => pickSub(null)} />
+              {subtitles.map((t, i) => (
+                <TrackRow
+                  key={`sub-${i}`}
+                  label={t.label ?? t.language ?? `Track ${i + 1}`}
+                  selected={activeSub && (activeSub.id === t.id || activeSub.label === t.label)}
+                  onPress={() => pickSub(t)}
+                />
+              ))}
+            </>
+          )}
+
+          <Text style={[styles.modalTitle, { marginTop: spacing.lg }]}>Audio</Text>
+          {audios.length === 0 ? (
+            <Text style={styles.modalEmpty}>No alternate audio tracks</Text>
+          ) : (
+            audios.map((t, i) => (
+              <TrackRow
+                key={`aud-${i}`}
+                label={t.label ?? t.language ?? `Track ${i + 1}`}
+                selected={activeAudio && (activeAudio.id === t.id || activeAudio.label === t.label)}
+                onPress={() => pickAudio(t)}
+              />
+            ))
+          )}
+
+          <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
+            <Text style={styles.modalCloseText}>Close</Text>
+          </TouchableOpacity>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function TrackRow({ label, selected, onPress }: { label: string; selected?: boolean; onPress: () => void }) {
+  return (
+    <TouchableOpacity style={styles.deviceRow} onPress={onPress} activeOpacity={0.7}>
+      <Text style={{ ...type.body, color: colors.text, flex: 1 }}>{label}</Text>
+      {selected ? <SymbolView name={{ ios: 'checkmark', android: 'check', web: 'check' }} tintColor={colors.text} size={18} /> : null}
+    </TouchableOpacity>
   );
 }
 
@@ -483,4 +610,17 @@ const styles = StyleSheet.create({
     borderColor: colors.glassBorder,
   },
   engineBadgeText: { color: colors.text, ...type.caption, textTransform: 'uppercase' },
+  subsBtn: {
+    position: 'absolute',
+    bottom: 60,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.glassTint,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.glassBorder,
+  },
 });
