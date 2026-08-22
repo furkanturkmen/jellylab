@@ -51,6 +51,37 @@ export async function search(query: string, page = 1): Promise<JellyseerrSearchR
   return res.data.results ?? [];
 }
 
+export async function discoverTrending(page = 1): Promise<JellyseerrSearchResult[]> {
+  const client = await authClient();
+  const res = await client.get('/discover/trending', { params: { page } });
+  return (res.data.results ?? []).filter((r: any) => r.mediaType !== 'person');
+}
+
+export async function discoverMovies(page = 1): Promise<JellyseerrSearchResult[]> {
+  const client = await authClient();
+  const res = await client.get('/discover/movies', { params: { page } });
+  return res.data.results ?? [];
+}
+
+export async function discoverTv(page = 1): Promise<JellyseerrSearchResult[]> {
+  const client = await authClient();
+  const res = await client.get('/discover/tv', { params: { page } });
+  return res.data.results ?? [];
+}
+
+// Anime keyword id on TMDB = 210024
+export async function discoverAnime(page = 1): Promise<JellyseerrSearchResult[]> {
+  const client = await authClient();
+  const res = await client.get('/discover/tv', { params: { page, keywords: 210024 } });
+  return res.data.results ?? [];
+}
+
+export async function discoverUpcomingMovies(page = 1): Promise<JellyseerrSearchResult[]> {
+  const client = await authClient();
+  const res = await client.get('/discover/movies/upcoming', { params: { page } });
+  return res.data.results ?? [];
+}
+
 export async function createRequest(
   mediaType: 'movie' | 'tv',
   mediaId: number,
