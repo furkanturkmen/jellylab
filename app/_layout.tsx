@@ -63,6 +63,7 @@ function RootLayoutNav() {
         <Stack.Screen name="profile" options={{ title: 'Profile', presentation: 'modal' }} />
         <Stack.Screen name="settings/subtitles" options={{ title: 'Subtitles' }} />
         <Stack.Screen name="settings/playback" options={{ title: 'Playback' }} />
+        <Stack.Screen name="settings/content" options={{ title: 'Content' }} />
       </Stack>
     </ThemeProvider>
   );

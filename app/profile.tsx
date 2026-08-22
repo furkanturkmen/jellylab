@@ -204,6 +204,7 @@ export default function ProfileScreen() {
           <Text style={styles.cardLabel}>Preferences</Text>
           <MenuRow label="Subtitles" onPress={() => router.push('/settings/subtitles')} />
           <MenuRow label="Playback" onPress={() => router.push('/settings/playback')} />
+          <MenuRow label="Content" onPress={() => router.push('/settings/content')} />
         </Card>
 
         {isAdmin ? (
