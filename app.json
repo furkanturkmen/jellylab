@@ -71,7 +71,7 @@
       [
         "react-native-google-cast",
         {
-          "iosReceiverAppId": "CC1AD845",
+          "iosReceiverAppId": "A3C83748",
           "iosDisableDiscoveryAutostart": false
         }
       ],
