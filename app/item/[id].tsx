@@ -470,15 +470,6 @@ function NativePlayer({ url, title, onError, onExit }: { url: string; title: str
                 <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }} tintColor={colors.text} size={22} />
               </TouchableOpacity>
               <Text style={styles.overlayTitle} numberOfLines={1}>{title}</Text>
-              <TouchableOpacity style={styles.overlayIconBtn} onPress={togglePip} activeOpacity={0.7}>
-                <SymbolView name={{ ios: 'pip.enter', android: 'picture_in_picture_alt', web: 'picture_in_picture_alt' }} tintColor={colors.text} size={22} />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setSpeedOpen(true)} activeOpacity={0.7}>
-                <Text style={styles.speedLabel}>{speed}x</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setTracksOpen(true)} activeOpacity={0.7}>
-                <SymbolView name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }} tintColor={colors.text} size={22} />
-              </TouchableOpacity>
             </View>
 
             {/* Center controls */}
@@ -498,35 +489,48 @@ function NativePlayer({ url, title, onError, onExit }: { url: string; title: str
               </TouchableOpacity>
             </View>
 
-            {/* Bottom scrubber */}
-            <View style={styles.overlayBottom} pointerEvents="box-none">
-              <Text style={styles.timeText}>{formatTime(position)}</Text>
-              <View style={styles.scrubberTrack}>
-                <View style={[styles.scrubberFill, { width: `${duration > 0 ? (position / duration) * 100 : 0}%` }]} />
-                <Pressable
-                  style={StyleSheet.absoluteFill}
-                  onPress={(e) => {
-                    const width = e.currentTarget as any;
-                    // Fallback: seek by tap position using event.nativeEvent
-                    const x = (e.nativeEvent as any).locationX ?? 0;
-                    const w = (e.nativeEvent as any).layout?.width ?? 300;
-                    const ratio = Math.max(0, Math.min(1, x / w));
-                    seekTo(ratio * duration);
-                  }}
-                />
+            {/* Bottom: scrubber + action cluster */}
+            <View style={styles.overlayBottomWrap} pointerEvents="box-none">
+              <View style={styles.scrubRow} pointerEvents="box-none">
+                <Text style={styles.timeText}>{formatTime(position)}</Text>
+                <View style={styles.scrubberTrack}>
+                  <View style={[styles.scrubberFill, { width: `${duration > 0 ? (position / duration) * 100 : 0}%` }]} />
+                  <Pressable
+                    style={StyleSheet.absoluteFill}
+                    onPress={(e) => {
+                      const x = (e.nativeEvent as any).locationX ?? 0;
+                      const w = (e.nativeEvent as any).layout?.width ?? 300;
+                      const ratio = Math.max(0, Math.min(1, x / w));
+                      seekTo(ratio * duration);
+                    }}
+                  />
+                </View>
+                <Text style={styles.timeText}>-{formatTime(Math.max(0, duration - position))}</Text>
               </View>
-              <Text style={styles.timeText}>-{formatTime(Math.max(0, duration - position))}</Text>
-              <TouchableOpacity style={styles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
-                <SymbolView
-                  name={{
-                    ios: isLandscape ? 'arrow.down.right.and.arrow.up.left' : 'arrow.up.left.and.arrow.down.right',
-                    android: 'fullscreen',
-                    web: 'fullscreen',
-                  }}
-                  tintColor={colors.text}
-                  size={22}
-                />
-              </TouchableOpacity>
+
+              <View style={styles.actionsRow} pointerEvents="box-none">
+                <View style={{ flex: 1 }} />
+                <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setTracksOpen(true)} activeOpacity={0.7}>
+                  <SymbolView name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }} tintColor={colors.text} size={22} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setSpeedOpen(true)} activeOpacity={0.7}>
+                  <SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} tintColor={colors.text} size={22} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.overlayIconBtn} onPress={togglePip} activeOpacity={0.7}>
+                  <SymbolView name={{ ios: 'pip.enter', android: 'picture_in_picture_alt', web: 'picture_in_picture_alt' }} tintColor={colors.text} size={22} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
+                  <SymbolView
+                    name={{
+                      ios: isLandscape ? 'arrow.down.right.and.arrow.up.left' : 'arrow.up.left.and.arrow.down.right',
+                      android: 'fullscreen',
+                      web: 'fullscreen',
+                    }}
+                    tintColor={colors.text}
+                    size={22}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         ) : null}
@@ -868,6 +872,13 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
     gap: spacing.md,
   },
+  overlayBottomWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.sm,
+  },
+  scrubRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  actionsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   timeText: { ...type.small, color: colors.text, fontVariant: ['tabular-nums'] as any },
   scrubberTrack: {
     flex: 1,
