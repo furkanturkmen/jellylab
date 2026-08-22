@@ -5,7 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { VLCPlayer } from 'react-native-vlc-media-player';
-import { CastButton, useCastState, useRemoteMediaClient } from 'react-native-google-cast';
+import GoogleCast, { useCastState, useRemoteMediaClient } from 'react-native-google-cast';
+import { SymbolView } from 'expo-symbols';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { decideEngine, type Engine } from '@/player/decide';
@@ -25,6 +26,15 @@ export default function ItemScreen() {
 
   const castClient = useRemoteMediaClient();
   const castState = useCastState();
+
+  useEffect(() => {
+    // Kick discovery even if autostart didn't fire. Safe to call repeatedly.
+    (async () => {
+      try {
+        await GoogleCast.getDiscoveryManager().startDiscovery();
+      } catch {}
+    })();
+  }, []);
 
   useEffect(() => {
     if (state.status !== 'signed-in' || !id) return;
@@ -93,9 +103,6 @@ export default function ItemScreen() {
           headerTransparent: true,
           headerBackTitle: 'Back',
           headerTintColor: colors.text,
-          headerRight: () => (
-            <CastButton style={{ width: 24, height: 24, tintColor: colors.text, marginRight: spacing.md }} />
-          ),
         }}
       />
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }} showsVerticalScrollIndicator={false}>
@@ -147,9 +154,22 @@ export default function ItemScreen() {
             <TouchableOpacity style={styles.playBtn} onPress={play} activeOpacity={0.85}>
               <Text style={styles.playBtnText}>▶  Play</Text>
             </TouchableOpacity>
-            <View style={styles.castChip}>
-              <CastButton style={styles.castIcon} />
-            </View>
+            <TouchableOpacity
+              style={styles.castChip}
+              onPress={async () => {
+                try {
+                  await GoogleCast.getDiscoveryManager().startDiscovery();
+                  await GoogleCast.showCastDialog();
+                } catch {}
+              }}
+              activeOpacity={0.75}
+            >
+              <SymbolView
+                name={{ ios: 'tv.badge.wifi', android: 'cast', web: 'cast' }}
+                tintColor={castState === 'connected' ? colors.pink : colors.text}
+                size={26}
+              />
+            </TouchableOpacity>
           </View>
           <Text style={styles.castHint}>
             Cast: {castState ?? 'sdk-not-ready'} · AirPlay picker is inside the player
