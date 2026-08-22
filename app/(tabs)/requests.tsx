@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 
 import * as Jellyseerr from '@/api/jellyseerr';
 import { MEDIA_STATUS, REQUEST_STATUS, type JellyseerrRequest } from '@/types';
@@ -9,6 +11,7 @@ import { colors, radius, spacing, type as t } from '@/theme';
 type EnrichedRequest = JellyseerrRequest & { details: Jellyseerr.MediaDetails | null };
 
 export default function RequestsScreen() {
+  const router = useRouter();
   const [items, setItems] = useState<EnrichedRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,9 +43,11 @@ export default function RequestsScreen() {
       data={items}
       keyExtractor={r => String(r.id)}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.text} />}
-      renderItem={({ item }) => <RequestRow r={item} />}
-      ItemSeparatorComponent={() => <View style={styles.sep} />}
-      contentContainerStyle={{ paddingVertical: spacing.md, paddingBottom: 120 }}
+      renderItem={({ item }) => (
+        <RequestCard r={item} onOpen={() => router.push(`/tmdb/${item.media.mediaType}/${item.media.tmdbId}`)} />
+      )}
+      ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
+      contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }}
       ListEmptyComponent={
         <View style={styles.center}>
           <Text style={styles.empty}>No requests yet</Text>
@@ -52,54 +57,89 @@ export default function RequestsScreen() {
   );
 }
 
-function RequestRow({ r }: { r: EnrichedRequest }) {
+function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) {
   const requestStatus = REQUEST_STATUS[r.status] ?? '?';
   const mediaStatus = MEDIA_STATUS[r.media.status] ?? '?';
+  const available = r.media.status === 5;
   const title = r.details?.title ?? `TMDB ${r.media.tmdbId}`;
   const year = r.details?.year;
-  const poster = Jellyseerr.posterUrl(r.details?.posterPath);
+  const backdrop = Jellyseerr.backdropUrl(r.details?.backdropPath);
+  const poster = Jellyseerr.posterUrl(r.details?.posterPath, 'w300');
 
   return (
-    <View style={styles.row}>
-      {poster ? (
-        <Image source={{ uri: poster }} style={styles.thumb} contentFit="cover" transition={150} />
+    <TouchableOpacity style={styles.card} onPress={onOpen} activeOpacity={0.85}>
+      {backdrop ? (
+        <Image source={{ uri: backdrop }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
       ) : (
-        <View style={[styles.thumb, styles.thumbEmpty]} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bgElevated }]} />
       )}
-      <View style={{ flex: 1 }}>
-        <Text style={styles.title} numberOfLines={2}>{title}</Text>
-        <Text style={styles.type}>
-          {r.media.mediaType === 'movie' ? 'Movie' : 'TV'}{year ? ` · ${year}` : ''}
-        </Text>
-        <View style={styles.pillRow}>
-          <View style={styles.pill}><Text style={styles.pillText}>{requestStatus}</Text></View>
-          <View style={styles.pill}><Text style={styles.pillText}>{mediaStatus}</Text></View>
+      <LinearGradient
+        colors={['rgba(10,10,10,0.85)', 'rgba(10,10,10,0.55)', 'rgba(10,10,10,0.85)']}
+        locations={[0, 0.5, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <View style={styles.body}>
+        {poster ? (
+          <Image source={{ uri: poster }} style={styles.poster} contentFit="cover" transition={200} />
+        ) : (
+          <View style={[styles.poster, { backgroundColor: colors.surface }]} />
+        )}
+        <View style={styles.info}>
+          {year ? <Text style={styles.year}>{year}</Text> : null}
+          <Text style={styles.title} numberOfLines={2}>{title}</Text>
+          <View style={styles.pillRow}>
+            <View style={[styles.pill, available && styles.pillAvailable]}>
+              <Text style={styles.pillText}>{available ? 'Available' : requestStatus}</Text>
+            </View>
+            <View style={styles.pill}>
+              <Text style={styles.pillText}>{mediaStatus}</Text>
+            </View>
+          </View>
+          <Text style={styles.by}>
+            {r.requestedBy.displayName} · {new Date(r.createdAt).toLocaleDateString()}
+          </Text>
         </View>
-        <Text style={styles.by}>{r.requestedBy.displayName} · {new Date(r.createdAt).toLocaleDateString()}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
+
+const CARD_HEIGHT = 140;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl, backgroundColor: colors.bg },
   empty: { ...t.body, color: colors.textDim },
-  row: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, flexDirection: 'row', gap: spacing.md },
-  thumb: { width: 60, height: 90, borderRadius: radius.sm, backgroundColor: colors.surface },
-  thumbEmpty: {},
+
+  card: {
+    height: CARD_HEIGHT,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    backgroundColor: colors.bgElevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  body: { flex: 1, flexDirection: 'row', padding: spacing.md, gap: spacing.md, alignItems: 'center' },
+  poster: {
+    width: 80,
+    height: CARD_HEIGHT - spacing.md * 2,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
+  },
+  info: { flex: 1, gap: spacing.xs },
+  year: { ...t.caption, color: colors.textMuted, textTransform: 'uppercase' },
   title: { ...t.bodyStrong, color: colors.text },
-  type: { ...t.caption, color: colors.textMuted, textTransform: 'uppercase', marginTop: spacing.xs },
-  pillRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  pillRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   pill: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.glassTint,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: colors.glassBorder,
   },
+  pillAvailable: { backgroundColor: 'rgba(52, 199, 89, 0.24)', borderColor: 'rgba(52, 199, 89, 0.5)' },
   pillText: { color: colors.text, ...t.caption, textTransform: 'uppercase' },
-  by: { ...t.small, color: colors.textDim, marginTop: spacing.sm },
-  sep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginHorizontal: spacing.lg },
+  by: { ...t.small, color: colors.textDim, marginTop: spacing.xs },
 });

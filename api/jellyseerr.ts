@@ -104,6 +104,7 @@ export async function listRequests(filter: 'all' | 'pending' | 'approved' | 'ava
 export type MediaDetails = {
   title: string;
   posterPath?: string;
+  backdropPath?: string;
   year?: string;
   overview?: string;
 };
@@ -116,8 +117,71 @@ export async function getMediaDetails(mediaType: 'movie' | 'tv', tmdbId: number)
     return {
       title: d.title ?? d.name ?? '',
       posterPath: d.posterPath ?? d.poster_path,
+      backdropPath: d.backdropPath ?? d.backdrop_path,
       year: (d.releaseDate ?? d.firstAirDate ?? '').slice(0, 4) || undefined,
       overview: d.overview,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function backdropUrl(path?: string, size: 'w780' | 'w1280' = 'w780'): string | null {
+  if (!path) return null;
+  return `https://image.tmdb.org/t/p/${size}${path}`;
+}
+
+export type TmdbFullDetails = {
+  id: number;
+  title: string;
+  tagline?: string;
+  overview?: string;
+  posterPath?: string;
+  backdropPath?: string;
+  releaseDate?: string;
+  runtime?: number;
+  genres?: { id: number; name: string }[];
+  voteAverage?: number;
+  status?: string;
+  originalLanguage?: string;
+  productionCountries?: { iso_3166_1: string; name: string }[];
+  numberOfSeasons?: number;
+  numberOfEpisodes?: number;
+  seasons?: { seasonNumber: number; episodeCount: number; name?: string }[];
+  mediaInfo?: {
+    status?: number;
+    requests?: { id: number; status: number }[];
+  };
+  credits?: {
+    cast?: { id: number; name: string; character: string; profilePath?: string }[];
+    crew?: { id: number; name: string; job: string; department: string }[];
+  };
+};
+
+export async function getTmdbDetails(mediaType: 'movie' | 'tv', tmdbId: number): Promise<TmdbFullDetails | null> {
+  try {
+    const client = await authClient();
+    const res = await client.get(`/${mediaType}/${tmdbId}`);
+    const d = res.data;
+    return {
+      id: d.id,
+      title: d.title ?? d.name ?? '',
+      tagline: d.tagline,
+      overview: d.overview,
+      posterPath: d.posterPath ?? d.poster_path,
+      backdropPath: d.backdropPath ?? d.backdrop_path,
+      releaseDate: d.releaseDate ?? d.firstAirDate,
+      runtime: d.runtime ?? (Array.isArray(d.episodeRunTime) ? d.episodeRunTime[0] : undefined),
+      genres: d.genres,
+      voteAverage: d.voteAverage,
+      status: d.status,
+      originalLanguage: d.originalLanguage,
+      productionCountries: d.productionCountries,
+      numberOfSeasons: d.numberOfSeasons,
+      numberOfEpisodes: d.numberOfEpisodes,
+      seasons: d.seasons,
+      mediaInfo: d.mediaInfo,
+      credits: d.credits,
     };
   } catch {
     return null;
