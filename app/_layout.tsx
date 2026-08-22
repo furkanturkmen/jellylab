@@ -59,6 +59,10 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="item/[id]" options={{ title: '' }} />
+        <Stack.Screen name="tmdb/[type]/[id]" options={{ title: '' }} />
+        <Stack.Screen name="profile" options={{ title: 'Profile', presentation: 'modal' }} />
+        <Stack.Screen name="settings/subtitles" options={{ title: 'Subtitles' }} />
+        <Stack.Screen name="settings/playback" options={{ title: 'Playback' }} />
       </Stack>
     </ThemeProvider>
   );

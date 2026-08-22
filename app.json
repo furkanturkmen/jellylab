@@ -63,6 +63,20 @@
             "legacyJetifier": false
           }
         }
+      ],
+      [
+        "react-native-google-cast",
+        {
+          "iosReceiverAppId": "CC1AD845",
+          "iosDisableDiscoveryAutostart": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "jellylab needs photo library access to update your profile picture.",
+          "cameraPermission": "jellylab needs camera access to take a new profile picture."
+        }
       ]
     ],
     "experiments": {
