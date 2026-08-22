@@ -70,6 +70,29 @@ export async function listRequests(filter: 'all' | 'pending' | 'approved' | 'ava
   return res.data.results ?? [];
 }
 
+export type MediaDetails = {
+  title: string;
+  posterPath?: string;
+  year?: string;
+  overview?: string;
+};
+
+export async function getMediaDetails(mediaType: 'movie' | 'tv', tmdbId: number): Promise<MediaDetails | null> {
+  try {
+    const client = await authClient();
+    const res = await client.get(`/${mediaType}/${tmdbId}`);
+    const d = res.data;
+    return {
+      title: d.title ?? d.name ?? '',
+      posterPath: d.posterPath ?? d.poster_path,
+      year: (d.releaseDate ?? d.firstAirDate ?? '').slice(0, 4) || undefined,
+      overview: d.overview,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function posterUrl(path?: string, size: 'w300' | 'w500' = 'w300'): string | null {
   if (!path) return null;
   return `https://image.tmdb.org/t/p/${size}${path}`;
