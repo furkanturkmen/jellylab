@@ -6,7 +6,6 @@ import { useLocalSearchParams, Stack } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { VLCPlayer } from 'react-native-vlc-media-player';
 import GoogleCast, { CastButton, useCastState, useRemoteMediaClient } from 'react-native-google-cast';
-import { SymbolView } from 'expo-symbols';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { decideEngine, type Engine } from '@/player/decide';
@@ -155,14 +154,7 @@ export default function ItemScreen() {
               <Text style={styles.playBtnText}>▶  Play</Text>
             </TouchableOpacity>
             <View style={styles.castChip}>
-              <SymbolView
-                name={{ ios: 'tv.badge.wifi', android: 'cast', web: 'cast' }}
-                tintColor={castState === 'connected' ? colors.pink : colors.text}
-                size={26}
-                style={StyleSheet.absoluteFill}
-                resizeMode="center"
-              />
-              <CastButton style={styles.castHitTarget} />
+              <CastButton style={styles.castButton} />
             </View>
           </View>
           <Text style={styles.castHint}>
@@ -291,7 +283,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   castIcon: { width: 28, height: 28, tintColor: colors.text },
-  castHitTarget: { position: 'absolute', width: 52, height: 52, opacity: 0.01 },
+  castButton: { width: 32, height: 32, tintColor: colors.text },
   castHint: { ...type.caption, color: colors.textMuted, marginTop: spacing.sm },
   overviewCard: {
     marginTop: spacing.xl,
