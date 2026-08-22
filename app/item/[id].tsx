@@ -142,9 +142,15 @@ export default function ItemScreen() {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.playBtn} onPress={play} activeOpacity={0.85}>
-            <Text style={styles.playBtnText}>▶  Play</Text>
-          </TouchableOpacity>
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.playBtn} onPress={play} activeOpacity={0.85}>
+              <Text style={styles.playBtnText}>▶  Play</Text>
+            </TouchableOpacity>
+            <View style={styles.castChip}>
+              <CastButton style={styles.castIcon} />
+            </View>
+          </View>
+          <Text style={styles.castHint}>Tap the cast icon to send to Chromecast · AirPlay picker is inside the player</Text>
 
           {item.Overview ? (
             <View style={styles.overviewCard}>
@@ -242,8 +248,14 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   pillText: { color: colors.text, ...type.caption, textTransform: 'uppercase' },
-  playBtn: {
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
     marginTop: spacing.xl,
+    alignItems: 'stretch',
+  },
+  playBtn: {
+    flex: 1,
     height: 52,
     borderRadius: radius.pill,
     backgroundColor: colors.accent,
@@ -251,6 +263,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   playBtnText: { color: colors.accentContrast, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 },
+  castChip: {
+    height: 52,
+    width: 52,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  castIcon: { width: 28, height: 28, tintColor: colors.text },
+  castHint: { ...type.caption, color: colors.textMuted, marginTop: spacing.sm },
   overviewCard: {
     marginTop: spacing.xl,
     padding: spacing.lg,
