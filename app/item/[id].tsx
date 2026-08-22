@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { VLCPlayer } from 'react-native-vlc-media-player';
-import { CastButton, useRemoteMediaClient } from 'react-native-google-cast';
+import { CastButton, useCastState, useRemoteMediaClient } from 'react-native-google-cast';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { decideEngine, type Engine } from '@/player/decide';
@@ -24,6 +24,7 @@ export default function ItemScreen() {
   const [playback, setPlayback] = useState<PlaybackConfig | null>(null);
 
   const castClient = useRemoteMediaClient();
+  const castState = useCastState();
 
   useEffect(() => {
     if (state.status !== 'signed-in' || !id) return;
@@ -150,7 +151,9 @@ export default function ItemScreen() {
               <CastButton style={styles.castIcon} />
             </View>
           </View>
-          <Text style={styles.castHint}>Tap the cast icon to send to Chromecast · AirPlay picker is inside the player</Text>
+          <Text style={styles.castHint}>
+            Cast: {castState ?? 'sdk-not-ready'} · AirPlay picker is inside the player
+          </Text>
 
           {item.Overview ? (
             <View style={styles.overviewCard}>

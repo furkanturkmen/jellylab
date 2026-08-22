@@ -12,6 +12,11 @@
       "bundleIdentifier": "com.furkanturkmen.jellylab",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
+        "NSLocalNetworkUsageDescription": "jellylab uses the local network to discover Chromecast and other streaming receivers.",
+        "NSBonjourServices": [
+          "_googlecast._tcp",
+          "_CC1AD845._googlecast._tcp"
+        ],
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
           "NSExceptionDomains": {
