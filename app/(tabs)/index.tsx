@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 
-import { Text, View } from '@/components/Themed';
 import * as Jellyfin from '@/api/jellyfin';
 import { useAuth } from '@/hooks/useAuth';
+import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem, JellyfinView } from '@/types';
 
 type LibraryItem = { view: JellyfinView; items: JellyfinItem[] };
@@ -40,24 +40,30 @@ export default function LibraryScreen() {
   if (state.status !== 'signed-in' || loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator />
+        <ActivityIndicator color={colors.text} />
       </View>
     );
   }
 
   return (
     <FlatList
+      style={styles.root}
       data={libs}
       keyExtractor={l => l.view.Id}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.text} />}
       ListHeaderComponent={
         <View style={styles.header}>
-          <Text style={styles.hello}>Hi, {state.auth.userName}</Text>
-          <TouchableOpacity onPress={signOut}><Text style={styles.signOut}>Sign out</Text></TouchableOpacity>
+          <View>
+            <Text style={styles.greetingSmall}>Welcome back</Text>
+            <Text style={styles.greeting}>{state.auth.userName}</Text>
+          </View>
+          <TouchableOpacity onPress={signOut} style={styles.signOutPill}>
+            <Text style={styles.signOutText}>Sign out</Text>
+          </TouchableOpacity>
         </View>
       }
       renderItem={({ item }) => <LibraryRow lib={item} />}
-      contentContainerStyle={{ paddingBottom: 40 }}
+      contentContainerStyle={{ paddingBottom: 120 }}
     />
   );
 }
@@ -65,13 +71,16 @@ export default function LibraryScreen() {
 function LibraryRow({ lib }: { lib: LibraryItem }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{lib.view.Name}</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{lib.view.Name}</Text>
+        <Text style={styles.sectionCount}>{lib.items.length}</Text>
+      </View>
       <FlatList
         horizontal
         data={lib.items}
         keyExtractor={i => i.Id}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+        contentContainerStyle={{ paddingHorizontal: spacing.xl, gap: spacing.md }}
         renderItem={({ item }) => <PosterCard item={item} />}
       />
     </View>
@@ -82,8 +91,13 @@ function PosterCard({ item }: { item: JellyfinItem }) {
   const tag = item.ImageTags?.Primary;
   return (
     <Link href={`/item/${item.Id}`} asChild>
-      <TouchableOpacity style={styles.card}>
-        <Image source={{ uri: Jellyfin.imageUrl(item.Id, tag) }} style={styles.poster} contentFit="cover" />
+      <TouchableOpacity style={styles.card} activeOpacity={0.7}>
+        <Image
+          source={{ uri: Jellyfin.imageUrl(item.Id, tag) }}
+          style={styles.poster}
+          contentFit="cover"
+          transition={200}
+        />
         <Text style={styles.cardTitle} numberOfLines={1}>{item.Name}</Text>
         {item.ProductionYear ? <Text style={styles.cardYear}>{item.ProductionYear}</Text> : null}
       </TouchableOpacity>
@@ -92,14 +106,43 @@ function PosterCard({ item }: { item: JellyfinItem }) {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
-  hello: { fontSize: 20, fontWeight: '600' },
-  signOut: { color: '#4a7cff' },
-  section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', paddingHorizontal: 16, marginBottom: 8 },
-  card: { width: 120 },
-  poster: { width: 120, height: 180, borderRadius: 6, backgroundColor: '#222' },
-  cardTitle: { marginTop: 6, fontSize: 13 },
-  cardYear: { fontSize: 11, opacity: 0.6 },
+  root: { flex: 1, backgroundColor: colors.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.lg,
+  },
+  greetingSmall: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.xs },
+  greeting: { ...type.h1, color: colors.text },
+  signOutPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  signOutText: { color: colors.textMuted, ...type.small },
+  section: { marginBottom: spacing.xxl },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    paddingHorizontal: spacing.xl,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  sectionTitle: { ...type.h2, color: colors.text },
+  sectionCount: { ...type.small, color: colors.textDim },
+  card: { width: 130 },
+  poster: {
+    width: 130,
+    height: 195,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+  },
+  cardTitle: { marginTop: spacing.sm, ...type.small, color: colors.text },
+  cardYear: { ...type.caption, color: colors.textMuted, marginTop: 2 },
 });
