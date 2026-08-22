@@ -89,12 +89,15 @@ export default function ItemScreen() {
 
   if (playback) {
     return (
-      <Player
-        config={playback}
-        title={item.Name}
-        onExit={() => setPlayback(null)}
-        onNativeError={() => setPlayback(p => (p ? { ...p, engine: 'vlc' } : p))}
-      />
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <Player
+          config={playback}
+          title={item.Name}
+          onExit={() => setPlayback(null)}
+          onNativeError={() => setPlayback(p => (p ? { ...p, engine: 'vlc' } : p))}
+        />
+      </>
     );
   }
 
