@@ -55,13 +55,24 @@
       [
         "react-native-vlc-media-player",
         {
-          "ios": { "includeVLCKit": true },
-          "android": { "legacyJetifier": false }
+          "ios": {
+            "includeVLCKit": true
+          },
+          "android": {
+            "legacyJetifier": false
+          }
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "87dc2b63-b333-49f6-9785-cafbe516b90d"
+      }
+    },
+    "owner": "thefurkan"
   }
 }
