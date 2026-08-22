@@ -3,15 +3,17 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, Touchabl
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import * as Jellyseerr from '@/api/jellyseerr';
-import { MEDIA_STATUS, REQUEST_STATUS, type JellyseerrRequest } from '@/types';
+import { type JellyseerrRequest } from '@/types';
 import { colors, radius, spacing, type as t } from '@/theme';
 
 type EnrichedRequest = JellyseerrRequest & { details: Jellyseerr.MediaDetails | null };
 
 export default function RequestsScreen() {
   const router = useRouter();
+  const { t: tr } = useTranslation();
   const [items, setItems] = useState<EnrichedRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,7 +52,7 @@ export default function RequestsScreen() {
       contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }}
       ListEmptyComponent={
         <View style={styles.center}>
-          <Text style={styles.empty}>No requests yet</Text>
+          <Text style={styles.empty}>{tr('requests.empty')}</Text>
         </View>
       }
     />
@@ -58,8 +60,9 @@ export default function RequestsScreen() {
 }
 
 function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) {
-  const requestStatus = REQUEST_STATUS[r.status] ?? '?';
-  const mediaStatus = MEDIA_STATUS[r.media.status] ?? '?';
+  const { t } = useTranslation();
+  const requestStatus = t(`requests.status.${r.status}`, { defaultValue: '?' });
+  const mediaStatus = t(`requests.mediaStatus.${r.media.status}`, { defaultValue: '?' });
   const available = r.media.status === 5;
   const title = r.details?.title ?? `TMDB ${r.media.tmdbId}`;
   const year = r.details?.year;
@@ -90,7 +93,7 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
           <Text style={styles.title} numberOfLines={2}>{title}</Text>
           <View style={styles.pillRow}>
             <View style={[styles.pill, available && styles.pillAvailable]}>
-              <Text style={styles.pillText}>{available ? 'Available' : requestStatus}</Text>
+              <Text style={styles.pillText}>{available ? t('requests.mediaStatus.5') : requestStatus}</Text>
             </View>
             <View style={styles.pill}>
               <Text style={styles.pillText}>{mediaStatus}</Text>

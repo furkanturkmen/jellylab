@@ -213,7 +213,7 @@ export default function TmdbDetailScreen() {
           {details.overview ? (
             <View style={styles.card}>
               <Text style={styles.sectionLabel}>Overview</Text>
-              <Text style={styles.overview}>{details.overview}</Text>
+              <Text style={styles.overview}>{stripHtml(details.overview)}</Text>
             </View>
           ) : null}
 
@@ -318,6 +318,14 @@ function PrimaryAction({
       </Text>
     </TouchableOpacity>
   );
+}
+
+function stripHtml(s: string): string {
+  return s
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/?[^>]+>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 function DownloadRow({ d }: { d: Jellyseerr.DownloadStatus }) {

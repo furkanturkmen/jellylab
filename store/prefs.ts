@@ -9,6 +9,7 @@ export type Prefs = {
   autoplayNext: boolean;
   preferVLC: boolean;
   includeAdult: boolean;
+  uiLanguage: string; // 'system' or one of SUPPORTED_LANGS
 };
 
 export const DEFAULT_PREFS: Prefs = {
@@ -18,6 +19,7 @@ export const DEFAULT_PREFS: Prefs = {
   autoplayNext: true,
   preferVLC: false,
   includeAdult: false,
+  uiLanguage: 'system',
 };
 
 export async function loadPrefs(): Promise<Prefs> {

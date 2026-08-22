@@ -3,6 +3,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments }
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
+import '@/i18n';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAuth } from '@/hooks/useAuth';
@@ -64,6 +65,7 @@ function RootLayoutNav() {
         <Stack.Screen name="settings/subtitles" options={{ title: 'Subtitles' }} />
         <Stack.Screen name="settings/playback" options={{ title: 'Playback' }} />
         <Stack.Screen name="settings/content" options={{ title: 'Content' }} />
+        <Stack.Screen name="settings/language" options={{ title: 'Language' }} />
       </Stack>
     </ThemeProvider>
   );

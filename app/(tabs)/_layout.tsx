@@ -2,11 +2,13 @@ import { SymbolView } from 'expo-symbols';
 import { Tabs } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Platform, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '@/theme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 
 export default function TabLayout() {
+  const { t } = useTranslation();
   return (
     <Tabs
       screenOptions={{
@@ -30,7 +32,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Library',
+          title: t('tabs.library'),
           tabBarIcon: ({ color }) => (
             <SymbolView name={{ ios: 'play.rectangle.on.rectangle', android: 'video_library', web: 'video_library' }} tintColor={color} size={26} />
           ),
@@ -39,7 +41,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="search"
         options={{
-          title: 'Search',
+          title: t('tabs.search'),
           tabBarIcon: ({ color }) => (
             <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} tintColor={color} size={26} />
           ),
@@ -48,7 +50,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="requests"
         options={{
-          title: 'Requests',
+          title: t('tabs.requests'),
           tabBarIcon: ({ color }) => (
             <SymbolView name={{ ios: 'tray.and.arrow.down', android: 'inbox', web: 'inbox' }} tintColor={color} size={26} />
           ),

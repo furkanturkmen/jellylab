@@ -1,0 +1,181 @@
+{
+  "app": { "name": "jellylab" },
+  "common": {
+    "cancel": "Annuleer",
+    "save": "Opslaan",
+    "delete": "Verwijder",
+    "remove": "Verwijder",
+    "back": "Terug",
+    "close": "Sluit",
+    "signOut": "Afmelden",
+    "loading": "Laden…",
+    "failed": "Mislukt",
+    "unknownError": "Onbekende fout",
+    "notPermitted": "Niet toegestaan",
+    "on": "Aan",
+    "off": "Uit"
+  },
+  "login": {
+    "title": "jellylab",
+    "username": "Gebruikersnaam",
+    "usernamePlaceholder": "jellyfin gebruiker",
+    "password": "Wachtwoord",
+    "signIn": "Aanmelden",
+    "signingIn": "Bezig met aanmelden…",
+    "failed": "Aanmelden mislukt"
+  },
+  "tabs": {
+    "library": "Bibliotheek",
+    "search": "Zoeken",
+    "requests": "Aanvragen"
+  },
+  "library": {
+    "welcomeBack": "Welkom terug",
+    "featured": "Uitgelicht",
+    "continueWatching": "Verder kijken"
+  },
+  "search": {
+    "placeholder": "Zoek films en series",
+    "noResults": "Geen resultaten",
+    "sections": {
+      "trending": "Populair nu",
+      "popularMovies": "Populaire films",
+      "popularTv": "Populaire series",
+      "anime": "Anime",
+      "upcoming": "Binnenkort"
+    }
+  },
+  "requests": {
+    "empty": "Nog geen aanvragen",
+    "status": {
+      "1": "In behandeling",
+      "2": "Goedgekeurd",
+      "3": "Afgewezen"
+    },
+    "mediaStatus": {
+      "1": "Onbekend",
+      "2": "In behandeling",
+      "3": "Bezig",
+      "4": "Deels beschikbaar",
+      "5": "Beschikbaar"
+    }
+  },
+  "detail": {
+    "overview": "Overzicht",
+    "details": "Details",
+    "cast": "Cast",
+    "downloading": "Aan het downloaden",
+    "timeLeft": "Nog {{time}}",
+    "meta": {
+      "status": "Status",
+      "onJellyfin": "Op Jellyfin",
+      "notRequested": "Niet aangevraagd",
+      "released": "Uitgebracht",
+      "language": "Taal",
+      "seasons": "Seizoenen",
+      "episodes": "Afleveringen",
+      "countries": "Landen"
+    },
+    "actions": {
+      "play": "Afspelen",
+      "playOnJellyfin": "Afspelen op Jellyfin",
+      "available": "Beschikbaar op Jellyfin",
+      "processing": "Bezig…",
+      "partiallyAvailable": "Deels beschikbaar",
+      "requested": "Aangevraagd",
+      "request": "Aanvragen",
+      "requesting": "Aanvragen…",
+      "deleteRequest": "Aanvraag verwijderen",
+      "removeFromJellyfin": "Verwijder uit Jellyfin"
+    },
+    "confirmDeleteRequest": {
+      "title": "Aanvraag verwijderen?",
+      "message": "De aanvraag wordt geannuleerd; gedownloade bestanden blijven op Jellyfin staan."
+    },
+    "confirmRemove": {
+      "title": "Verwijderen uit Jellyfin?",
+      "message": "Hiermee verwijder je de media uit Jellyseerr en vraag je Radarr/Sonarr om het bestand te wissen. Onomkeerbaar."
+    },
+    "requestedToast": "{{title}} verstuurd naar Jellyseerr",
+    "castHint": "Cast: {{state}} · AirPlay-kiezer zit in de speler"
+  },
+  "profile": {
+    "title": "Profiel",
+    "tapToChange": "Tik om te wijzigen",
+    "displayName": "Schermnaam",
+    "saveName": "Naam opslaan",
+    "saving": "Opslaan…",
+    "nameSaved": "Naam bijgewerkt. Herstart de app om het overal te zien.",
+    "changePassword": "Wachtwoord wijzigen",
+    "currentPassword": "Huidig wachtwoord",
+    "newPassword": "Nieuw wachtwoord",
+    "confirmNewPassword": "Bevestig nieuw wachtwoord",
+    "updatePassword": "Wachtwoord bijwerken",
+    "updatingPassword": "Bijwerken…",
+    "passwordMismatchTitle": "Komen niet overeen",
+    "passwordMismatch": "Nieuwe wachtwoorden komen niet overeen.",
+    "passwordChanged": "Wachtwoord gewijzigd",
+    "preferences": "Voorkeuren",
+    "menu": {
+      "subtitles": "Ondertiteling",
+      "playback": "Afspelen",
+      "content": "Inhoud",
+      "language": "Taal"
+    },
+    "adminJellyfin": "Beheer — Jellyfin",
+    "adminJellyseerr": "Beheer — Jellyseerr",
+    "adminMenu": {
+      "dashboard": "Dashboard",
+      "metadataManager": "Metadata-beheer",
+      "users": "Gebruikers",
+      "plugins": "Plug-ins",
+      "serverLogs": "Serverlogs",
+      "requests": "Aanvragen",
+      "settings": "Instellingen"
+    },
+    "changePicture": "Profielfoto wijzigen",
+    "takePhoto": "Foto maken",
+    "chooseFromLibrary": "Kies uit bibliotheek",
+    "permissionDenied": "Toestemming geweigerd",
+    "uploadFailed": "Uploaden mislukt"
+  },
+  "settings": {
+    "subtitles": {
+      "title": "Ondertiteling",
+      "preferredLanguage": "Voorkeurstaal",
+      "textSize": "Tekstgrootte",
+      "size": { "sm": "Klein", "md": "Gemiddeld", "lg": "Groot" },
+      "note": "Voorkeuren worden op dit apparaat opgeslagen. Als de speler een passend ondertitelspoor vindt, wordt dat automatisch geselecteerd."
+    },
+    "playback": {
+      "title": "Afspelen",
+      "preferredAudioLanguage": "Voorkeurstaal audio",
+      "autoplayNext": "Volgende aflevering automatisch",
+      "autoplayNextDesc": "Speel automatisch de volgende aflevering als de huidige eindigt.",
+      "preferVLC": "Altijd VLC-speler gebruiken",
+      "preferVLCDesc": "Sla AVPlayer helemaal over. Iets langzamere start, werkt met alle codecs en containers.",
+      "note": "De speler kiest sowieso VLC als de container of codec niet AVPlayer-compatibel is. Met 'Altijd VLC' sla je AVPlayer ook over voor MP4/H.264 bestanden."
+    },
+    "content": {
+      "title": "Inhoud",
+      "showAdult": "Toon volwassen inhoud",
+      "showAdultDesc": "Toon 18+ films en series in Zoeken en Ontdekken. Alleen op dit apparaat. Je Jellyseerr-server moet volwassen inhoud globaal toestaan.",
+      "adminHeading": "Beheer — Jellyseerr-server",
+      "adminIntro": "De schakelaar hierboven verbergt alleen resultaten op dit toestel. Open Jellyseerr om het serverbreed of per gebruiker in te stellen:",
+      "globalSettings": "Algemene instellingen",
+      "perUserPermissions": "Rechten per gebruiker",
+      "nonAdminNote": "Voor niet-beheerders is alleen de schakelaar op dit toestel beschikbaar. Serverbrede instellingen staan in het beheer van Jellyseerr."
+    },
+    "language": {
+      "title": "Taal",
+      "systemDefault": "Volg apparaat",
+      "note": "Herstart de app om menutitels en systeemdialogen volledig bij te werken."
+    }
+  },
+  "languages": {
+    "en": "English",
+    "nl": "Nederlands",
+    "tr": "Türkçe",
+    "de": "Deutsch"
+  }
+}
