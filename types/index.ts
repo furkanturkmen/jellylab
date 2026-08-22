@@ -43,6 +43,7 @@ export type JellyseerrSearchResult = {
   overview?: string;
   releaseDate?: string;
   firstAirDate?: string;
+  adult?: boolean;
   mediaInfo?: {
     status: number;
     requests?: { id: number; status: number }[];

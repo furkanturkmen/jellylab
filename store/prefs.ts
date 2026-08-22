@@ -8,6 +8,7 @@ export type Prefs = {
   audioLanguage: string;
   autoplayNext: boolean;
   preferVLC: boolean;
+  includeAdult: boolean;
 };
 
 export const DEFAULT_PREFS: Prefs = {
@@ -16,6 +17,7 @@ export const DEFAULT_PREFS: Prefs = {
   audioLanguage: 'original',
   autoplayNext: true,
   preferVLC: false,
+  includeAdult: false,
 };
 
 export async function loadPrefs(): Promise<Prefs> {

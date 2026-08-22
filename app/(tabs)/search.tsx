@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 
 import * as Jellyseerr from '@/api/jellyseerr';
+import { loadPrefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyseerrSearchResult } from '@/types';
 
@@ -16,10 +17,16 @@ export default function SearchScreen() {
   const [busy, setBusy] = useState(false);
   const [discover, setDiscover] = useState<Section[]>([]);
   const [discoverLoading, setDiscoverLoading] = useState(true);
+  const [includeAdult, setIncludeAdult] = useState(false);
 
   useEffect(() => {
+    loadPrefs().then(p => setIncludeAdult(p.includeAdult));
     loadDiscover();
   }, []);
+
+  function filterAdult(list: JellyseerrSearchResult[]): JellyseerrSearchResult[] {
+    return includeAdult ? list : list.filter(i => !i.adult);
+  }
 
   async function loadDiscover() {
     setDiscoverLoading(true);
@@ -31,12 +38,15 @@ export default function SearchScreen() {
         Jellyseerr.discoverAnime().catch(() => []),
         Jellyseerr.discoverUpcomingMovies().catch(() => []),
       ]);
+      const prefs = await loadPrefs();
+      setIncludeAdult(prefs.includeAdult);
+      const applyAdult = (list: JellyseerrSearchResult[]) => prefs.includeAdult ? list : list.filter(i => !i.adult);
       setDiscover([
-        { title: 'Trending', items: trending },
-        { title: 'Popular Movies', items: movies },
-        { title: 'Popular TV', items: tv },
-        { title: 'Anime', items: anime },
-        { title: 'Upcoming', items: upcoming },
+        { title: 'Trending', items: applyAdult(trending) },
+        { title: 'Popular Movies', items: applyAdult(movies) },
+        { title: 'Popular TV', items: applyAdult(tv) },
+        { title: 'Anime', items: applyAdult(anime) },
+        { title: 'Upcoming', items: applyAdult(upcoming) },
       ].filter(s => s.items.length > 0));
     } finally {
       setDiscoverLoading(false);
@@ -51,7 +61,7 @@ export default function SearchScreen() {
     setBusy(true);
     try {
       const r = await Jellyseerr.search(query);
-      setResults(r.filter(x => x.mediaType !== 'person'));
+      setResults(filterAdult(r.filter(x => x.mediaType !== 'person')));
     } catch (e: any) {
       Alert.alert('Search failed', e?.message ?? 'Unknown error');
     } finally {
