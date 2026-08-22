@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 import * as Jellyseerr from '@/api/jellyseerr';
 import { colors, radius, spacing, type } from '@/theme';
@@ -11,34 +11,93 @@ import { MEDIA_STATUS } from '@/types';
 type MediaType = 'movie' | 'tv';
 
 export default function TmdbDetailScreen() {
+  const router = useRouter();
   const { type, id } = useLocalSearchParams<{ type: MediaType; id: string }>();
   const tmdbId = Number(id);
   const [details, setDetails] = useState<Jellyseerr.TmdbFullDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  const [requesting, setRequesting] = useState(false);
+  const [acting, setActing] = useState(false);
+
+  const refresh = useCallback(async () => {
+    const d = await Jellyseerr.getTmdbDetails(type, tmdbId);
+    setDetails(d);
+    setLoading(false);
+  }, [type, tmdbId]);
 
   useEffect(() => {
     if (!type || !tmdbId) return;
-    Jellyseerr.getTmdbDetails(type, tmdbId).then(d => {
-      setDetails(d);
-      setLoading(false);
-    });
-  }, [type, tmdbId]);
+    refresh();
+  }, [type, tmdbId, refresh]);
 
   async function onRequest() {
     if (!details) return;
-    setRequesting(true);
+    setActing(true);
     try {
       await Jellyseerr.createRequest(type, details.id, type === 'tv' ? 'all' : undefined);
-      Alert.alert('Requested', `${details.title} sent to Jellyseerr`);
-      // Refetch to update badge state
-      const refreshed = await Jellyseerr.getTmdbDetails(type, tmdbId);
-      setDetails(refreshed);
+      await refresh();
     } catch (e: any) {
       Alert.alert('Request failed', e?.response?.data?.message ?? e?.message ?? 'Unknown error');
     } finally {
-      setRequesting(false);
+      setActing(false);
     }
+  }
+
+  async function onDeleteRequest() {
+    if (!details?.mediaInfo?.requests?.length) return;
+    const reqId = details.mediaInfo.requests[0].id;
+    Alert.alert('Delete request?', 'The request will be cancelled but any downloaded files stay on Jellyfin.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setActing(true);
+          try {
+            await Jellyseerr.deleteRequest(reqId);
+            await refresh();
+          } catch (e: any) {
+            Alert.alert('Delete failed', e?.response?.data?.message ?? e?.message ?? 'Not permitted');
+          } finally {
+            setActing(false);
+          }
+        },
+      },
+    ]);
+  }
+
+  async function onRemoveFromJellyfin() {
+    if (!details?.mediaInfo?.id) return;
+    const mediaId = details.mediaInfo.id;
+    Alert.alert(
+      'Remove from Jellyfin?',
+      'This removes the media from Jellyseerr and asks Radarr/Sonarr to remove the file. Irreversible.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setActing(true);
+            try {
+              try {
+                await Jellyseerr.removeMediaFile(mediaId);
+              } catch {}
+              await Jellyseerr.deleteMedia(mediaId);
+              await refresh();
+            } catch (e: any) {
+              Alert.alert('Remove failed', e?.response?.data?.message ?? e?.message ?? 'Not permitted');
+            } finally {
+              setActing(false);
+            }
+          },
+        },
+      ],
+    );
+  }
+
+  function onPlayInJellyfin() {
+    if (!details?.mediaInfo?.jellyfinMediaId) return;
+    router.push(`/item/${details.mediaInfo.jellyfinMediaId}`);
   }
 
   if (loading) {
@@ -64,21 +123,13 @@ export default function TmdbDetailScreen() {
   const poster = details.posterPath ? `https://image.tmdb.org/t/p/w500${details.posterPath}` : null;
   const rating = details.voteAverage ? Math.round(details.voteAverage * 10) : null;
 
-  const available = details.mediaInfo?.status === 5;
-  const partiallyAvailable = details.mediaInfo?.status === 4;
+  const mediaStatus = details.mediaInfo?.status;
+  const available = mediaStatus === 5;
+  const partiallyAvailable = mediaStatus === 4;
+  const processing = mediaStatus === 3;
   const requested = (details.mediaInfo?.requests?.length ?? 0) > 0;
-
-  const buttonLabel = requesting
-    ? 'Requesting…'
-    : available
-      ? 'Available on Jellyfin'
-      : partiallyAvailable
-        ? 'Partially Available'
-        : requested
-          ? 'Requested'
-          : 'Request';
-
-  const buttonDisabled = requesting || available || partiallyAvailable || requested;
+  const jellyfinId = details.mediaInfo?.jellyfinMediaId;
+  const activeDownloads = details.mediaInfo?.downloadStatus ?? [];
 
   return (
     <View style={styles.root}>
@@ -116,16 +167,40 @@ export default function TmdbDetailScreen() {
             </View>
           </View>
 
-          <TouchableOpacity
-            style={[styles.requestBtn, buttonDisabled && styles.requestBtnDisabled]}
-            onPress={onRequest}
-            disabled={buttonDisabled}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.requestBtnText, buttonDisabled && styles.requestBtnTextDisabled]}>
-              {buttonLabel}
-            </Text>
-          </TouchableOpacity>
+          <PrimaryAction
+            available={available}
+            partiallyAvailable={partiallyAvailable}
+            processing={processing}
+            requested={requested}
+            acting={acting}
+            hasJellyfinId={!!jellyfinId}
+            onPlay={onPlayInJellyfin}
+            onRequest={onRequest}
+          />
+
+          {processing && activeDownloads.length > 0 ? (
+            <View style={styles.card}>
+              <Text style={styles.sectionLabel}>Downloading</Text>
+              {activeDownloads.map((d, i) => (
+                <DownloadRow key={d.downloadId ?? i} d={d} />
+              ))}
+            </View>
+          ) : null}
+
+          {(requested || available || partiallyAvailable) ? (
+            <View style={styles.adminRow}>
+              {requested ? (
+                <TouchableOpacity style={styles.adminBtn} onPress={onDeleteRequest} disabled={acting} activeOpacity={0.85}>
+                  <Text style={styles.adminBtnText}>Delete Request</Text>
+                </TouchableOpacity>
+              ) : null}
+              {(available || partiallyAvailable) && details.mediaInfo?.id ? (
+                <TouchableOpacity style={styles.adminBtn} onPress={onRemoveFromJellyfin} disabled={acting} activeOpacity={0.85}>
+                  <Text style={styles.adminBtnText}>Remove from Jellyfin</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : null}
 
           {details.genres && details.genres.length > 0 ? (
             <View style={styles.genreRow}>
@@ -145,11 +220,7 @@ export default function TmdbDetailScreen() {
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>Details</Text>
             {details.status ? <MetaRow k="Status" v={details.status} /> : null}
-            {details.mediaInfo?.status ? (
-              <MetaRow k="On Jellyfin" v={MEDIA_STATUS[details.mediaInfo.status] ?? '—'} />
-            ) : (
-              <MetaRow k="On Jellyfin" v="Not requested" />
-            )}
+            <MetaRow k="On Jellyfin" v={mediaStatus ? (MEDIA_STATUS[mediaStatus] ?? '—') : 'Not requested'} />
             {details.releaseDate ? <MetaRow k="Released" v={details.releaseDate} /> : null}
             {details.originalLanguage ? <MetaRow k="Language" v={details.originalLanguage.toUpperCase()} /> : null}
             {details.numberOfSeasons != null ? <MetaRow k="Seasons" v={String(details.numberOfSeasons)} /> : null}
@@ -184,6 +255,91 @@ export default function TmdbDetailScreen() {
           ) : null}
         </View>
       </ScrollView>
+    </View>
+  );
+}
+
+function PrimaryAction({
+  available, partiallyAvailable, processing, requested, acting, hasJellyfinId, onPlay, onRequest,
+}: {
+  available: boolean;
+  partiallyAvailable: boolean;
+  processing: boolean;
+  requested: boolean;
+  acting: boolean;
+  hasJellyfinId: boolean;
+  onPlay: () => void;
+  onRequest: () => void;
+}) {
+  if (available && hasJellyfinId) {
+    return (
+      <TouchableOpacity style={styles.primaryBtn} onPress={onPlay} activeOpacity={0.85}>
+        <Text style={styles.primaryBtnText}>▶  Play on Jellyfin</Text>
+      </TouchableOpacity>
+    );
+  }
+  if (available) {
+    return (
+      <View style={[styles.primaryBtn, styles.primaryBtnDisabled]}>
+        <Text style={[styles.primaryBtnText, styles.primaryBtnTextDisabled]}>Available on Jellyfin</Text>
+      </View>
+    );
+  }
+  if (processing) {
+    return (
+      <View style={[styles.primaryBtn, styles.primaryBtnDisabled]}>
+        <Text style={[styles.primaryBtnText, styles.primaryBtnTextDisabled]}>Processing…</Text>
+      </View>
+    );
+  }
+  if (partiallyAvailable) {
+    return (
+      <View style={[styles.primaryBtn, styles.primaryBtnDisabled]}>
+        <Text style={[styles.primaryBtnText, styles.primaryBtnTextDisabled]}>Partially Available</Text>
+      </View>
+    );
+  }
+  if (requested) {
+    return (
+      <View style={[styles.primaryBtn, styles.primaryBtnDisabled]}>
+        <Text style={[styles.primaryBtnText, styles.primaryBtnTextDisabled]}>Requested</Text>
+      </View>
+    );
+  }
+  return (
+    <TouchableOpacity
+      style={[styles.primaryBtn, acting && styles.primaryBtnDisabled]}
+      onPress={onRequest}
+      disabled={acting}
+      activeOpacity={0.85}
+    >
+      <Text style={[styles.primaryBtnText, acting && styles.primaryBtnTextDisabled]}>
+        {acting ? 'Requesting…' : 'Request'}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+function DownloadRow({ d }: { d: Jellyseerr.DownloadStatus }) {
+  const size = d.size ?? 0;
+  const left = d.sizeLeft ?? 0;
+  const progress = size > 0 ? Math.max(0, Math.min(1, (size - left) / size)) : 0;
+  const pct = Math.round(progress * 100);
+  const label =
+    d.episode
+      ? `S${d.episode.seasonNumber} · E${d.episode.episodeNumber}`
+      : d.title ?? 'Downloading';
+
+  return (
+    <View style={styles.downloadRow}>
+      <View style={styles.downloadHeader}>
+        <Text style={styles.downloadLabel} numberOfLines={1}>{label}</Text>
+        <Text style={styles.downloadPct}>{pct}%</Text>
+      </View>
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${pct}%` }]} />
+      </View>
+      {d.timeLeft ? <Text style={styles.downloadEta}>{d.timeLeft} left</Text> : null}
     </View>
   );
 }
@@ -240,7 +396,7 @@ const styles = StyleSheet.create({
   },
   pillText: { color: colors.text, ...type.caption, textTransform: 'uppercase' },
 
-  requestBtn: {
+  primaryBtn: {
     marginTop: spacing.xl,
     height: 52,
     borderRadius: radius.pill,
@@ -248,9 +404,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  requestBtnDisabled: { backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  requestBtnText: { color: colors.accentContrast, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 },
-  requestBtnTextDisabled: { color: colors.textMuted },
+  primaryBtnDisabled: { backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  primaryBtnText: { color: colors.accentContrast, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 },
+  primaryBtnTextDisabled: { color: colors.textMuted },
+
+  adminRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md, flexWrap: 'wrap' },
+  adminBtn: {
+    flex: 1,
+    minHeight: 44,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: 'transparent',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 69, 58, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  adminBtnText: { color: 'rgba(255, 99, 99, 1)', ...type.small, fontWeight: '600' },
 
   genreRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.lg },
 
@@ -264,6 +434,19 @@ const styles = StyleSheet.create({
   },
   sectionLabel: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.sm },
   overview: { ...type.body, color: colors.text, lineHeight: 22 },
+
+  downloadRow: { marginTop: spacing.md, gap: spacing.xs },
+  downloadHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  downloadLabel: { ...type.small, color: colors.text, flex: 1, marginRight: spacing.sm },
+  downloadPct: { ...type.small, color: colors.text, fontWeight: '600' },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  progressFill: { height: '100%', backgroundColor: colors.text },
+  downloadEta: { ...type.caption, color: colors.textMuted, marginTop: spacing.xs },
 
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   metaKey: { ...type.small, color: colors.textMuted },
