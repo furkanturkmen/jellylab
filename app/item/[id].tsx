@@ -349,16 +349,21 @@ function Player({
   );
 }
 
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
 function NativePlayer({ url, title, onError, onExit }: { url: string; title: string; onError: () => void; onExit: () => void }) {
   const player = useVideoPlayer(url, p => {
     p.play();
   });
   const [tracksOpen, setTracksOpen] = useState(false);
+  const [speedOpen, setSpeedOpen] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [playing, setPlaying] = useState(true);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
   const [scrubbing, setScrubbing] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(false);
+  const [speed, setSpeed] = useState(1);
 
   useEffect(() => {
     const sub = player.addListener('statusChange', ({ status }) => {
@@ -412,6 +417,33 @@ function NativePlayer({ url, title, onError, onExit }: { url: string; title: str
     } catch {}
   }
 
+  async function toggleFullscreen() {
+    setControlsVisible(true);
+    try {
+      if (isLandscape) {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+        setIsLandscape(false);
+      } else {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        setIsLandscape(true);
+      }
+    } catch {}
+  }
+
+  function togglePip() {
+    try {
+      (player as any).startPictureInPicture?.();
+    } catch {}
+  }
+
+  function changeSpeed(rate: number) {
+    try {
+      player.playbackRate = rate;
+      setSpeed(rate);
+    } catch {}
+    setSpeedOpen(false);
+  }
+
   return (
     <>
       <Pressable style={{ flex: 1 }} onPress={() => setControlsVisible(v => !v)}>
@@ -438,6 +470,12 @@ function NativePlayer({ url, title, onError, onExit }: { url: string; title: str
                 <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }} tintColor={colors.text} size={22} />
               </TouchableOpacity>
               <Text style={styles.overlayTitle} numberOfLines={1}>{title}</Text>
+              <TouchableOpacity style={styles.overlayIconBtn} onPress={togglePip} activeOpacity={0.7}>
+                <SymbolView name={{ ios: 'pip.enter', android: 'picture_in_picture_alt', web: 'picture_in_picture_alt' }} tintColor={colors.text} size={22} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setSpeedOpen(true)} activeOpacity={0.7}>
+                <Text style={styles.speedLabel}>{speed}x</Text>
+              </TouchableOpacity>
               <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setTracksOpen(true)} activeOpacity={0.7}>
                 <SymbolView name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }} tintColor={colors.text} size={22} />
               </TouchableOpacity>
@@ -478,6 +516,17 @@ function NativePlayer({ url, title, onError, onExit }: { url: string; title: str
                 />
               </View>
               <Text style={styles.timeText}>-{formatTime(Math.max(0, duration - position))}</Text>
+              <TouchableOpacity style={styles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
+                <SymbolView
+                  name={{
+                    ios: isLandscape ? 'arrow.down.right.and.arrow.up.left' : 'arrow.up.left.and.arrow.down.right',
+                    android: 'fullscreen',
+                    web: 'fullscreen',
+                  }}
+                  tintColor={colors.text}
+                  size={22}
+                />
+              </TouchableOpacity>
             </View>
           </View>
         ) : null}
@@ -486,6 +535,12 @@ function NativePlayer({ url, title, onError, onExit }: { url: string; title: str
         visible={tracksOpen}
         player={player}
         onClose={() => setTracksOpen(false)}
+      />
+      <SpeedPickerModal
+        visible={speedOpen}
+        current={speed}
+        onClose={() => setSpeedOpen(false)}
+        onPick={changeSpeed}
       />
     </>
   );
@@ -579,6 +634,34 @@ function TrackPickerModal({
             ))
           )}
 
+          <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
+            <Text style={styles.modalCloseText}>Close</Text>
+          </TouchableOpacity>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function SpeedPickerModal({
+  visible, current, onClose, onPick,
+}: {
+  visible: boolean; current: number; onClose: () => void; onPick: (r: number) => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable style={styles.modalSheet} onPress={() => {}}>
+          <View style={styles.modalHandle} />
+          <Text style={styles.modalTitle}>Playback speed</Text>
+          {SPEEDS.map(rate => (
+            <TrackRow
+              key={rate}
+              label={`${rate}x${rate === 1 ? ' (Normal)' : ''}`}
+              selected={Math.abs(current - rate) < 0.01}
+              onPress={() => onPick(rate)}
+            />
+          ))}
           <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
             <Text style={styles.modalCloseText}>Close</Text>
           </TouchableOpacity>
@@ -762,6 +845,7 @@ const styles = StyleSheet.create({
   },
   overlayIconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   overlayTitle: { ...type.bodyStrong, color: colors.text, flex: 1 },
+  speedLabel: { color: colors.text, ...type.small, fontWeight: '700' },
   overlayCenter: {
     flexDirection: 'row',
     alignItems: 'center',
