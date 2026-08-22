@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { VLCPlayer } from 'react-native-vlc-media-player';
-import GoogleCast, { useCastState, useRemoteMediaClient } from 'react-native-google-cast';
+import GoogleCast, { CastButton, useCastState, useRemoteMediaClient } from 'react-native-google-cast';
 import { SymbolView } from 'expo-symbols';
 
 import * as Jellyfin from '@/api/jellyfin';
@@ -154,22 +154,16 @@ export default function ItemScreen() {
             <TouchableOpacity style={styles.playBtn} onPress={play} activeOpacity={0.85}>
               <Text style={styles.playBtnText}>▶  Play</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.castChip}
-              onPress={async () => {
-                try {
-                  await GoogleCast.getDiscoveryManager().startDiscovery();
-                  await GoogleCast.showCastDialog();
-                } catch {}
-              }}
-              activeOpacity={0.75}
-            >
+            <View style={styles.castChip}>
               <SymbolView
                 name={{ ios: 'tv.badge.wifi', android: 'cast', web: 'cast' }}
                 tintColor={castState === 'connected' ? colors.pink : colors.text}
                 size={26}
+                style={StyleSheet.absoluteFill}
+                resizeMode="center"
               />
-            </TouchableOpacity>
+              <CastButton style={styles.castHitTarget} />
+            </View>
           </View>
           <Text style={styles.castHint}>
             Cast: {castState ?? 'sdk-not-ready'} · AirPlay picker is inside the player
@@ -297,6 +291,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   castIcon: { width: 28, height: 28, tintColor: colors.text },
+  castHitTarget: { position: 'absolute', width: 52, height: 52, opacity: 0.01 },
   castHint: { ...type.caption, color: colors.textMuted, marginTop: spacing.sm },
   overviewCard: {
     marginTop: spacing.xl,
