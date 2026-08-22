@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 
 import * as Jellyseerr from '@/api/jellyseerr';
 import { colors, radius, spacing, type } from '@/theme';
@@ -9,6 +10,7 @@ import type { JellyseerrSearchResult } from '@/types';
 type Section = { title: string; items: JellyseerrSearchResult[] };
 
 export default function SearchScreen() {
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<JellyseerrSearchResult[]>([]);
   const [busy, setBusy] = useState(false);
@@ -57,13 +59,8 @@ export default function SearchScreen() {
     }
   }
 
-  async function request(item: JellyseerrSearchResult) {
-    try {
-      await Jellyseerr.createRequest(item.mediaType as 'movie' | 'tv', item.id, item.mediaType === 'tv' ? 'all' : undefined);
-      Alert.alert('Requested', `${item.title ?? item.name} sent to Jellyseerr`);
-    } catch (e: any) {
-      Alert.alert('Request failed', e?.response?.data?.message ?? e?.message ?? 'Unknown error');
-    }
+  function openDetail(item: JellyseerrSearchResult) {
+    router.push(`/tmdb/${item.mediaType}/${item.id}`);
   }
 
   const showingSearch = query.trim().length > 0;
@@ -92,9 +89,10 @@ export default function SearchScreen() {
           <FlatList
             data={results}
             keyExtractor={r => `${r.mediaType}-${r.id}`}
-            renderItem={({ item }) => <ResultRow item={item} onRequest={() => request(item)} />}
+            renderItem={({ item }) => <ResultRow item={item} onOpen={() => openDetail(item)} />}
             ItemSeparatorComponent={() => <View style={styles.sep} />}
             contentContainerStyle={{ paddingBottom: 120 }}
+            keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               <View style={styles.center}>
                 <Text style={styles.emptyText}>No results</Text>
@@ -107,7 +105,7 @@ export default function SearchScreen() {
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 120, paddingTop: spacing.sm }} showsVerticalScrollIndicator={false}>
           {discover.map(sec => (
-            <DiscoverRow key={sec.title} section={sec} onRequest={request} />
+            <DiscoverRow key={sec.title} section={sec} onOpen={openDetail} />
           ))}
         </ScrollView>
       )}
@@ -115,7 +113,7 @@ export default function SearchScreen() {
   );
 }
 
-function DiscoverRow({ section, onRequest }: { section: Section; onRequest: (item: JellyseerrSearchResult) => void }) {
+function DiscoverRow({ section, onOpen }: { section: Section; onOpen: (item: JellyseerrSearchResult) => void }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -127,20 +125,20 @@ function DiscoverRow({ section, onRequest }: { section: Section; onRequest: (ite
         keyExtractor={i => `${section.title}-${i.mediaType}-${i.id}`}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.md }}
-        renderItem={({ item }) => <DiscoverCard item={item} onRequest={() => onRequest(item)} />}
+        renderItem={({ item }) => <DiscoverCard item={item} onOpen={() => onOpen(item)} />}
       />
     </View>
   );
 }
 
-function DiscoverCard({ item, onRequest }: { item: JellyseerrSearchResult; onRequest: () => void }) {
+function DiscoverCard({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: () => void }) {
   const title = item.title ?? item.name ?? '';
   const poster = item.posterPath ? `https://image.tmdb.org/t/p/w300${item.posterPath}` : null;
   const available = item.mediaInfo?.status === 5;
   const requested = (item.mediaInfo?.requests?.length ?? 0) > 0;
 
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={onRequest} disabled={available}>
+    <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={onOpen}>
       <View style={styles.posterWrap}>
         {poster ? (
           <Image source={{ uri: poster }} style={styles.poster} contentFit="cover" transition={200} />
@@ -148,9 +146,9 @@ function DiscoverCard({ item, onRequest }: { item: JellyseerrSearchResult; onReq
           <View style={[styles.poster, styles.posterEmpty]} />
         )}
         {available ? (
-          <View style={[styles.badgeOverlay, styles.badgeAvailable]}><Text style={styles.badgeOverlayText}>Available</Text></View>
+          <View style={styles.badgeOverlay}><Text style={styles.badgeOverlayText}>Available</Text></View>
         ) : requested ? (
-          <View style={[styles.badgeOverlay, styles.badgePending]}><Text style={styles.badgeOverlayText}>Requested</Text></View>
+          <View style={styles.badgeOverlay}><Text style={styles.badgeOverlayText}>Requested</Text></View>
         ) : null}
       </View>
       <Text style={styles.cardTitle} numberOfLines={1}>{title}</Text>
@@ -159,7 +157,7 @@ function DiscoverCard({ item, onRequest }: { item: JellyseerrSearchResult; onReq
   );
 }
 
-function ResultRow({ item, onRequest }: { item: JellyseerrSearchResult; onRequest: () => void }) {
+function ResultRow({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: () => void }) {
   const title = item.title ?? item.name ?? '';
   const year = (item.releaseDate ?? item.firstAirDate ?? '').slice(0, 4);
   const poster = item.posterPath ? `https://image.tmdb.org/t/p/w300${item.posterPath}` : null;
@@ -167,7 +165,7 @@ function ResultRow({ item, onRequest }: { item: JellyseerrSearchResult; onReques
   const requested = (item.mediaInfo?.requests?.length ?? 0) > 0;
 
   return (
-    <View style={styles.row}>
+    <TouchableOpacity style={styles.row} onPress={onOpen} activeOpacity={0.7}>
       {poster ? (
         <Image source={{ uri: poster }} style={styles.thumb} contentFit="cover" transition={150} />
       ) : (
@@ -179,15 +177,11 @@ function ResultRow({ item, onRequest }: { item: JellyseerrSearchResult; onReques
         {item.overview ? <Text style={styles.rowOverview} numberOfLines={2}>{item.overview}</Text> : null}
       </View>
       {available ? (
-        <View style={[styles.badge, styles.badgeAvailable]}><Text style={styles.badgeText}>Available</Text></View>
+        <View style={styles.badge}><Text style={styles.badgeText}>Available</Text></View>
       ) : requested ? (
-        <View style={[styles.badge, styles.badgePending]}><Text style={styles.badgeText}>Requested</Text></View>
-      ) : (
-        <TouchableOpacity style={styles.requestBtn} onPress={onRequest} activeOpacity={0.8}>
-          <Text style={styles.requestBtnText}>Request</Text>
-        </TouchableOpacity>
-      )}
-    </View>
+        <View style={styles.badge}><Text style={styles.badgeText}>Requested</Text></View>
+      ) : null}
+    </TouchableOpacity>
   );
 }
 
@@ -242,10 +236,6 @@ const styles = StyleSheet.create({
   rowOverview: { ...type.small, color: colors.textMuted, marginTop: spacing.xs },
   sep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: spacing.lg + 60 + spacing.md },
 
-  requestBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, backgroundColor: colors.accent, borderRadius: radius.pill },
-  requestBtnText: { color: colors.accentContrast, fontSize: 13, fontWeight: '600' },
-  badge: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: radius.pill, borderWidth: StyleSheet.hairlineWidth },
-  badgeAvailable: { borderColor: colors.border, backgroundColor: colors.surface },
-  badgePending: { borderColor: colors.border, backgroundColor: colors.surface },
+  badge: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: radius.pill, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, backgroundColor: colors.surface },
   badgeText: { color: colors.text, ...type.caption, textTransform: 'uppercase' },
 });
