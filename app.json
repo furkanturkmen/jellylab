@@ -8,7 +8,20 @@
     "scheme": "jellylab",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.furkanturkmen.jellylab",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSExceptionDomains": {
+            "homelab.internal": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": true,
+              "NSExceptionRequiresForwardSecrecy": false
+            }
+          }
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +30,9 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "package": "com.furkanturkmen.jellylab",
+      "predictiveBackGestureEnabled": false,
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",
@@ -32,6 +47,16 @@
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
+        }
+      ],
+      "expo-secure-store",
+      "expo-video",
+      "expo-image",
+      [
+        "react-native-vlc-media-player",
+        {
+          "ios": { "includeVLCKit": true },
+          "android": { "legacyJetifier": false }
         }
       ]
     ],
