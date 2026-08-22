@@ -2,12 +2,14 @@ import * as SecureStore from 'expo-secure-store';
 
 const KEY = 'user_prefs';
 
+export type PlayerEngine = 'auto' | 'native' | 'vlc';
+
 export type Prefs = {
   subtitleLanguage: string; // e.g. 'eng', 'nld', 'off'
   subtitleSize: 'sm' | 'md' | 'lg';
   audioLanguage: string;
   autoplayNext: boolean;
-  preferVLC: boolean;
+  preferredEngine: PlayerEngine;
   includeAdult: boolean;
   uiLanguage: string; // 'system' or one of SUPPORTED_LANGS
 };
@@ -17,7 +19,7 @@ export const DEFAULT_PREFS: Prefs = {
   subtitleSize: 'md',
   audioLanguage: 'original',
   autoplayNext: true,
-  preferVLC: false,
+  preferredEngine: 'auto',
   includeAdult: false,
   uiLanguage: 'system',
 };

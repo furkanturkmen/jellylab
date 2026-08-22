@@ -50,7 +50,12 @@ export default function ItemScreen() {
       loadPrefs(),
     ]);
     const decided = decideEngine(sources);
-    const engine = prefs.preferVLC ? 'vlc' : decided;
+    const engine: Engine =
+      prefs.preferredEngine === 'native'
+        ? 'native'
+        : prefs.preferredEngine === 'vlc'
+          ? 'vlc'
+          : decided;
     const url = Jellyfin.streamUrl(item.Id, state.auth.accessToken, deviceId);
 
     if (castClient) {
@@ -86,6 +91,7 @@ export default function ItemScreen() {
     return (
       <Player
         config={playback}
+        title={item.Name}
         onExit={() => setPlayback(null)}
         onNativeError={() => setPlayback(p => (p ? { ...p, engine: 'vlc' } : p))}
       />
@@ -291,10 +297,12 @@ function CastPickerModal({ visible, onClose }: { visible: boolean; onClose: () =
 
 function Player({
   config,
+  title,
   onExit,
   onNativeError,
 }: {
   config: PlaybackConfig;
+  title: string;
   onExit: () => void;
   onNativeError: () => void;
 }) {
@@ -317,30 +325,37 @@ function Player({
   return (
     <View style={styles.playerContainer}>
       {config.engine === 'native' ? (
-        <NativePlayer url={config.url} onError={onNativeError} />
+        <NativePlayer url={config.url} title={title} onError={onNativeError} onExit={onExit} />
       ) : (
-        <VLCPlayer
-          style={{ flex: 1 }}
-          source={{ uri: config.url }}
-          autoplay
-          resizeMode="contain"
-        />
+        <>
+          <VLCPlayer
+            style={{ flex: 1 }}
+            source={{ uri: config.url }}
+            autoplay
+            resizeMode="contain"
+          />
+          <TouchableOpacity style={styles.exitBtn} onPress={onExit} activeOpacity={0.8}>
+            <Text style={styles.exitBtnText}>Close</Text>
+          </TouchableOpacity>
+          <View style={styles.engineBadge}>
+            <Text style={styles.engineBadgeText}>{config.engine.toUpperCase()}</Text>
+          </View>
+        </>
       )}
-      <TouchableOpacity style={styles.exitBtn} onPress={onExit} activeOpacity={0.8}>
-        <Text style={styles.exitBtnText}>Close</Text>
-      </TouchableOpacity>
-      <View style={styles.engineBadge}>
-        <Text style={styles.engineBadgeText}>{config.engine.toUpperCase()}</Text>
-      </View>
     </View>
   );
 }
 
-function NativePlayer({ url, onError }: { url: string; onError: () => void }) {
+function NativePlayer({ url, title, onError, onExit }: { url: string; title: string; onError: () => void; onExit: () => void }) {
   const player = useVideoPlayer(url, p => {
     p.play();
   });
   const [tracksOpen, setTracksOpen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [playing, setPlaying] = useState(true);
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [scrubbing, setScrubbing] = useState(false);
 
   useEffect(() => {
     const sub = player.addListener('statusChange', ({ status }) => {
@@ -349,22 +364,121 @@ function NativePlayer({ url, onError }: { url: string; onError: () => void }) {
     return () => sub.remove();
   }, [player, onError]);
 
+  useEffect(() => {
+    const sub = player.addListener('playingChange', ({ isPlaying }) => setPlaying(isPlaying));
+    return () => sub.remove();
+  }, [player]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (scrubbing) return;
+      try {
+        setPosition(player.currentTime ?? 0);
+        setDuration(player.duration ?? 0);
+      } catch {}
+    }, 500);
+    return () => clearInterval(id);
+  }, [player, scrubbing]);
+
+  // Auto-hide controls after 4s when playing
+  useEffect(() => {
+    if (!controlsVisible || !playing) return;
+    const t = setTimeout(() => setControlsVisible(false), 4000);
+    return () => clearTimeout(t);
+  }, [controlsVisible, playing, position]);
+
+  function togglePlay() {
+    if (playing) player.pause();
+    else player.play();
+    setControlsVisible(true);
+  }
+
+  function skip(seconds: number) {
+    try {
+      const next = Math.max(0, Math.min(duration, (player.currentTime ?? 0) + seconds));
+      player.currentTime = next;
+      setPosition(next);
+      setControlsVisible(true);
+    } catch {}
+  }
+
+  function seekTo(t: number) {
+    try {
+      player.currentTime = t;
+      setPosition(t);
+    } catch {}
+  }
+
   return (
     <>
-      <VideoView
-        player={player}
-        style={{ flex: 1 }}
-        fullscreenOptions={{ enable: true, autoExitOnRotate: false }}
-        allowsPictureInPicture
-        nativeControls
-      />
-      <TouchableOpacity style={styles.subsBtn} onPress={() => setTracksOpen(true)} activeOpacity={0.8}>
-        <SymbolView
-          name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }}
-          tintColor={colors.text}
-          size={22}
+      <Pressable style={{ flex: 1 }} onPress={() => setControlsVisible(v => !v)}>
+        <VideoView
+          player={player}
+          style={{ flex: 1 }}
+          fullscreenOptions={{ enable: true, autoExitOnRotate: false }}
+          allowsPictureInPicture
+          nativeControls={false}
+          contentFit="contain"
         />
-      </TouchableOpacity>
+        {controlsVisible ? (
+          <View style={styles.overlay} pointerEvents="box-none">
+            <LinearGradient
+              colors={['rgba(0,0,0,0.7)', 'transparent', 'rgba(0,0,0,0.8)']}
+              locations={[0, 0.4, 1]}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+
+            {/* Top bar */}
+            <View style={styles.overlayTop} pointerEvents="box-none">
+              <TouchableOpacity style={styles.overlayIconBtn} onPress={onExit} activeOpacity={0.7}>
+                <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }} tintColor={colors.text} size={22} />
+              </TouchableOpacity>
+              <Text style={styles.overlayTitle} numberOfLines={1}>{title}</Text>
+              <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setTracksOpen(true)} activeOpacity={0.7}>
+                <SymbolView name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }} tintColor={colors.text} size={22} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Center controls */}
+            <View style={styles.overlayCenter} pointerEvents="box-none">
+              <TouchableOpacity style={styles.skipBtn} onPress={() => skip(-10)} activeOpacity={0.7}>
+                <SymbolView name={{ ios: 'gobackward.10', android: 'replay_10', web: 'replay_10' }} tintColor={colors.text} size={38} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.playPauseBtn} onPress={togglePlay} activeOpacity={0.7}>
+                <SymbolView
+                  name={{ ios: playing ? 'pause.fill' : 'play.fill', android: 'play_arrow', web: 'play_arrow' }}
+                  tintColor={colors.text}
+                  size={44}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.skipBtn} onPress={() => skip(10)} activeOpacity={0.7}>
+                <SymbolView name={{ ios: 'goforward.10', android: 'forward_10', web: 'forward_10' }} tintColor={colors.text} size={38} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Bottom scrubber */}
+            <View style={styles.overlayBottom} pointerEvents="box-none">
+              <Text style={styles.timeText}>{formatTime(position)}</Text>
+              <View style={styles.scrubberTrack}>
+                <View style={[styles.scrubberFill, { width: `${duration > 0 ? (position / duration) * 100 : 0}%` }]} />
+                <Pressable
+                  style={StyleSheet.absoluteFill}
+                  onPress={(e) => {
+                    const width = e.currentTarget as any;
+                    // Fallback: seek by tap position using event.nativeEvent
+                    const x = (e.nativeEvent as any).locationX ?? 0;
+                    const w = (e.nativeEvent as any).layout?.width ?? 300;
+                    const ratio = Math.max(0, Math.min(1, x / w));
+                    seekTo(ratio * duration);
+                  }}
+                />
+              </View>
+              <Text style={styles.timeText}>-{formatTime(Math.max(0, duration - position))}</Text>
+            </View>
+          </View>
+        ) : null}
+      </Pressable>
       <TrackPickerModal
         visible={tracksOpen}
         player={player}
@@ -372,6 +486,17 @@ function NativePlayer({ url, onError }: { url: string; onError: () => void }) {
       />
     </>
   );
+}
+
+function formatTime(seconds: number): string {
+  if (!seconds || !isFinite(seconds)) return '0:00';
+  const total = Math.floor(seconds);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const mm = m.toString().padStart(h > 0 ? 2 : 1, '0');
+  const ss = s.toString().padStart(2, '0');
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
 function TrackPickerModal({
@@ -623,4 +748,46 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
   },
+
+  overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'space-between' },
+  overlayTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xxl,
+    gap: spacing.md,
+  },
+  overlayIconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  overlayTitle: { ...type.bodyStrong, color: colors.text, flex: 1 },
+  overlayCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 40,
+  },
+  playPauseBtn: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  skipBtn: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
+  overlayBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxl,
+    gap: spacing.md,
+  },
+  timeText: { ...type.small, color: colors.text, fontVariant: ['tabular-nums'] as any },
+  scrubberTrack: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    overflow: 'hidden',
+  },
+  scrubberFill: { height: '100%', backgroundColor: colors.text },
 });

@@ -49,24 +49,38 @@ export default function PlaybackSettings() {
         </View>
 
         <View style={styles.card}>
+          <Text style={styles.cardLabel}>Player engine</Text>
+          <OptionRow
+            label="Auto (recommended)"
+            selected={prefs.preferredEngine === 'auto'}
+            onPress={() => update('preferredEngine', 'auto')}
+          />
+          <OptionRow
+            label="AVPlayer (native)"
+            selected={prefs.preferredEngine === 'native'}
+            onPress={() => update('preferredEngine', 'native')}
+          />
+          <OptionRow
+            label="VLC"
+            selected={prefs.preferredEngine === 'vlc'}
+            onPress={() => update('preferredEngine', 'vlc')}
+          />
+        </View>
+
+        <View style={styles.card}>
           <ToggleRow
             label="Autoplay next episode"
             description="Automatically play the next episode of a TV show when the current one ends."
             value={prefs.autoplayNext}
             onValueChange={v => update('autoplayNext', v)}
           />
-          <ToggleRow
-            label="Always use VLC player"
-            description="Skip AVPlayer entirely. Slower start, works with every codec and container."
-            value={prefs.preferVLC}
-            onValueChange={v => update('preferVLC', v)}
-          />
         </View>
 
         <Text style={styles.note}>
-          The player still auto-selects VLC when a file's container or codec is not
-          AVPlayer-compatible. Enabling "Always use VLC" bypasses AVPlayer even for
-          MP4/H.264 files.
+          Auto picks AVPlayer when the file's container/codec is supported and
+          falls back to VLC otherwise. Force AVPlayer if you always want the
+          native iOS player; force VLC for maximum compatibility (MKV, DTS,
+          TrueHD, VP9, AV1) at the cost of slower startup.
         </Text>
       </ScrollView>
     </View>
