@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { VLCPlayer } from 'react-native-vlc-media-player';
-import GoogleCast, { CastButton, useCastState, useRemoteMediaClient } from 'react-native-google-cast';
+import GoogleCast, { useCastState, useRemoteMediaClient } from 'react-native-google-cast';
+import { SymbolView } from 'expo-symbols';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { decideEngine, type Engine } from '@/player/decide';
@@ -25,9 +26,9 @@ export default function ItemScreen() {
 
   const castClient = useRemoteMediaClient();
   const castState = useCastState();
+  const [castPickerOpen, setCastPickerOpen] = useState(false);
 
   useEffect(() => {
-    // Kick discovery even if autostart didn't fire. Safe to call repeatedly.
     (async () => {
       try {
         await GoogleCast.getDiscoveryManager().startDiscovery();
@@ -153,9 +154,17 @@ export default function ItemScreen() {
             <TouchableOpacity style={styles.playBtn} onPress={play} activeOpacity={0.85}>
               <Text style={styles.playBtnText}>▶  Play</Text>
             </TouchableOpacity>
-            <View style={styles.castChip}>
-              <CastButton style={styles.castButton} />
-            </View>
+            <TouchableOpacity
+              style={styles.castChip}
+              onPress={() => setCastPickerOpen(true)}
+              activeOpacity={0.75}
+            >
+              <SymbolView
+                name={{ ios: 'tv.badge.wifi', android: 'cast', web: 'cast' }}
+                tintColor={castState === 'connected' ? colors.pink : colors.text}
+                size={26}
+              />
+            </TouchableOpacity>
           </View>
           <Text style={styles.castHint}>
             Cast: {castState ?? 'sdk-not-ready'} · AirPlay picker is inside the player
@@ -169,7 +178,113 @@ export default function ItemScreen() {
           ) : null}
         </View>
       </ScrollView>
+      <CastPickerModal visible={castPickerOpen} onClose={() => setCastPickerOpen(false)} />
     </View>
+  );
+}
+
+function CastPickerModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const castState = useCastState();
+  const [devices, setDevices] = useState<any[]>([]);
+  const [scanning, setScanning] = useState(false);
+  const [connecting, setConnecting] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    setScanning(true);
+
+    const discovery = GoogleCast.getDiscoveryManager();
+    let sub: any;
+
+    (async () => {
+      try {
+        await discovery.startDiscovery();
+        const current = await discovery.getDevices();
+        setDevices(current ?? []);
+      } catch {}
+    })();
+
+    try {
+      sub = discovery.onDevicesUpdated((next) => {
+        setDevices(next ?? []);
+      });
+    } catch {}
+
+    const t = setTimeout(() => setScanning(false), 6000);
+
+    return () => {
+      clearTimeout(t);
+      try { sub?.remove?.(); } catch {}
+    };
+  }, [visible]);
+
+  async function connect(device: any) {
+    setConnecting(device.deviceId);
+    try {
+      await GoogleCast.getSessionManager().startSession(device.deviceId);
+      onClose();
+    } catch (e: any) {
+      // swallow
+    } finally {
+      setConnecting(null);
+    }
+  }
+
+  async function disconnect() {
+    try {
+      await GoogleCast.getSessionManager().endCurrentSession(true);
+    } catch {}
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable style={styles.modalSheet} onPress={() => {}}>
+          <View style={styles.modalHandle} />
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Cast to</Text>
+            {scanning ? <ActivityIndicator color={colors.text} /> : null}
+          </View>
+          <Text style={styles.modalSub}>State: {castState ?? 'unknown'}</Text>
+
+          {castState === 'connected' ? (
+            <TouchableOpacity style={styles.disconnectBtn} onPress={disconnect} activeOpacity={0.8}>
+              <Text style={styles.disconnectText}>Disconnect current session</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          <View style={{ marginTop: spacing.md }}>
+            {devices.length === 0 && !scanning ? (
+              <Text style={styles.modalEmpty}>No devices found on this network.</Text>
+            ) : null}
+            {devices.map((d) => (
+              <TouchableOpacity
+                key={d.deviceId ?? d.uniqueId}
+                style={styles.deviceRow}
+                onPress={() => connect(d)}
+                disabled={!!connecting}
+                activeOpacity={0.7}
+              >
+                <SymbolView
+                  name={{ ios: 'tv.badge.wifi', android: 'cast', web: 'cast' }}
+                  tintColor={colors.text}
+                  size={22}
+                />
+                <View style={{ flex: 1, marginLeft: spacing.md }}>
+                  <Text style={styles.deviceName}>{d.friendlyName ?? d.name ?? 'Unknown device'}</Text>
+                  {d.modelName ? <Text style={styles.deviceModel}>{d.modelName}</Text> : null}
+                </View>
+                {connecting === d.deviceId ? <ActivityIndicator color={colors.text} /> : null}
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
+            <Text style={styles.modalCloseText}>Close</Text>
+          </TouchableOpacity>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -284,6 +399,54 @@ const styles = StyleSheet.create({
   },
   castIcon: { width: 28, height: 28, tintColor: colors.text },
   castButton: { width: 32, height: 32, tintColor: colors.text },
+  modalBackdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: colors.bgElevated,
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+    padding: spacing.lg,
+    paddingBottom: spacing.xxl,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.glassBorder,
+  },
+  modalHandle: {
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: 'center',
+    marginBottom: spacing.lg,
+  },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  modalTitle: { ...type.h1, color: colors.text },
+  modalSub: { ...type.caption, color: colors.textMuted, marginTop: spacing.xs, textTransform: 'uppercase' },
+  modalEmpty: { ...type.small, color: colors.textDim, paddingVertical: spacing.md, textAlign: 'center' },
+  deviceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  deviceName: { ...type.body, color: colors.text },
+  deviceModel: { ...type.caption, color: colors.textMuted, marginTop: 2 },
+  disconnectBtn: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.md,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 69, 58, 0.5)',
+  },
+  disconnectText: { color: 'rgba(255, 99, 99, 1)', ...type.small, fontWeight: '600' },
+  modalClose: {
+    marginTop: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+  },
+  modalCloseText: { color: colors.accentContrast, ...type.body, fontWeight: '600' },
   castHint: { ...type.caption, color: colors.textMuted, marginTop: spacing.sm },
   overviewCard: {
     marginTop: spacing.xl,
