@@ -19,13 +19,22 @@ export function useAuth() {
   }, []);
 
   const signIn = useCallback(async (username: string, password: string) => {
-    const auth = await Jellyfin.login(username, password);
-    // Best-effort Jellyseerr login with same creds. Ignore failure — user may not have Jellyseerr access.
+    console.log('[auth] signIn start', username);
     try {
-      await Jellyseerr.loginJellyfin(username, password);
-    } catch {}
-    setState({ status: 'signed-in', auth });
-    return auth;
+      const auth = await Jellyfin.login(username, password);
+      console.log('[auth] jellyfin ok', auth.userName);
+      try {
+        await Jellyseerr.loginJellyfin(username, password);
+        console.log('[auth] jellyseerr ok');
+      } catch (e: any) {
+        console.log('[auth] jellyseerr failed', e?.message);
+      }
+      setState({ status: 'signed-in', auth });
+      return auth;
+    } catch (e: any) {
+      console.log('[auth] jellyfin failed', e?.message, e?.response?.status, e?.response?.data);
+      throw e;
+    }
   }, []);
 
   const signOut = useCallback(async () => {
