@@ -43,9 +43,45 @@ export async function login(username: string, password: string): Promise<Jellyfi
     userId: res.data.User.Id,
     accessToken: res.data.AccessToken,
     userName: res.data.User.Name,
+    isAdmin: !!res.data.User?.Policy?.IsAdministrator,
+    primaryImageTag: res.data.User?.PrimaryImageTag,
   };
   await saveJellyfinAuth(auth);
   return auth;
+}
+
+export async function getCurrentUser(userId: string): Promise<any> {
+  const client = await authClient();
+  const res = await client.get(`/Users/${userId}`);
+  return res.data;
+}
+
+export async function updateUserName(userId: string, name: string): Promise<void> {
+  const client = await authClient();
+  const current = await client.get(`/Users/${userId}`);
+  const body = { ...current.data, Name: name };
+  await client.post(`/Users/${userId}`, body);
+}
+
+export async function updatePassword(userId: string, currentPw: string, newPw: string): Promise<void> {
+  const client = await authClient();
+  await client.post(`/Users/${userId}/Password`, {
+    CurrentPw: currentPw,
+    NewPw: newPw,
+  });
+}
+
+export async function uploadProfileImage(userId: string, base64: string, mimeType: string): Promise<void> {
+  const client = await authClient();
+  await client.post(`/Users/${userId}/Images/Primary`, base64, {
+    headers: { 'Content-Type': mimeType },
+    transformRequest: [(data) => data],
+  });
+}
+
+export function userImageUrl(userId: string, tag?: string, size = 96): string {
+  const tagParam = tag ? `&tag=${tag}` : '';
+  return `${CONFIG.JELLYFIN_URL}/Users/${userId}/Images/Primary?maxWidth=${size}&maxHeight=${size}${tagParam}`;
 }
 
 export async function logout(): Promise<void> {

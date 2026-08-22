@@ -3,6 +3,8 @@ export type JellyfinAuth = {
   userId: string;
   accessToken: string;
   userName: string;
+  isAdmin?: boolean;
+  primaryImageTag?: string;
 };
 
 export type JellyseerrAuth = {

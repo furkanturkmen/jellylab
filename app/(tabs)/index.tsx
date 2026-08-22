@@ -8,11 +8,13 @@ import * as Jellyfin from '@/api/jellyfin';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem, JellyfinView } from '@/types';
+import type { JellyfinAuth } from '@/types';
 
 type LibraryItem = { view: JellyfinView; items: JellyfinItem[] };
 
 export default function LibraryScreen() {
-  const { state, signOut } = useAuth();
+  const router = useRouter();
+  const { state } = useAuth();
   const [resume, setResume] = useState<JellyfinItem[]>([]);
   const [libs, setLibs] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,9 +70,7 @@ export default function LibraryScreen() {
               <Text style={styles.greetingSmall}>Welcome back</Text>
               <Text style={styles.greeting}>{state.auth.userName}</Text>
             </View>
-            <TouchableOpacity onPress={signOut} style={styles.signOutPill}>
-              <Text style={styles.signOutText}>Sign out</Text>
-            </TouchableOpacity>
+            <AvatarButton auth={state.auth} onPress={() => router.push('/profile')} />
           </View>
 
           {resume.length > 0 ? <ContinueWatchingRow items={resume} /> : null}
@@ -79,6 +79,25 @@ export default function LibraryScreen() {
       renderItem={({ item }) => <LibraryRow lib={item} />}
       contentContainerStyle={{ paddingBottom: 120 }}
     />
+  );
+}
+
+function AvatarButton({ auth, onPress }: { auth: JellyfinAuth; onPress: () => void }) {
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.avatarBtn}>
+      {auth.primaryImageTag ? (
+        <Image
+          source={{ uri: Jellyfin.userImageUrl(auth.userId, auth.primaryImageTag, 96) }}
+          style={styles.avatar}
+          contentFit="cover"
+          transition={150}
+        />
+      ) : (
+        <View style={[styles.avatar, styles.avatarPlaceholder]}>
+          <Text style={styles.avatarInitials}>{auth.userName?.[0]?.toUpperCase() ?? '?'}</Text>
+        </View>
+      )}
+    </TouchableOpacity>
   );
 }
 
@@ -248,14 +267,10 @@ const styles = StyleSheet.create({
   },
   greetingSmall: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.xs },
   greeting: { ...type.h1, color: colors.text },
-  signOutPill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
-  signOutText: { color: colors.textMuted, ...type.small },
+  avatarBtn: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface },
+  avatarPlaceholder: { alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  avatarInitials: { color: colors.text, fontSize: 17, fontWeight: '700' },
 
   section: { marginBottom: spacing.xxl },
   sectionHeader: {

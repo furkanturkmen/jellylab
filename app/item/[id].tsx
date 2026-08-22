@@ -5,11 +5,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { VLCPlayer } from 'react-native-vlc-media-player';
+import { CastButton, useRemoteMediaClient } from 'react-native-google-cast';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { decideEngine, type Engine } from '@/player/decide';
 import { useAuth } from '@/hooks/useAuth';
 import { getDeviceId } from '@/store/auth';
+import { loadPrefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem } from '@/types';
 
@@ -21,6 +23,8 @@ export default function ItemScreen() {
   const [item, setItem] = useState<JellyfinItem | null>(null);
   const [playback, setPlayback] = useState<PlaybackConfig | null>(null);
 
+  const castClient = useRemoteMediaClient();
+
   useEffect(() => {
     if (state.status !== 'signed-in' || !id) return;
     Jellyfin.getItem(state.auth.userId, id).then(setItem);
@@ -28,12 +32,37 @@ export default function ItemScreen() {
 
   async function play() {
     if (state.status !== 'signed-in' || !item) return;
-    const [deviceId, sources] = await Promise.all([
+    const [deviceId, sources, prefs] = await Promise.all([
       getDeviceId(),
       Jellyfin.getPlaybackInfo(state.auth.userId, item.Id).catch(() => []),
+      loadPrefs(),
     ]);
-    const engine = decideEngine(sources);
+    const decided = decideEngine(sources);
+    const engine = prefs.preferVLC ? 'vlc' : decided;
     const url = Jellyfin.streamUrl(item.Id, state.auth.accessToken, deviceId);
+
+    if (castClient) {
+      try {
+        await castClient.loadMedia({
+          mediaInfo: {
+            contentUrl: url,
+            contentType: 'video/mp4',
+            metadata: {
+              type: 'movie',
+              title: item.Name,
+              images: item.ImageTags?.Primary
+                ? [{ url: Jellyfin.imageUrl(item.Id, item.ImageTags.Primary, 'Primary', 600) }]
+                : undefined,
+            },
+          },
+          autoplay: true,
+        });
+        return;
+      } catch {
+        // fall through to local playback
+      }
+    }
+
     setPlayback({ url, engine });
   }
 
@@ -57,7 +86,17 @@ export default function ItemScreen() {
 
   return (
     <View style={styles.root}>
-      <Stack.Screen options={{ title: '', headerTransparent: true, headerBackTitle: 'Back', headerTintColor: colors.text }} />
+      <Stack.Screen
+        options={{
+          title: '',
+          headerTransparent: true,
+          headerBackTitle: 'Back',
+          headerTintColor: colors.text,
+          headerRight: () => (
+            <CastButton style={{ width: 24, height: 24, tintColor: colors.text, marginRight: spacing.md }} />
+          ),
+        }}
+      />
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           {backdrop ? (
