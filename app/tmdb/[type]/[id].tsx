@@ -182,7 +182,7 @@ export default function TmdbDetailScreen() {
             <View style={styles.card}>
               <Text style={styles.sectionLabel}>Downloading</Text>
               {activeDownloads.map((d, i) => (
-                <DownloadRow key={d.downloadId ?? i} d={d} />
+                <DownloadRow key={`${d.downloadId ?? 'dl'}-${i}`} d={d} />
               ))}
             </View>
           ) : null}
