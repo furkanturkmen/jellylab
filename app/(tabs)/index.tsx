@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Link } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Link, useRouter } from 'expo-router';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,6 +13,7 @@ type LibraryItem = { view: JellyfinView; items: JellyfinItem[] };
 
 export default function LibraryScreen() {
   const { state, signOut } = useAuth();
+  const [resume, setResume] = useState<JellyfinItem[]>([]);
   const [libs, setLibs] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,7 +21,10 @@ export default function LibraryScreen() {
     if (state.status !== 'signed-in') return;
     setLoading(true);
     try {
-      const views = await Jellyfin.getViews(state.auth.userId);
+      const [views, resumeItems] = await Promise.all([
+        Jellyfin.getViews(state.auth.userId),
+        Jellyfin.getResumeItems(state.auth.userId, 12),
+      ]);
       const filtered = views.filter(v => v.CollectionType === 'movies' || v.CollectionType === 'tvshows');
       const withItems = await Promise.all(
         filtered.map(async view => ({
@@ -27,6 +32,7 @@ export default function LibraryScreen() {
           items: await Jellyfin.getItems(state.auth.userId, view.Id, 20),
         }))
       );
+      setResume(resumeItems);
       setLibs(withItems);
     } finally {
       setLoading(false);
@@ -45,6 +51,8 @@ export default function LibraryScreen() {
     );
   }
 
+  const heroItem = resume[0] ?? libs[0]?.items[0];
+
   return (
     <FlatList
       style={styles.root}
@@ -52,19 +60,121 @@ export default function LibraryScreen() {
       keyExtractor={l => l.view.Id}
       refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.text} />}
       ListHeaderComponent={
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greetingSmall}>Welcome back</Text>
-            <Text style={styles.greeting}>{state.auth.userName}</Text>
+        <>
+          {heroItem ? <HeroSpotlight item={heroItem} /> : null}
+
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.greetingSmall}>Welcome back</Text>
+              <Text style={styles.greeting}>{state.auth.userName}</Text>
+            </View>
+            <TouchableOpacity onPress={signOut} style={styles.signOutPill}>
+              <Text style={styles.signOutText}>Sign out</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={signOut} style={styles.signOutPill}>
-            <Text style={styles.signOutText}>Sign out</Text>
-          </TouchableOpacity>
-        </View>
+
+          {resume.length > 0 ? <ContinueWatchingRow items={resume} /> : null}
+        </>
       }
       renderItem={({ item }) => <LibraryRow lib={item} />}
       contentContainerStyle={{ paddingBottom: 120 }}
     />
+  );
+}
+
+function HeroSpotlight({ item }: { item: JellyfinItem }) {
+  const router = useRouter();
+  const backdrop = item.BackdropImageTags?.[0];
+  const primary = item.ImageTags?.Primary;
+  const tag = backdrop ?? primary;
+  const imageType: 'Backdrop' | 'Primary' = backdrop ? 'Backdrop' : 'Primary';
+
+  return (
+    <TouchableOpacity activeOpacity={0.9} onPress={() => router.push(`/item/${item.Id}`)}>
+      <View style={styles.hero}>
+        <Image
+          source={{ uri: Jellyfin.imageUrl(item.Id, tag, imageType, 1200) }}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          transition={300}
+        />
+        <LinearGradient
+          colors={[colors.scrimTop, colors.bg]}
+          locations={[0.35, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.heroBody}>
+          <Text style={styles.heroLabel}>Featured</Text>
+          <Text style={styles.heroTitle} numberOfLines={2}>{item.Name}</Text>
+          <View style={styles.heroPillRow}>
+            {item.ProductionYear ? (
+              <View style={styles.heroPill}><Text style={styles.heroPillText}>{item.ProductionYear}</Text></View>
+            ) : null}
+            <View style={styles.heroPill}><Text style={styles.heroPillText}>{item.Type}</Text></View>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function ContinueWatchingRow({ items }: { items: JellyfinItem[] }) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Continue Watching</Text>
+        <Text style={styles.sectionCount}>{items.length}</Text>
+      </View>
+      <FlatList
+        horizontal
+        data={items}
+        keyExtractor={i => i.Id}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: spacing.xl, gap: spacing.md }}
+        renderItem={({ item }) => <ResumeCard item={item} />}
+      />
+    </View>
+  );
+}
+
+function ResumeCard({ item }: { item: JellyfinItem }) {
+  const backdrop = item.BackdropImageTags?.[0];
+  const primary = item.ImageTags?.Primary;
+  const tag = backdrop ?? primary;
+  const imageType: 'Backdrop' | 'Primary' = backdrop ? 'Backdrop' : 'Primary';
+
+  const progress =
+    item.UserData?.PlaybackPositionTicks && item.RunTimeTicks
+      ? Math.min(1, item.UserData.PlaybackPositionTicks / item.RunTimeTicks)
+      : 0;
+
+  const label =
+    item.Type === 'Episode' && item.SeriesId && item.ParentIndexNumber != null && item.IndexNumber != null
+      ? `S${item.ParentIndexNumber} · E${item.IndexNumber}`
+      : item.ProductionYear
+        ? String(item.ProductionYear)
+        : '';
+
+  return (
+    <Link href={`/item/${item.Id}`} asChild>
+      <TouchableOpacity style={styles.resumeCard} activeOpacity={0.8}>
+        <View style={styles.resumeImageWrap}>
+          <Image
+            source={{ uri: Jellyfin.imageUrl(item.Id, tag, imageType, 500) }}
+            style={styles.resumeImage}
+            contentFit="cover"
+            transition={200}
+          />
+          {progress > 0 ? (
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+            </View>
+          ) : null}
+        </View>
+        <Text style={styles.resumeTitle} numberOfLines={1}>{item.Name}</Text>
+        {label ? <Text style={styles.resumeMeta}>{label}</Text> : null}
+      </TouchableOpacity>
+    </Link>
   );
 }
 
@@ -105,10 +215,30 @@ function PosterCard({ item }: { item: JellyfinItem }) {
   );
 }
 
+const HERO_HEIGHT = 360;
+const RESUME_WIDTH = 200;
+const RESUME_HEIGHT = 115;
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  header: {
+
+  hero: { width: '100%', height: HERO_HEIGHT, backgroundColor: colors.bgElevated, overflow: 'hidden' },
+  heroBody: { position: 'absolute', left: spacing.xl, right: spacing.xl, bottom: spacing.xl },
+  heroLabel: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.sm },
+  heroTitle: { ...type.display, color: colors.text, marginBottom: spacing.md },
+  heroPillRow: { flexDirection: 'row', gap: spacing.sm },
+  heroPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+    backgroundColor: colors.glassTint,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.glassBorder,
+  },
+  heroPillText: { color: colors.text, ...type.caption, textTransform: 'uppercase' },
+
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
@@ -126,6 +256,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   signOutText: { color: colors.textMuted, ...type.small },
+
   section: { marginBottom: spacing.xxl },
   sectionHeader: {
     flexDirection: 'row',
@@ -136,6 +267,28 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { ...type.h2, color: colors.text },
   sectionCount: { ...type.small, color: colors.textDim },
+
+  resumeCard: { width: RESUME_WIDTH },
+  resumeImageWrap: {
+    width: RESUME_WIDTH,
+    height: RESUME_HEIGHT,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+  },
+  resumeImage: { width: '100%', height: '100%' },
+  progressTrack: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 3,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  progressFill: { height: '100%', backgroundColor: colors.text },
+  resumeTitle: { marginTop: spacing.sm, ...type.small, color: colors.text },
+  resumeMeta: { ...type.caption, color: colors.textMuted, marginTop: 2 },
+
   card: { width: 130 },
   poster: {
     width: 130,

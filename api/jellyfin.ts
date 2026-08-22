@@ -103,9 +103,25 @@ export async function getPlaybackInfo(userId: string, itemId: string): Promise<M
 export async function getResumeItems(userId: string, limit = 12): Promise<JellyfinItem[]> {
   const client = await authClient();
   const res = await client.get(`/Users/${userId}/Items/Resume`, {
-    params: { Limit: limit, MediaTypes: 'Video', Fields: 'PrimaryImageAspectRatio' },
+    params: {
+      Limit: limit,
+      MediaTypes: 'Video',
+      Fields: 'PrimaryImageAspectRatio,Overview,BackdropImageTags',
+    },
   });
   return res.data.Items ?? [];
+}
+
+export async function getLatestItems(userId: string, parentId: string, limit = 12): Promise<JellyfinItem[]> {
+  const client = await authClient();
+  const res = await client.get(`/Users/${userId}/Items/Latest`, {
+    params: {
+      ParentId: parentId,
+      Limit: limit,
+      Fields: 'Overview,BackdropImageTags',
+    },
+  });
+  return res.data ?? [];
 }
 
 export function imageUrl(itemId: string, tag?: string, type: 'Primary' | 'Backdrop' = 'Primary', maxWidth = 400): string {
