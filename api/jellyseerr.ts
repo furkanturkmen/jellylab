@@ -101,6 +101,21 @@ export async function listRequests(filter: 'all' | 'pending' | 'approved' | 'ava
   return res.data.results ?? [];
 }
 
+export async function deleteRequest(requestId: number): Promise<void> {
+  const client = await authClient();
+  await client.delete(`/request/${requestId}`);
+}
+
+export async function deleteMedia(mediaId: number): Promise<void> {
+  const client = await authClient();
+  await client.delete(`/media/${mediaId}`);
+}
+
+export async function removeMediaFile(mediaId: number): Promise<void> {
+  const client = await authClient();
+  await client.delete(`/media/${mediaId}/file`);
+}
+
 export type MediaDetails = {
   title: string;
   posterPath?: string;
@@ -149,13 +164,31 @@ export type TmdbFullDetails = {
   numberOfEpisodes?: number;
   seasons?: { seasonNumber: number; episodeCount: number; name?: string }[];
   mediaInfo?: {
+    id?: number;
     status?: number;
+    jellyfinMediaId?: string;
+    jellyfinMediaId4k?: string;
     requests?: { id: number; status: number }[];
+    downloadStatus?: DownloadStatus[];
+    downloadStatus4k?: DownloadStatus[];
   };
   credits?: {
     cast?: { id: number; name: string; character: string; profilePath?: string }[];
     crew?: { id: number; name: string; job: string; department: string }[];
   };
+};
+
+export type DownloadStatus = {
+  externalId?: string;
+  mediaType?: string;
+  downloadId?: string;
+  title?: string;
+  status?: string;
+  size?: number;
+  sizeLeft?: number;
+  timeLeft?: string;
+  estimatedCompletionTime?: string;
+  episode?: { seasonNumber: number; episodeNumber: number };
 };
 
 export async function getTmdbDetails(mediaType: 'movie' | 'tv', tmdbId: number): Promise<TmdbFullDetails | null> {
