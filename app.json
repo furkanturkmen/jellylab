@@ -13,7 +13,14 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true
+          "NSAllowsArbitraryLoads": false,
+          "NSExceptionDomains": {
+            "homelab.internal": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": true,
+              "NSExceptionRequiresForwardSecrecy": false
+            }
+          }
         }
       }
     },

@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 
-import { Text, View } from '@/components/Themed';
 import * as Jellyseerr from '@/api/jellyseerr';
+import { colors, radius, spacing, type } from '@/theme';
 import type { JellyseerrSearchResult } from '@/types';
 
 export default function SearchScreen() {
@@ -34,12 +34,12 @@ export default function SearchScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <View style={styles.searchBar}>
         <TextInput
           style={styles.input}
-          placeholder="Search movies + TV"
-          placeholderTextColor="#888"
+          placeholder="Search movies and TV"
+          placeholderTextColor={colors.textDim}
           value={query}
           onChangeText={setQuery}
           returnKeyType="search"
@@ -49,14 +49,14 @@ export default function SearchScreen() {
         />
       </View>
       {busy ? (
-        <View style={styles.center}><ActivityIndicator /></View>
+        <View style={styles.center}><ActivityIndicator color={colors.text} /></View>
       ) : (
         <FlatList
           data={results}
           keyExtractor={r => `${r.mediaType}-${r.id}`}
           renderItem={({ item }) => <ResultRow item={item} onRequest={() => request(item)} />}
           ItemSeparatorComponent={() => <View style={styles.sep} />}
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={{ paddingBottom: 120 }}
         />
       )}
     </View>
@@ -73,21 +73,21 @@ function ResultRow({ item, onRequest }: { item: JellyseerrSearchResult; onReques
   return (
     <View style={styles.row}>
       {poster ? (
-        <Image source={{ uri: poster }} style={styles.thumb} contentFit="cover" />
+        <Image source={{ uri: poster }} style={styles.thumb} contentFit="cover" transition={150} />
       ) : (
         <View style={[styles.thumb, styles.thumbEmpty]} />
       )}
       <View style={styles.rowText}>
         <Text style={styles.rowTitle} numberOfLines={2}>{title}</Text>
-        <Text style={styles.rowMeta}>{item.mediaType.toUpperCase()} {year ? `· ${year}` : ''}</Text>
-        <Text style={styles.rowOverview} numberOfLines={2}>{item.overview}</Text>
+        <Text style={styles.rowMeta}>{item.mediaType === 'movie' ? 'Movie' : 'TV'} {year ? `· ${year}` : ''}</Text>
+        {item.overview ? <Text style={styles.rowOverview} numberOfLines={2}>{item.overview}</Text> : null}
       </View>
       {available ? (
-        <View style={styles.badgeOk}><Text style={styles.badgeText}>Available</Text></View>
+        <View style={[styles.badge, styles.badgeAvailable]}><Text style={styles.badgeText}>Available</Text></View>
       ) : requested ? (
-        <View style={styles.badgePending}><Text style={styles.badgeText}>Requested</Text></View>
+        <View style={[styles.badge, styles.badgePending]}><Text style={styles.badgeText}>Requested</Text></View>
       ) : (
-        <TouchableOpacity style={styles.requestBtn} onPress={onRequest}>
+        <TouchableOpacity style={styles.requestBtn} onPress={onRequest} activeOpacity={0.8}>
           <Text style={styles.requestBtnText}>Request</Text>
         </TouchableOpacity>
       )}
@@ -96,21 +96,36 @@ function ResultRow({ item, onRequest }: { item: JellyseerrSearchResult; onReques
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  searchBar: { padding: 12 },
-  input: { height: 44, borderRadius: 10, backgroundColor: '#222', color: '#fff', paddingHorizontal: 12 },
-  row: { flexDirection: 'row', padding: 12, gap: 12, alignItems: 'center' },
-  thumb: { width: 60, height: 90, borderRadius: 4, backgroundColor: '#222' },
+  searchBar: { padding: spacing.lg, paddingTop: spacing.md },
+  input: {
+    height: 46,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    color: colors.text,
+    paddingHorizontal: spacing.lg,
+    fontSize: 15,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  row: { flexDirection: 'row', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, gap: spacing.md, alignItems: 'center' },
+  thumb: { width: 60, height: 90, borderRadius: radius.sm, backgroundColor: colors.surface },
   thumbEmpty: {},
   rowText: { flex: 1 },
-  rowTitle: { fontSize: 15, fontWeight: '600' },
-  rowMeta: { fontSize: 11, opacity: 0.6, marginTop: 2 },
-  rowOverview: { fontSize: 12, opacity: 0.8, marginTop: 4 },
-  sep: { height: 1, backgroundColor: '#222' },
-  requestBtn: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#4a7cff', borderRadius: 6 },
-  requestBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  badgeOk: { paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#2a7', borderRadius: 4 },
-  badgePending: { paddingHorizontal: 8, paddingVertical: 4, backgroundColor: '#a72', borderRadius: 4 },
-  badgeText: { color: '#fff', fontSize: 11 },
+  rowTitle: { ...type.bodyStrong, color: colors.text },
+  rowMeta: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginTop: spacing.xs },
+  rowOverview: { ...type.small, color: colors.textMuted, marginTop: spacing.xs },
+  sep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: spacing.lg + 60 + spacing.md },
+  requestBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.accent,
+    borderRadius: radius.pill,
+  },
+  requestBtnText: { color: colors.accentContrast, fontSize: 13, fontWeight: '600' },
+  badge: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: radius.pill, borderWidth: StyleSheet.hairlineWidth },
+  badgeAvailable: { borderColor: colors.border, backgroundColor: colors.surface },
+  badgePending: { borderColor: colors.border, backgroundColor: colors.surface },
+  badgeText: { color: colors.text, ...type.caption, textTransform: 'uppercase' },
 });
