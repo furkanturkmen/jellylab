@@ -82,7 +82,8 @@
           "photosPermission": "jellylab needs photo library access to update your profile picture.",
           "cameraPermission": "jellylab needs camera access to take a new profile picture."
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true

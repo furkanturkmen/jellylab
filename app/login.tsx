@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { useTranslation } from 'react-i18next';
 
 import { useAuth } from '@/hooks/useAuth';
 import { CONFIG } from '@/config';
 import { colors, radius, spacing, type } from '@/theme';
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const { signIn } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +20,7 @@ export default function LoginScreen() {
     try {
       await signIn(username, password);
     } catch (e: any) {
-      Alert.alert('Login failed', e?.response?.data?.message ?? e?.message ?? 'Unknown error');
+      Alert.alert(t('login.failed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
     } finally {
       setBusy(false);
     }
@@ -28,16 +30,16 @@ export default function LoginScreen() {
     <View style={styles.root}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.brand}>jellylab</Text>
+          <Text style={styles.brand}>{t('login.title')}</Text>
           <Text style={styles.hostLabel}>{CONFIG.JELLYFIN_URL.replace(/^https?:\/\//, '')}</Text>
         </View>
 
         <BlurView tint="dark" intensity={40} style={styles.card}>
           <View style={styles.cardInner}>
-            <Text style={styles.fieldLabel}>Username</Text>
+            <Text style={styles.fieldLabel}>{t('login.username')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="jellyfin user"
+              placeholder={t('login.usernamePlaceholder')}
               placeholderTextColor={colors.textDim}
               autoCapitalize="none"
               autoCorrect={false}
@@ -45,7 +47,7 @@ export default function LoginScreen() {
               onChangeText={setUsername}
             />
 
-            <Text style={[styles.fieldLabel, { marginTop: spacing.lg }]}>Password</Text>
+            <Text style={[styles.fieldLabel, { marginTop: spacing.lg }]}>{t('login.password')}</Text>
             <TextInput
               style={styles.input}
               placeholder="••••••••"
@@ -61,7 +63,7 @@ export default function LoginScreen() {
               disabled={busy}
               activeOpacity={0.85}
             >
-              <Text style={styles.buttonText}>{busy ? 'Signing in…' : 'Sign in'}</Text>
+              <Text style={styles.buttonText}>{busy ? t('login.signingIn') : t('login.signIn')}</Text>
             </TouchableOpacity>
           </View>
         </BlurView>

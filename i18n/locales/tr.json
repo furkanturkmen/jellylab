@@ -1,0 +1,181 @@
+{
+  "app": { "name": "jellylab" },
+  "common": {
+    "cancel": "İptal",
+    "save": "Kaydet",
+    "delete": "Sil",
+    "remove": "Kaldır",
+    "back": "Geri",
+    "close": "Kapat",
+    "signOut": "Çıkış yap",
+    "loading": "Yükleniyor…",
+    "failed": "Başarısız",
+    "unknownError": "Bilinmeyen hata",
+    "notPermitted": "İzin yok",
+    "on": "Açık",
+    "off": "Kapalı"
+  },
+  "login": {
+    "title": "jellylab",
+    "username": "Kullanıcı adı",
+    "usernamePlaceholder": "jellyfin kullanıcısı",
+    "password": "Parola",
+    "signIn": "Giriş yap",
+    "signingIn": "Giriş yapılıyor…",
+    "failed": "Giriş başarısız"
+  },
+  "tabs": {
+    "library": "Kitaplık",
+    "search": "Ara",
+    "requests": "İstekler"
+  },
+  "library": {
+    "welcomeBack": "Tekrar hoş geldin",
+    "featured": "Öne çıkan",
+    "continueWatching": "Devam Et"
+  },
+  "search": {
+    "placeholder": "Film ve dizi ara",
+    "noResults": "Sonuç yok",
+    "sections": {
+      "trending": "Şu an popüler",
+      "popularMovies": "Popüler Filmler",
+      "popularTv": "Popüler Diziler",
+      "anime": "Anime",
+      "upcoming": "Yakında"
+    }
+  },
+  "requests": {
+    "empty": "Henüz istek yok",
+    "status": {
+      "1": "Beklemede",
+      "2": "Onaylandı",
+      "3": "Reddedildi"
+    },
+    "mediaStatus": {
+      "1": "Bilinmiyor",
+      "2": "Beklemede",
+      "3": "İşleniyor",
+      "4": "Kısmen mevcut",
+      "5": "Mevcut"
+    }
+  },
+  "detail": {
+    "overview": "Özet",
+    "details": "Ayrıntılar",
+    "cast": "Oyuncular",
+    "downloading": "İndiriliyor",
+    "timeLeft": "{{time}} kaldı",
+    "meta": {
+      "status": "Durum",
+      "onJellyfin": "Jellyfin'de",
+      "notRequested": "İstek yok",
+      "released": "Yayın tarihi",
+      "language": "Dil",
+      "seasons": "Sezon",
+      "episodes": "Bölüm",
+      "countries": "Ülkeler"
+    },
+    "actions": {
+      "play": "Oynat",
+      "playOnJellyfin": "Jellyfin'de Oynat",
+      "available": "Jellyfin'de mevcut",
+      "processing": "İşleniyor…",
+      "partiallyAvailable": "Kısmen mevcut",
+      "requested": "İstendi",
+      "request": "İste",
+      "requesting": "Gönderiliyor…",
+      "deleteRequest": "İsteği Sil",
+      "removeFromJellyfin": "Jellyfin'den Kaldır"
+    },
+    "confirmDeleteRequest": {
+      "title": "İstek silinsin mi?",
+      "message": "İstek iptal edilir; indirilmiş dosyalar Jellyfin'de kalır."
+    },
+    "confirmRemove": {
+      "title": "Jellyfin'den kaldırılsın mı?",
+      "message": "Medya Jellyseerr'den silinir ve Radarr/Sonarr'a dosyayı silmesi söylenir. Geri alınamaz."
+    },
+    "requestedToast": "{{title}} Jellyseerr'e gönderildi",
+    "castHint": "Cast: {{state}} · AirPlay seçici oynatıcının içinde"
+  },
+  "profile": {
+    "title": "Profil",
+    "tapToChange": "Değiştirmek için dokun",
+    "displayName": "Görünen ad",
+    "saveName": "Adı kaydet",
+    "saving": "Kaydediliyor…",
+    "nameSaved": "Ad güncellendi. Her yerde görmek için uygulamayı yeniden başlat.",
+    "changePassword": "Parolayı değiştir",
+    "currentPassword": "Mevcut parola",
+    "newPassword": "Yeni parola",
+    "confirmNewPassword": "Yeni parolayı onayla",
+    "updatePassword": "Parolayı güncelle",
+    "updatingPassword": "Güncelleniyor…",
+    "passwordMismatchTitle": "Uyumsuz",
+    "passwordMismatch": "Yeni parolalar uyuşmuyor.",
+    "passwordChanged": "Parola değiştirildi",
+    "preferences": "Tercihler",
+    "menu": {
+      "subtitles": "Altyazılar",
+      "playback": "Oynatma",
+      "content": "İçerik",
+      "language": "Dil"
+    },
+    "adminJellyfin": "Yönetici — Jellyfin",
+    "adminJellyseerr": "Yönetici — Jellyseerr",
+    "adminMenu": {
+      "dashboard": "Panel",
+      "metadataManager": "Metadata Yöneticisi",
+      "users": "Kullanıcılar",
+      "plugins": "Eklentiler",
+      "serverLogs": "Sunucu Günlükleri",
+      "requests": "İstekler",
+      "settings": "Ayarlar"
+    },
+    "changePicture": "Profil fotoğrafını değiştir",
+    "takePhoto": "Fotoğraf Çek",
+    "chooseFromLibrary": "Galeriden Seç",
+    "permissionDenied": "İzin reddedildi",
+    "uploadFailed": "Yükleme başarısız"
+  },
+  "settings": {
+    "subtitles": {
+      "title": "Altyazılar",
+      "preferredLanguage": "Tercih edilen dil",
+      "textSize": "Metin boyutu",
+      "size": { "sm": "Küçük", "md": "Orta", "lg": "Büyük" },
+      "note": "Tercihler bu cihazda saklanır. Oynatıcı uygun bir altyazı bulursa otomatik seçilir."
+    },
+    "playback": {
+      "title": "Oynatma",
+      "preferredAudioLanguage": "Tercih edilen ses dili",
+      "autoplayNext": "Sonraki bölümü otomatik oynat",
+      "autoplayNextDesc": "Mevcut bölüm bittiğinde bir sonrakini otomatik başlat.",
+      "preferVLC": "Her zaman VLC oynatıcı kullan",
+      "preferVLCDesc": "AVPlayer'ı atla. Başlatma biraz yavaş, tüm codec ve konteynerle çalışır.",
+      "note": "Oynatıcı zaten AVPlayer uyumsuz dosyalarda VLC'ye geçer. 'Her zaman VLC' ile MP4/H.264'te de AVPlayer atlanır."
+    },
+    "content": {
+      "title": "İçerik",
+      "showAdult": "Yetişkin içeriği göster",
+      "showAdultDesc": "18+ film ve dizileri Arama ve Keşif'e dahil et. Yalnızca bu cihazda geçerli. Jellyseerr sunucusunun da yetişkin içeriğe küresel olarak izin vermesi gerekir.",
+      "adminHeading": "Yönetici — Jellyseerr sunucusu",
+      "adminIntro": "Yukarıdaki anahtar sadece bu telefondaki sonuçları gizler. Sunucu geneli veya kullanıcı bazında ayarlamak için Jellyseerr'i aç:",
+      "globalSettings": "Genel ayarlar",
+      "perUserPermissions": "Kullanıcı izinleri",
+      "nonAdminNote": "Yönetici olmayan hesaplar yalnızca cihaz anahtarını görür. Sunucu geneli kontrol Jellyseerr yönetim panelinde."
+    },
+    "language": {
+      "title": "Dil",
+      "systemDefault": "Cihazı takip et",
+      "note": "Menü başlıkları ve sistem iletişimlerinin tamamen güncellenmesi için uygulamayı yeniden başlat."
+    }
+  },
+  "languages": {
+    "en": "English",
+    "nl": "Nederlands",
+    "tr": "Türkçe",
+    "de": "Deutsch"
+  }
+}

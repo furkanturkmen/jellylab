@@ -1,0 +1,181 @@
+{
+  "app": { "name": "jellylab" },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "remove": "Remove",
+    "back": "Back",
+    "close": "Close",
+    "signOut": "Sign out",
+    "loading": "Loading…",
+    "failed": "Failed",
+    "unknownError": "Unknown error",
+    "notPermitted": "Not permitted",
+    "on": "On",
+    "off": "Off"
+  },
+  "login": {
+    "title": "jellylab",
+    "username": "Username",
+    "usernamePlaceholder": "jellyfin user",
+    "password": "Password",
+    "signIn": "Sign in",
+    "signingIn": "Signing in…",
+    "failed": "Login failed"
+  },
+  "tabs": {
+    "library": "Library",
+    "search": "Search",
+    "requests": "Requests"
+  },
+  "library": {
+    "welcomeBack": "Welcome back",
+    "featured": "Featured",
+    "continueWatching": "Continue Watching"
+  },
+  "search": {
+    "placeholder": "Search movies and TV",
+    "noResults": "No results",
+    "sections": {
+      "trending": "Trending",
+      "popularMovies": "Popular Movies",
+      "popularTv": "Popular TV",
+      "anime": "Anime",
+      "upcoming": "Upcoming"
+    }
+  },
+  "requests": {
+    "empty": "No requests yet",
+    "status": {
+      "1": "Pending",
+      "2": "Approved",
+      "3": "Declined"
+    },
+    "mediaStatus": {
+      "1": "Unknown",
+      "2": "Pending",
+      "3": "Processing",
+      "4": "Partially Available",
+      "5": "Available"
+    }
+  },
+  "detail": {
+    "overview": "Overview",
+    "details": "Details",
+    "cast": "Cast",
+    "downloading": "Downloading",
+    "timeLeft": "{{time}} left",
+    "meta": {
+      "status": "Status",
+      "onJellyfin": "On Jellyfin",
+      "notRequested": "Not requested",
+      "released": "Released",
+      "language": "Language",
+      "seasons": "Seasons",
+      "episodes": "Episodes",
+      "countries": "Countries"
+    },
+    "actions": {
+      "play": "Play",
+      "playOnJellyfin": "Play on Jellyfin",
+      "available": "Available on Jellyfin",
+      "processing": "Processing…",
+      "partiallyAvailable": "Partially Available",
+      "requested": "Requested",
+      "request": "Request",
+      "requesting": "Requesting…",
+      "deleteRequest": "Delete Request",
+      "removeFromJellyfin": "Remove from Jellyfin"
+    },
+    "confirmDeleteRequest": {
+      "title": "Delete request?",
+      "message": "The request will be cancelled but any downloaded files stay on Jellyfin."
+    },
+    "confirmRemove": {
+      "title": "Remove from Jellyfin?",
+      "message": "This removes the media from Jellyseerr and asks Radarr/Sonarr to remove the file. Irreversible."
+    },
+    "requestedToast": "{{title}} sent to Jellyseerr",
+    "castHint": "Cast: {{state}} · AirPlay picker is inside the player"
+  },
+  "profile": {
+    "title": "Profile",
+    "tapToChange": "Tap to change",
+    "displayName": "Display name",
+    "saveName": "Save name",
+    "saving": "Saving…",
+    "nameSaved": "Name updated. Restart the app to see it everywhere.",
+    "changePassword": "Change password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "updatePassword": "Update password",
+    "updatingPassword": "Updating…",
+    "passwordMismatchTitle": "Mismatch",
+    "passwordMismatch": "New passwords do not match.",
+    "passwordChanged": "Password changed",
+    "preferences": "Preferences",
+    "menu": {
+      "subtitles": "Subtitles",
+      "playback": "Playback",
+      "content": "Content",
+      "language": "Language"
+    },
+    "adminJellyfin": "Admin — Jellyfin",
+    "adminJellyseerr": "Admin — Jellyseerr",
+    "adminMenu": {
+      "dashboard": "Dashboard",
+      "metadataManager": "Metadata Manager",
+      "users": "Users",
+      "plugins": "Plugins",
+      "serverLogs": "Server Logs",
+      "requests": "Requests",
+      "settings": "Settings"
+    },
+    "changePicture": "Change profile picture",
+    "takePhoto": "Take Photo",
+    "chooseFromLibrary": "Choose from Library",
+    "permissionDenied": "Permission denied",
+    "uploadFailed": "Upload failed"
+  },
+  "settings": {
+    "subtitles": {
+      "title": "Subtitles",
+      "preferredLanguage": "Preferred language",
+      "textSize": "Text size",
+      "size": { "sm": "Small", "md": "Medium", "lg": "Large" },
+      "note": "Preferences are stored on this device. When the player finds a matching subtitle track for the media, it will be selected automatically."
+    },
+    "playback": {
+      "title": "Playback",
+      "preferredAudioLanguage": "Preferred audio language",
+      "autoplayNext": "Autoplay next episode",
+      "autoplayNextDesc": "Automatically play the next episode of a TV show when the current one ends.",
+      "preferVLC": "Always use VLC player",
+      "preferVLCDesc": "Skip AVPlayer entirely. Slower start, works with every codec and container.",
+      "note": "The player still auto-selects VLC when a file's container or codec is not AVPlayer-compatible. Enabling 'Always use VLC' bypasses AVPlayer even for MP4/H.264 files."
+    },
+    "content": {
+      "title": "Content",
+      "showAdult": "Show adult content",
+      "showAdultDesc": "Include 18+ movies and TV in Search and Discover. Applies on this device only. Your Jellyseerr server must also allow adult content globally for it to appear.",
+      "adminHeading": "Admin — Jellyseerr server",
+      "adminIntro": "The device toggle above only hides adult results on this phone. To control it for the whole server (and per user), open Jellyseerr:",
+      "globalSettings": "Global settings",
+      "perUserPermissions": "Per-user permissions",
+      "nonAdminNote": "Only the device toggle is available for non-admin accounts. Server-wide adult content control lives in Jellyseerr's admin."
+    },
+    "language": {
+      "title": "Language",
+      "systemDefault": "Match device",
+      "note": "Restart the app for menu titles and system dialogs to fully update."
+    }
+  },
+  "languages": {
+    "en": "English",
+    "nl": "Nederlands",
+    "tr": "Türkçe",
+    "de": "Deutsch"
+  }
+}

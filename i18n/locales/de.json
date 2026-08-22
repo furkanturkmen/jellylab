@@ -1,0 +1,181 @@
+{
+  "app": { "name": "jellylab" },
+  "common": {
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "remove": "Entfernen",
+    "back": "Zurück",
+    "close": "Schließen",
+    "signOut": "Abmelden",
+    "loading": "Lädt…",
+    "failed": "Fehlgeschlagen",
+    "unknownError": "Unbekannter Fehler",
+    "notPermitted": "Nicht erlaubt",
+    "on": "An",
+    "off": "Aus"
+  },
+  "login": {
+    "title": "jellylab",
+    "username": "Benutzername",
+    "usernamePlaceholder": "jellyfin Benutzer",
+    "password": "Passwort",
+    "signIn": "Anmelden",
+    "signingIn": "Anmeldung läuft…",
+    "failed": "Anmeldung fehlgeschlagen"
+  },
+  "tabs": {
+    "library": "Bibliothek",
+    "search": "Suche",
+    "requests": "Anfragen"
+  },
+  "library": {
+    "welcomeBack": "Willkommen zurück",
+    "featured": "Empfohlen",
+    "continueWatching": "Weiter schauen"
+  },
+  "search": {
+    "placeholder": "Filme und Serien suchen",
+    "noResults": "Keine Ergebnisse",
+    "sections": {
+      "trending": "Im Trend",
+      "popularMovies": "Beliebte Filme",
+      "popularTv": "Beliebte Serien",
+      "anime": "Anime",
+      "upcoming": "Demnächst"
+    }
+  },
+  "requests": {
+    "empty": "Noch keine Anfragen",
+    "status": {
+      "1": "Ausstehend",
+      "2": "Genehmigt",
+      "3": "Abgelehnt"
+    },
+    "mediaStatus": {
+      "1": "Unbekannt",
+      "2": "Ausstehend",
+      "3": "In Bearbeitung",
+      "4": "Teilweise verfügbar",
+      "5": "Verfügbar"
+    }
+  },
+  "detail": {
+    "overview": "Übersicht",
+    "details": "Details",
+    "cast": "Besetzung",
+    "downloading": "Wird heruntergeladen",
+    "timeLeft": "Noch {{time}}",
+    "meta": {
+      "status": "Status",
+      "onJellyfin": "Auf Jellyfin",
+      "notRequested": "Nicht angefragt",
+      "released": "Veröffentlicht",
+      "language": "Sprache",
+      "seasons": "Staffeln",
+      "episodes": "Episoden",
+      "countries": "Länder"
+    },
+    "actions": {
+      "play": "Abspielen",
+      "playOnJellyfin": "Auf Jellyfin abspielen",
+      "available": "Auf Jellyfin verfügbar",
+      "processing": "In Bearbeitung…",
+      "partiallyAvailable": "Teilweise verfügbar",
+      "requested": "Angefragt",
+      "request": "Anfragen",
+      "requesting": "Anfrage läuft…",
+      "deleteRequest": "Anfrage löschen",
+      "removeFromJellyfin": "Aus Jellyfin entfernen"
+    },
+    "confirmDeleteRequest": {
+      "title": "Anfrage löschen?",
+      "message": "Die Anfrage wird storniert; heruntergeladene Dateien bleiben auf Jellyfin."
+    },
+    "confirmRemove": {
+      "title": "Aus Jellyfin entfernen?",
+      "message": "Entfernt die Medien aus Jellyseerr und weist Radarr/Sonarr an, die Datei zu löschen. Nicht umkehrbar."
+    },
+    "requestedToast": "{{title}} an Jellyseerr gesendet",
+    "castHint": "Cast: {{state}} · AirPlay-Auswahl im Player"
+  },
+  "profile": {
+    "title": "Profil",
+    "tapToChange": "Zum Ändern tippen",
+    "displayName": "Anzeigename",
+    "saveName": "Namen speichern",
+    "saving": "Speichern…",
+    "nameSaved": "Name aktualisiert. Starte die App neu, damit er überall erscheint.",
+    "changePassword": "Passwort ändern",
+    "currentPassword": "Aktuelles Passwort",
+    "newPassword": "Neues Passwort",
+    "confirmNewPassword": "Neues Passwort bestätigen",
+    "updatePassword": "Passwort aktualisieren",
+    "updatingPassword": "Aktualisieren…",
+    "passwordMismatchTitle": "Nicht identisch",
+    "passwordMismatch": "Die neuen Passwörter stimmen nicht überein.",
+    "passwordChanged": "Passwort geändert",
+    "preferences": "Einstellungen",
+    "menu": {
+      "subtitles": "Untertitel",
+      "playback": "Wiedergabe",
+      "content": "Inhalte",
+      "language": "Sprache"
+    },
+    "adminJellyfin": "Admin — Jellyfin",
+    "adminJellyseerr": "Admin — Jellyseerr",
+    "adminMenu": {
+      "dashboard": "Dashboard",
+      "metadataManager": "Metadaten-Manager",
+      "users": "Benutzer",
+      "plugins": "Plug-ins",
+      "serverLogs": "Server-Logs",
+      "requests": "Anfragen",
+      "settings": "Einstellungen"
+    },
+    "changePicture": "Profilbild ändern",
+    "takePhoto": "Foto aufnehmen",
+    "chooseFromLibrary": "Aus Mediathek wählen",
+    "permissionDenied": "Berechtigung verweigert",
+    "uploadFailed": "Upload fehlgeschlagen"
+  },
+  "settings": {
+    "subtitles": {
+      "title": "Untertitel",
+      "preferredLanguage": "Bevorzugte Sprache",
+      "textSize": "Textgröße",
+      "size": { "sm": "Klein", "md": "Mittel", "lg": "Groß" },
+      "note": "Einstellungen werden auf diesem Gerät gespeichert. Findet der Player eine passende Untertitel-Spur, wird sie automatisch gewählt."
+    },
+    "playback": {
+      "title": "Wiedergabe",
+      "preferredAudioLanguage": "Bevorzugte Audiosprache",
+      "autoplayNext": "Nächste Episode automatisch",
+      "autoplayNextDesc": "Spiele automatisch die nächste Folge einer Serie ab, wenn die aktuelle endet.",
+      "preferVLC": "Immer VLC verwenden",
+      "preferVLCDesc": "AVPlayer komplett überspringen. Etwas langsamerer Start, funktioniert mit jedem Codec und Container.",
+      "note": "Der Player wählt bei nicht-AVPlayer-kompatiblen Dateien ohnehin VLC. Mit 'Immer VLC' wird AVPlayer auch bei MP4/H.264 übersprungen."
+    },
+    "content": {
+      "title": "Inhalte",
+      "showAdult": "Erwachsenen-Inhalte anzeigen",
+      "showAdultDesc": "18+ Filme und Serien in Suche und Discover einbeziehen. Gilt nur auf diesem Gerät. Dein Jellyseerr-Server muss Erwachsenen-Inhalte serverseitig ebenfalls erlauben.",
+      "adminHeading": "Admin — Jellyseerr-Server",
+      "adminIntro": "Der Schalter oben blendet nur Ergebnisse auf diesem Telefon aus. Für die serverweite oder benutzerbezogene Steuerung öffne Jellyseerr:",
+      "globalSettings": "Globale Einstellungen",
+      "perUserPermissions": "Benutzer-Berechtigungen",
+      "nonAdminNote": "Für Nicht-Admin-Konten steht nur der Geräteschalter zur Verfügung. Server-weite Kontrolle liegt im Jellyseerr-Admin."
+    },
+    "language": {
+      "title": "Sprache",
+      "systemDefault": "Gerät folgen",
+      "note": "Starte die App neu, damit Menütitel und Systemdialoge vollständig übernommen werden."
+    }
+  },
+  "languages": {
+    "en": "English",
+    "nl": "Nederlands",
+    "tr": "Türkçe",
+    "de": "Deutsch"
+  }
+}

@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as WebBrowser from 'expo-web-browser';
+import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { CONFIG } from '@/config';
@@ -13,6 +14,7 @@ import { colors, radius, spacing, type } from '@/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { state, signOut } = useAuth();
   const [user, setUser] = useState<any>(null);
   const [name, setName] = useState('');
@@ -49,9 +51,9 @@ export default function ProfileScreen() {
       await Jellyfin.updateUserName(state.auth.userId, name.trim());
       const updated = { ...state.auth, userName: name.trim() };
       await saveJellyfinAuth(updated);
-      Alert.alert('Saved', 'Name updated. Restart the app to see it everywhere.');
+      Alert.alert(t('common.save'), t('profile.nameSaved'));
     } catch (e: any) {
-      Alert.alert('Failed', e?.response?.data?.message ?? e?.message ?? 'Unknown error');
+      Alert.alert(t('common.failed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
     } finally {
       setSaving(false);
     }
@@ -61,7 +63,7 @@ export default function ProfileScreen() {
     if (state.status !== 'signed-in') return;
     if (!currentPw || !newPw) return;
     if (newPw !== confirmPw) {
-      Alert.alert('Mismatch', 'New passwords do not match.');
+      Alert.alert(t('profile.passwordMismatchTitle'), t('profile.passwordMismatch'));
       return;
     }
     setChangingPw(true);
@@ -70,9 +72,9 @@ export default function ProfileScreen() {
       setCurrentPw('');
       setNewPw('');
       setConfirmPw('');
-      Alert.alert('Password changed');
+      Alert.alert(t('profile.passwordChanged'));
     } catch (e: any) {
-      Alert.alert('Failed', e?.response?.data?.message ?? e?.message ?? 'Unknown error');
+      Alert.alert(t('common.failed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
     } finally {
       setChangingPw(false);
     }
@@ -85,7 +87,7 @@ export default function ProfileScreen() {
         ? await ImagePicker.requestCameraPermissionsAsync()
         : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Permission denied');
+      Alert.alert(t('profile.permissionDenied'));
       return;
     }
     const picker = source === 'camera' ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
@@ -110,17 +112,17 @@ export default function ProfileScreen() {
       }
       setAvatarBust(Date.now());
     } catch (e: any) {
-      Alert.alert('Upload failed', e?.response?.data?.message ?? e?.message ?? 'Unknown error');
+      Alert.alert(t('profile.uploadFailed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
     } finally {
       setUploadingImage(false);
     }
   }
 
   function chooseImageSource() {
-    Alert.alert('Change profile picture', undefined, [
-      { text: 'Take Photo', onPress: () => pickImage('camera') },
-      { text: 'Choose from Library', onPress: () => pickImage('library') },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('profile.changePicture'), undefined, [
+      { text: t('profile.takePhoto'), onPress: () => pickImage('camera') },
+      { text: t('profile.chooseFromLibrary'), onPress: () => pickImage('library') },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   }
 
@@ -134,7 +136,7 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.root}>
-      <Stack.Screen options={{ title: 'Profile', headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text } }} />
+      <Stack.Screen options={{ title: t('profile.title'), headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text } }} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         <View style={styles.avatarBlock}>
           <TouchableOpacity onPress={chooseImageSource} disabled={uploadingImage} activeOpacity={0.85}>
@@ -150,12 +152,12 @@ export default function ProfileScreen() {
                 <View style={styles.avatarOverlay}><ActivityIndicator color={colors.text} /></View>
               ) : null}
             </View>
-            <Text style={styles.avatarHint}>Tap to change</Text>
+            <Text style={styles.avatarHint}>{t('profile.tapToChange')}</Text>
           </TouchableOpacity>
         </View>
 
         <Card>
-          <Field label="Display name">
+          <Field label={t('profile.displayName')}>
             <TextInput
               style={styles.input}
               value={name}
@@ -172,20 +174,20 @@ export default function ProfileScreen() {
             activeOpacity={0.85}
           >
             <Text style={[styles.primaryBtnText, (saving || name === user?.Name) && styles.primaryBtnTextDisabled]}>
-              {saving ? 'Saving…' : 'Save name'}
+              {saving ? t('profile.saving') : t('profile.saveName')}
             </Text>
           </TouchableOpacity>
         </Card>
 
         <Card>
-          <Text style={styles.cardLabel}>Change password</Text>
-          <Field label="Current password">
+          <Text style={styles.cardLabel}>{t('profile.changePassword')}</Text>
+          <Field label={t('profile.currentPassword')}>
             <TextInput style={styles.input} value={currentPw} onChangeText={setCurrentPw} placeholderTextColor={colors.textDim} secureTextEntry autoCapitalize="none" />
           </Field>
-          <Field label="New password">
+          <Field label={t('profile.newPassword')}>
             <TextInput style={styles.input} value={newPw} onChangeText={setNewPw} placeholderTextColor={colors.textDim} secureTextEntry autoCapitalize="none" />
           </Field>
-          <Field label="Confirm new password">
+          <Field label={t('profile.confirmNewPassword')}>
             <TextInput style={styles.input} value={confirmPw} onChangeText={setConfirmPw} placeholderTextColor={colors.textDim} secureTextEntry autoCapitalize="none" />
           </Field>
           <TouchableOpacity
@@ -195,40 +197,41 @@ export default function ProfileScreen() {
             activeOpacity={0.85}
           >
             <Text style={[styles.primaryBtnText, changingPw && styles.primaryBtnTextDisabled]}>
-              {changingPw ? 'Updating…' : 'Update password'}
+              {changingPw ? t('profile.updatingPassword') : t('profile.updatePassword')}
             </Text>
           </TouchableOpacity>
         </Card>
 
         <Card>
-          <Text style={styles.cardLabel}>Preferences</Text>
-          <MenuRow label="Subtitles" onPress={() => router.push('/settings/subtitles')} />
-          <MenuRow label="Playback" onPress={() => router.push('/settings/playback')} />
-          <MenuRow label="Content" onPress={() => router.push('/settings/content')} />
+          <Text style={styles.cardLabel}>{t('profile.preferences')}</Text>
+          <MenuRow label={t('profile.menu.subtitles')} onPress={() => router.push('/settings/subtitles')} />
+          <MenuRow label={t('profile.menu.playback')} onPress={() => router.push('/settings/playback')} />
+          <MenuRow label={t('profile.menu.content')} onPress={() => router.push('/settings/content')} />
+          <MenuRow label={t('profile.menu.language')} onPress={() => router.push('/settings/language')} />
         </Card>
 
         {isAdmin ? (
           <Card>
-            <Text style={styles.cardLabel}>Admin · Jellyfin</Text>
-            <MenuRow label="Dashboard" onPress={() => openWeb('/web/#/dashboard.html')} />
-            <MenuRow label="Metadata Manager" onPress={() => openWeb('/web/#/dashboard/libraries')} />
-            <MenuRow label="Users" onPress={() => openWeb('/web/#/dashboard/users')} />
-            <MenuRow label="Plugins" onPress={() => openWeb('/web/#/dashboard/plugins')} />
-            <MenuRow label="Server Logs" onPress={() => openWeb('/web/#/dashboard/logs')} />
+            <Text style={styles.cardLabel}>{t('profile.adminJellyfin')}</Text>
+            <MenuRow label={t('profile.adminMenu.dashboard')} onPress={() => openWeb('/web/#/dashboard.html')} />
+            <MenuRow label={t('profile.adminMenu.metadataManager')} onPress={() => openWeb('/web/#/dashboard/libraries')} />
+            <MenuRow label={t('profile.adminMenu.users')} onPress={() => openWeb('/web/#/dashboard/users')} />
+            <MenuRow label={t('profile.adminMenu.plugins')} onPress={() => openWeb('/web/#/dashboard/plugins')} />
+            <MenuRow label={t('profile.adminMenu.serverLogs')} onPress={() => openWeb('/web/#/dashboard/logs')} />
           </Card>
         ) : null}
 
         {isAdmin ? (
           <Card>
-            <Text style={styles.cardLabel}>Admin · Jellyseerr</Text>
-            <MenuRow label="Requests" onPress={() => openJellyseerr('/requests')} />
-            <MenuRow label="Users" onPress={() => openJellyseerr('/users')} />
-            <MenuRow label="Settings" onPress={() => openJellyseerr('/settings')} />
+            <Text style={styles.cardLabel}>{t('profile.adminJellyseerr')}</Text>
+            <MenuRow label={t('profile.adminMenu.requests')} onPress={() => openJellyseerr('/requests')} />
+            <MenuRow label={t('profile.adminMenu.users')} onPress={() => openJellyseerr('/users')} />
+            <MenuRow label={t('profile.adminMenu.settings')} onPress={() => openJellyseerr('/settings')} />
           </Card>
         ) : null}
 
         <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.85}>
-          <Text style={styles.signOutText}>Sign out</Text>
+          <Text style={styles.signOutText}>{t('common.signOut')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

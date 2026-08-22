@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import * as Jellyseerr from '@/api/jellyseerr';
 import { loadPrefs } from '@/store/prefs';
@@ -12,6 +13,7 @@ type Section = { title: string; items: JellyseerrSearchResult[] };
 
 export default function SearchScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<JellyseerrSearchResult[]>([]);
   const [busy, setBusy] = useState(false);
@@ -42,11 +44,11 @@ export default function SearchScreen() {
       setIncludeAdult(prefs.includeAdult);
       const applyAdult = (list: JellyseerrSearchResult[]) => prefs.includeAdult ? list : list.filter(i => !i.adult);
       setDiscover([
-        { title: 'Trending', items: applyAdult(trending) },
-        { title: 'Popular Movies', items: applyAdult(movies) },
-        { title: 'Popular TV', items: applyAdult(tv) },
-        { title: 'Anime', items: applyAdult(anime) },
-        { title: 'Upcoming', items: applyAdult(upcoming) },
+        { title: t('search.sections.trending'), items: applyAdult(trending) },
+        { title: t('search.sections.popularMovies'), items: applyAdult(movies) },
+        { title: t('search.sections.popularTv'), items: applyAdult(tv) },
+        { title: t('search.sections.anime'), items: applyAdult(anime) },
+        { title: t('search.sections.upcoming'), items: applyAdult(upcoming) },
       ].filter(s => s.items.length > 0));
     } finally {
       setDiscoverLoading(false);
@@ -80,7 +82,7 @@ export default function SearchScreen() {
       <View style={styles.searchBar}>
         <TextInput
           style={styles.input}
-          placeholder="Search movies and TV"
+          placeholder={t('search.placeholder')}
           placeholderTextColor={colors.textDim}
           value={query}
           onChangeText={setQuery}
@@ -105,7 +107,7 @@ export default function SearchScreen() {
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               <View style={styles.center}>
-                <Text style={styles.emptyText}>No results</Text>
+                <Text style={styles.emptyText}>{t('search.noResults')}</Text>
               </View>
             }
           />

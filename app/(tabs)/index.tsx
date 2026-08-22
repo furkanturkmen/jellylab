@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, Touchabl
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,6 +15,7 @@ type LibraryItem = { view: JellyfinView; items: JellyfinItem[] };
 
 export default function LibraryScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { state } = useAuth();
   const [resume, setResume] = useState<JellyfinItem[]>([]);
   const [libs, setLibs] = useState<LibraryItem[]>([]);
@@ -67,13 +69,13 @@ export default function LibraryScreen() {
 
           <View style={styles.headerRow}>
             <View>
-              <Text style={styles.greetingSmall}>Welcome back</Text>
+              <Text style={styles.greetingSmall}>{t('library.welcomeBack')}</Text>
               <Text style={styles.greeting}>{state.auth.userName}</Text>
             </View>
             <AvatarButton auth={state.auth} onPress={() => router.push('/profile')} />
           </View>
 
-          {resume.length > 0 ? <ContinueWatchingRow items={resume} /> : null}
+          {resume.length > 0 ? <ContinueWatchingRow items={resume} title={t('library.continueWatching')} /> : null}
         </>
       }
       renderItem={({ item }) => <LibraryRow lib={item} />}
@@ -103,6 +105,7 @@ function AvatarButton({ auth, onPress }: { auth: JellyfinAuth; onPress: () => vo
 
 function HeroSpotlight({ item }: { item: JellyfinItem }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const backdrop = item.BackdropImageTags?.[0];
   const primary = item.ImageTags?.Primary;
   const tag = backdrop ?? primary;
@@ -123,7 +126,7 @@ function HeroSpotlight({ item }: { item: JellyfinItem }) {
           style={StyleSheet.absoluteFill}
         />
         <View style={styles.heroBody}>
-          <Text style={styles.heroLabel}>Featured</Text>
+          <Text style={styles.heroLabel}>{t('library.featured')}</Text>
           <Text style={styles.heroTitle} numberOfLines={2}>{item.Name}</Text>
           <View style={styles.heroPillRow}>
             {item.ProductionYear ? (
@@ -137,11 +140,11 @@ function HeroSpotlight({ item }: { item: JellyfinItem }) {
   );
 }
 
-function ContinueWatchingRow({ items }: { items: JellyfinItem[] }) {
+function ContinueWatchingRow({ items, title }: { items: JellyfinItem[]; title: string }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Continue Watching</Text>
+        <Text style={styles.sectionTitle}>{title}</Text>
         <Text style={styles.sectionCount}>{items.length}</Text>
       </View>
       <FlatList
