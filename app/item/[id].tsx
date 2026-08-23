@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, Stack } from 'expo-router';
@@ -103,7 +103,7 @@ export default function ItemScreen() {
   if (playback) {
     return (
       <>
-        <Stack.Screen options={{ headerShown: false }} />
+        <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
         <Player
           config={playback}
           itemId={item.Id}
@@ -402,6 +402,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
   const [scrubbing, setScrubbing] = useState(false);
+  const [scrubValue, setScrubValue] = useState(0);
   const [isLandscape, setIsLandscape] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [activeSubIndex, setActiveSubIndex] = useState<number | null>(null);
@@ -625,20 +626,21 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
             {/* Bottom: scrubber + action cluster */}
             <View style={styles.overlayBottomWrap} pointerEvents="box-none">
               <View style={styles.scrubRow} pointerEvents="box-none">
-                <Text style={styles.timeText}>{formatTime(position)}</Text>
-                <View style={styles.scrubberTrack}>
-                  <View style={[styles.scrubberFill, { width: `${duration > 0 ? (position / duration) * 100 : 0}%` }]} />
-                  <Pressable
-                    style={StyleSheet.absoluteFill}
-                    onPress={(e) => {
-                      const x = (e.nativeEvent as any).locationX ?? 0;
-                      const w = (e.nativeEvent as any).layout?.width ?? 300;
-                      const ratio = Math.max(0, Math.min(1, x / w));
-                      seekTo(ratio * duration);
-                    }}
-                  />
-                </View>
-                <Text style={styles.timeText}>-{formatTime(Math.max(0, duration - position))}</Text>
+                <Text style={styles.timeText}>{formatTime(scrubbing ? scrubValue : position)}</Text>
+                <Scrubber
+                  position={scrubbing ? scrubValue : position}
+                  duration={duration}
+                  onScrubStart={() => setScrubbing(true)}
+                  onScrub={(t) => setScrubValue(t)}
+                  onScrubEnd={(t) => {
+                    seekTo(t);
+                    setScrubbing(false);
+                    setControlsVisible(true);
+                  }}
+                />
+                <Text style={styles.timeText}>
+                  -{formatTime(Math.max(0, duration - (scrubbing ? scrubValue : position)))}
+                </Text>
               </View>
 
               <View style={styles.actionsRow} pointerEvents="box-none">
@@ -817,6 +819,62 @@ function TrackPickerModal({
         </Pressable>
       </Pressable>
     </Modal>
+  );
+}
+
+function Scrubber({
+  position, duration, onScrubStart, onScrub, onScrubEnd,
+}: {
+  position: number;
+  duration: number;
+  onScrubStart: () => void;
+  onScrub: (t: number) => void;
+  onScrubEnd: (t: number) => void;
+}) {
+  const [width, setWidth] = useState(0);
+  const durationRef = useRef(duration);
+  const widthRef = useRef(width);
+  durationRef.current = duration;
+  widthRef.current = width;
+
+  function xToTime(x: number): number {
+    const w = widthRef.current || 1;
+    const ratio = Math.max(0, Math.min(1, x / w));
+    return ratio * durationRef.current;
+  }
+
+  const pan = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderGrant: (e) => {
+      onScrubStart();
+      onScrub(xToTime((e.nativeEvent as any).locationX ?? 0));
+    },
+    onPanResponderMove: (e) => {
+      onScrub(xToTime((e.nativeEvent as any).locationX ?? 0));
+    },
+    onPanResponderRelease: (e) => {
+      onScrubEnd(xToTime((e.nativeEvent as any).locationX ?? 0));
+    },
+    onPanResponderTerminate: (e) => {
+      onScrubEnd(xToTime((e.nativeEvent as any).locationX ?? 0));
+    },
+  }), []);
+
+  const pct = duration > 0 ? Math.max(0, Math.min(1, position / duration)) * 100 : 0;
+
+  return (
+    <View
+      style={styles.scrubberHit}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      {...pan.panHandlers}
+    >
+      <View style={styles.scrubberTrack}>
+        <View style={[styles.scrubberFill, { width: `${pct}%` }]} />
+        <View style={[styles.scrubberThumb, { left: `${pct}%` }]} />
+      </View>
+    </View>
   );
 }
 
@@ -1053,14 +1111,26 @@ const styles = StyleSheet.create({
   scrubRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   actionsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   timeText: { ...type.small, color: colors.text, fontVariant: ['tabular-nums'] as any },
-  scrubberTrack: {
+  scrubberHit: {
     flex: 1,
+    height: 32,
+    justifyContent: 'center',
+  },
+  scrubberTrack: {
     height: 4,
     borderRadius: 2,
     backgroundColor: 'rgba(255,255,255,0.25)',
-    overflow: 'hidden',
+    justifyContent: 'center',
   },
-  scrubberFill: { height: '100%', backgroundColor: colors.text },
+  scrubberFill: { height: '100%', backgroundColor: colors.text, borderRadius: 2 },
+  scrubberThumb: {
+    position: 'absolute',
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: colors.text,
+    marginLeft: -7,
+  },
   subOverlay: {
     position: 'absolute',
     left: 0,
