@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Stack } from 'expo-router';
 
-import { getPushToken, registerDevice, unregisterDevice, sendTest, health, PushModuleMissingError } from '@/api/push';
+import { getPushToken, registerDevice, unregisterDevice, sendTest, health, PushModuleMissingError, PushEntitlementMissingError } from '@/api/push';
 import { loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
 
@@ -42,6 +42,16 @@ export default function NotificationSettings() {
       try {
         token = await getPushToken();
       } catch (e: any) {
+        if (e instanceof PushEntitlementMissingError) {
+          Alert.alert(
+            'Needs a paid Apple account',
+            [
+              'Apple only allows push notifications on apps signed by a paid Developer Program account, not a free personal team.',
+              'Your homelab side is working — this is the only thing missing.',
+            ].join('\n\n')
+          );
+          return;
+        }
         if (e instanceof PushModuleMissingError) {
           Alert.alert(
             'Needs a rebuild',

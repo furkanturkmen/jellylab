@@ -24,9 +24,31 @@ export class PushModuleMissingError extends Error {
   }
 }
 
+/**
+ * Apple gates the aps-environment entitlement behind a paid Developer Program
+ * membership — a free personal team cannot build with it, so 'expo-notifications'
+ * is left out of app.json's plugins to keep the app buildable. Everything else
+ * still works; only push registration is unavailable.
+ *
+ * To enable: join the Developer Program, add 'expo-notifications' back to
+ * plugins, then `npx expo prebuild --clean && npx expo run:ios --device`.
+ * Nothing else here needs to change.
+ */
+export class PushEntitlementMissingError extends Error {
+  constructor() {
+    super('Push notifications need a paid Apple Developer account.');
+    this.name = 'PushEntitlementMissingError';
+  }
+}
+
 function isMissingNativeModule(e: unknown): boolean {
   const msg = String((e as any)?.message ?? e ?? '');
   return msg.includes('Cannot find native module') || msg.includes('ExpoPushTokenManager');
+}
+
+function isMissingEntitlement(e: unknown): boolean {
+  const msg = String((e as any)?.message ?? e ?? '');
+  return msg.includes('aps-environment') || msg.includes('no valid') || msg.includes('entitlement');
 }
 
 /**
@@ -80,6 +102,7 @@ export async function getPushToken(): Promise<string | null> {
     return data ?? null;
   } catch (e) {
     if (isMissingNativeModule(e)) throw new PushModuleMissingError();
+    if (isMissingEntitlement(e)) throw new PushEntitlementMissingError();
     throw e;
   }
 }
