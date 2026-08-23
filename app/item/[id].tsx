@@ -13,9 +13,10 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import * as Jellyfin from '@/api/jellyfin';
 import { decidePlayback, type Engine, type PlayMode } from '@/player/decide';
 import { parseVtt, findActiveCue, type VttCue } from '@/player/vtt';
+import { matchesLanguage } from '@/player/lang';
 import { useAuth } from '@/hooks/useAuth';
 import { getDeviceId } from '@/store/auth';
-import { loadPrefs } from '@/store/prefs';
+import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem } from '@/types';
 
@@ -25,7 +26,11 @@ type PlaybackConfig = {
   mode: PlayMode;
   mediaSourceId?: string;
   externalSubs: { index: number; label: string }[];
+  audioStreams: AudioStream[];
 };
+
+/** An audio track as Jellyfin describes it, before VLC has opened the file. */
+type AudioStream = { index: number; label: string; language?: string };
 
 export default function ItemScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -79,6 +84,16 @@ export default function ItemScreen() {
         index: s.Index as number,
         label: s.DisplayTitle ?? s.Language ?? `Track ${s.Index}`,
       }));
+    // Jellyfin names audio tracks far better than the container does - VLC
+    // often reports nothing but "Track 1" - so its labels are carried through
+    // and matched to VLC's tracks by position once the file is open.
+    const audioStreams = (source?.MediaStreams ?? [])
+      .filter(s => s.Type === 'Audio' && typeof s.Index === 'number')
+      .map(s => ({
+        index: s.Index as number,
+        label: s.DisplayTitle ?? s.Language ?? `Track ${s.Index}`,
+        language: s.Language,
+      }));
 
     if (castClient) {
       try {
@@ -102,7 +117,7 @@ export default function ItemScreen() {
       }
     }
 
-    setPlayback({ url, engine, mode, mediaSourceId: source?.Id, externalSubs });
+    setPlayback({ url, engine, mode, mediaSourceId: source?.Id, externalSubs, audioStreams });
   }
 
   if (!item) {
@@ -116,6 +131,7 @@ export default function ItemScreen() {
         <Player
           config={playback}
           itemId={item.Id}
+          delayKey={item.SeriesId ?? item.Id}
           title={item.Name}
           resumeSeconds={Jellyfin.ticksToSeconds(item.UserData?.PlaybackPositionTicks ?? 0)}
           initialDuration={Jellyfin.ticksToSeconds(item.RunTimeTicks ?? 0)}
@@ -275,11 +291,13 @@ export default function ItemScreen() {
   );
 }
 
-function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', onExit }: {
+function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, delayKey, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', onExit }: {
   url: string;
   itemId: string;
   mediaSourceId?: string;
   externalSubs: { index: number; label: string }[];
+  audioStreams: AudioStream[];
+  delayKey: string;
   title: string;
   resumeSeconds: number;
   initialDuration: number;
@@ -308,17 +326,42 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
   const positionRef = useRef(0);
   const [vlcTextTracks, setVlcTextTracks] = useState<{ id: number; name?: string }[]>([]);
   const [vlcTextTrackId, setVlcTextTrackId] = useState<number>(-1); // -1 = off
+  const [vlcAudioTracks, setVlcAudioTracks] = useState<{ id: number; name?: string }[]>([]);
+  const [vlcAudioTrackId, setVlcAudioTrackId] = useState<number>(-1);
+  const [audioOpen, setAudioOpen] = useState(false);
+  const [subDelayMs, setSubDelayMs] = useState(0);
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
+  const prefsRef = useRef<Prefs | null>(null);
+  /**
+   * What we last asked VLC for. A remount gives us a fresh media player that
+   * reselects the container's own defaults, so these are what gets asserted
+   * again on the next load rather than whatever React state happens to hold.
+   */
+  const desiredTextTrack = useRef(-1);
+  const desiredAudioTrack = useRef<number | null>(null);
+  const audioAutoPicked = useRef(false);
 
   // Keep positionRef synced so background/foreground can restore.
   useEffect(() => { positionRef.current = position; }, [position]);
 
-  // Handle app background/foreground: remount VLC on foreground so the
-  // video surface reattaches (VLC on iOS drops the surface in background,
-  // audio keeps playing, and video stays black on return).
+  /**
+   * Remount VLC when coming back from the background, so the video surface
+   * reattaches - iOS drops it while backgrounded, leaving audio playing over a
+   * black frame.
+   *
+   * Only a real background warrants that. Pulling down Control Center or the
+   * notification shade, or a call banner arriving, moves the app to 'inactive'
+   * and straight back to 'active' without ever taking the surface away, so
+   * remounting there tore down a perfectly good player: the video reloaded,
+   * buffered from scratch and lost its tracks, for a glance at the toggles.
+   */
+  const wasBackgrounded = useRef(false);
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') {
-        // Force remount to reattach video surface
+      if (state === 'background') {
+        wasBackgrounded.current = true;
+      } else if (state === 'active' && wasBackgrounded.current) {
+        wasBackgrounded.current = false;
         setVlcKey(k => k + 1);
         setReady(false);
       }
@@ -341,8 +384,11 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
   useEffect(() => {
     (async () => {
       const prefs = await loadPrefs();
+      prefsRef.current = prefs;
       const sizeMap = { sm: 14, md: 18, lg: 24 } as const;
       setSubFontSize(sizeMap[prefs.subtitleSize] ?? 18);
+      setSubDelayMs(prefs.subtitleDelays?.[delayKey] ?? 0);
+      setPrefsLoaded(true);
 
       if (prefs.lastSubLabel && prefs.lastSubLabel !== 'off') {
         const exact = externalSubs.find(s => s.label === prefs.lastSubLabel);
@@ -352,33 +398,102 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
         }
       }
       if (prefs.lastSubLabel !== 'off' && prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
-        const wanted = prefs.subtitleLanguage.toLowerCase();
-        const aliases: Record<string, string[]> = {
-          eng: ['eng', 'english', 'en'],
-          nld: ['nld', 'nl', 'dutch', 'nederlands'],
-          tur: ['tur', 'tr', 'turkish', 'türk'],
-          ger: ['ger', 'deu', 'de', 'german', 'deutsch'],
-          fre: ['fre', 'fra', 'fr', 'french', 'français'],
-          spa: ['spa', 'es', 'spanish', 'español'],
-          jpn: ['jpn', 'ja', 'japanese'],
-        };
-        const needles = aliases[wanted] ?? [wanted];
-        const match = externalSubs.find(s => needles.some(n => s.label.toLowerCase().includes(n)));
+        const match = externalSubs.find(s => matchesLanguage(s.label, prefs.subtitleLanguage));
         if (match) pickExternalSub(match.index, false);
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Track active cue for external subs
+  /**
+   * Track active cue for external subs.
+   *
+   * Cues are looked up at `position - delay`, so a positive delay holds each
+   * line back: at 12s of video with a 2s delay we show the line written for
+   * 10s. This is the only place a timing correction can happen - VLC exposes
+   * no subtitle-delay control, so it works on jellylab's own overlay, which is
+   * also the path Jellyfin serves embedded tracks through.
+   */
   useEffect(() => {
     if (externalCues.length === 0) {
       if (activeCue) setActiveCue(null);
       return;
     }
-    const cue = findActiveCue(externalCues, position);
+    const cue = findActiveCue(externalCues, position - subDelayMs / 1000);
     if (cue !== activeCue) setActiveCue(cue);
-  }, [position, externalCues, activeCue]);
+  }, [position, externalCues, activeCue, subDelayMs]);
+
+  async function changeSubDelay(nextMs: number) {
+    const clamped = Math.max(-30000, Math.min(30000, nextMs));
+    setSubDelayMs(clamped);
+    try {
+      const prefs = prefsRef.current ?? (await loadPrefs());
+      prefsRef.current = withSubtitleDelay(prefs, delayKey, clamped);
+      await savePrefs(prefsRef.current);
+    } catch {}
+  }
+
+  /**
+   * VLC reports its own audio tracks in container order, which is the order
+   * Jellyfin lists them in too, so its far richer DisplayTitle is matched to
+   * VLC's track id by position. VLC's own name is the fallback for the case
+   * where the two lists disagree in length.
+   */
+  function audioTrackLabel(track: { id: number; name?: string }, i: number): string {
+    const fromJellyfin = audioStreams[i]?.label?.trim();
+    if (fromJellyfin) return cleanSubLabel(fromJellyfin);
+    const fromVlc = (track.name ?? '').trim();
+    return fromVlc || `Track ${i + 1}`;
+  }
+
+  const audioChoices = vlcAudioTracks.map((t, i) => ({
+    id: t.id,
+    label: audioTrackLabel(t, i),
+    language: audioStreams[i]?.language,
+  }));
+
+  function applyAudioTrack(id: number, persist = true) {
+    desiredAudioTrack.current = id;
+    setVlcAudioTrackId(id);
+    if (!persist) return;
+    const picked = audioChoices.find(t => t.id === id);
+    if (!picked) return;
+    (async () => {
+      try {
+        const prefs = prefsRef.current ?? (await loadPrefs());
+        prefsRef.current = { ...prefs, lastAudioLabel: picked.label };
+        await savePrefs(prefsRef.current);
+      } catch {}
+    })();
+  }
+
+  /**
+   * Pick the audio track the user actually wants, once per playback.
+   *
+   * Anime is the case that forces this: a release commonly ships an English
+   * dub first in the file, so the container default is the wrong language and
+   * VLC happily plays it. Settings has had a "Preferred audio language" option
+   * all along, but nothing read it - this is what makes it do something.
+   */
+  useEffect(() => {
+    if (audioAutoPicked.current) return;
+    if (!prefsLoaded || audioChoices.length < 2) return;
+    audioAutoPicked.current = true;
+    const prefs = prefsRef.current;
+    if (!prefs) return;
+    const byLastUsed = prefs.lastAudioLabel
+      ? audioChoices.find(t => t.label === prefs.lastAudioLabel)
+      : undefined;
+    const byLanguage =
+      prefs.audioLanguage && prefs.audioLanguage !== 'original'
+        ? audioChoices.find(t => matchesLanguage(t.language ?? t.label, prefs.audioLanguage))
+        : undefined;
+    const pick = byLastUsed ?? byLanguage;
+    // persist=false: an automatic choice should not overwrite what the user
+    // last chose by hand, or every title would rewrite the preference.
+    if (pick) applyAudioTrack(pick.id, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefsLoaded, vlcAudioTracks]);
 
   async function pickExternalSub(streamIndex: number | null, persistPref = true) {
     setActiveSubIndex(streamIndex);
@@ -386,6 +501,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
     // (or when explicitly turning off), otherwise both would be drawn.
     // VLC ignores the textTrack prop when going from auto-selected -> -1,
     // so force a remount so it starts fresh with no internal subs.
+    desiredTextTrack.current = -1;
     setVlcTextTrackId(-1);
     setReady(false);
     setVlcKey(k => k + 1);
@@ -424,6 +540,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
 
   function pickInternalSub(trackId: number) {
     // Enable VLC internal track, clear any external overlay
+    desiredTextTrack.current = trackId;
     setVlcTextTrackId(trackId);
     setActiveSubIndex(null);
     setExternalCues([]);
@@ -502,15 +619,36 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
     const tracks = rawTracks.filter((t: any) => t && t.id != null && t.id !== -1);
     setVlcTextTracks(tracks);
 
-    // If we want subs off (vlcTextTrackId === -1) but VLC just autoplayed
-    // with a default embedded track selected, the -1 prop from initial
-    // render was silently ignored. Ping-pong through a real track id to
-    // force VLC to actually apply -1.
-    if (vlcTextTrackId === -1 && tracks.length > 0) {
+    const rawAudio = Array.isArray(e?.audioTracks) ? e.audioTracks : [];
+    const audio = rawAudio.filter((t: any) => t && t.id != null && t.id !== -1);
+    setVlcAudioTracks(audio);
+
+    // VLC only acts on textTrack/audioTrack when the prop *changes*, and a
+    // fresh instance has already reselected the container's defaults by the
+    // time it loads. Re-asserting the same value is therefore a no-op, so
+    // every re-apply below ping-pongs through another value first.
+    const reassert = (want: number, apply: (v: number) => void, via: number) => {
       setTimeout(() => {
-        setVlcTextTrackId(tracks[0].id);
-        setTimeout(() => setVlcTextTrackId(-1), 80);
+        apply(via);
+        setTimeout(() => apply(want), 80);
       }, 300);
+    };
+
+    if (vlcTextTrackId === -1 && tracks.length > 0) {
+      // Subs should be off, but VLC autoplayed with a default embedded track:
+      // the -1 from the initial render was silently ignored.
+      reassert(-1, setVlcTextTrackId, tracks[0].id);
+    } else if (desiredTextTrack.current !== -1 && tracks.some((t: any) => t.id === desiredTextTrack.current)) {
+      // A remount had dropped the chosen embedded track, and the only way back
+      // was to open the picker and select something else and then this one
+      // again - which is exactly the ping-pong, done by hand.
+      reassert(desiredTextTrack.current, setVlcTextTrackId, -1);
+    }
+
+    const wantAudio = desiredAudioTrack.current;
+    if (wantAudio != null && audio.length > 1 && audio.some((t: any) => t.id === wantAudio)) {
+      const other = audio.find((t: any) => t.id !== wantAudio)?.id ?? -1;
+      reassert(wantAudio, setVlcAudioTrackId, other);
     }
 
     const seekSecs = positionRef.current > 0 ? positionRef.current : resumeSeconds;
@@ -556,6 +694,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
           paused={paused}
           rate={rate}
           textTrack={vlcTextTrackId}
+          audioTrack={vlcAudioTrackId >= 0 ? vlcAudioTrackId : undefined}
           resizeMode="contain"
           playInBackground={false}
           onLoad={onLoad}
@@ -634,6 +773,11 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
               </View>
               <View style={styles.actionsRow} pointerEvents="box-none">
                 <View style={{ flex: 1 }} />
+                {audioChoices.length > 1 ? (
+                  <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setAudioOpen(true)} activeOpacity={0.7}>
+                    <SymbolView name={{ ios: 'waveform', android: 'graphic_eq', web: 'graphic_eq' }} tintColor={colors.text} size={22} />
+                  </TouchableOpacity>
+                ) : null}
                 <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setSubsOpen(true)} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
@@ -656,12 +800,26 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
           </View>
         ) : null}
       </View>
+      <AudioTracksModal
+        visible={audioOpen}
+        tracks={audioChoices}
+        activeId={vlcAudioTrackId}
+        declaredCount={audioStreams.length}
+        onPick={(id) => {
+          applyAudioTrack(id);
+          setAudioOpen(false);
+        }}
+        onClose={() => setAudioOpen(false)}
+      />
       <VlcSubsModal
         visible={subsOpen}
         externalSubs={externalSubs}
         internalTracks={vlcTextTracks}
         activeExternalIndex={activeSubIndex}
         activeInternalId={vlcTextTrackId}
+        subDelayMs={subDelayMs}
+        delayEnabled={externalCues.length > 0}
+        onDelayChange={changeSubDelay}
         onPickExternal={(idx) => {
           pickExternalSub(idx);
           setSubsOpen(false);
@@ -703,6 +861,7 @@ function cleanSubLabel(raw: string): string {
 
 function VlcSubsModal({
   visible, externalSubs, internalTracks, activeExternalIndex, activeInternalId,
+  subDelayMs, delayEnabled, onDelayChange,
   onPickExternal, onPickInternal, onOff, onClose,
 }: {
   visible: boolean;
@@ -710,6 +869,9 @@ function VlcSubsModal({
   internalTracks: { id: number; name?: string }[];
   activeExternalIndex: number | null;
   activeInternalId: number;
+  subDelayMs: number;
+  delayEnabled: boolean;
+  onDelayChange: (ms: number) => void;
   onPickExternal: (index: number) => void;
   onPickInternal: (id: number) => void;
   onOff: () => void;
@@ -755,6 +917,100 @@ function VlcSubsModal({
               </>
             )}
           </ScrollView>
+
+          <View style={styles.delayBlock}>
+            <View style={styles.delayHeader}>
+              <Text style={styles.delayLabel}>Timing</Text>
+              <Text style={styles.delayValue}>
+                {subDelayMs === 0 ? 'In sync' : `${subDelayMs > 0 ? '+' : ''}${(subDelayMs / 1000).toFixed(1)}s`}
+              </Text>
+            </View>
+            <View style={styles.delayRow}>
+              <DelayButton label="-0.5s" disabled={!delayEnabled} onPress={() => onDelayChange(subDelayMs - 500)} />
+              <DelayButton label="-0.1s" disabled={!delayEnabled} onPress={() => onDelayChange(subDelayMs - 100)} />
+              <DelayButton label="Reset" disabled={!delayEnabled || subDelayMs === 0} onPress={() => onDelayChange(0)} />
+              <DelayButton label="+0.1s" disabled={!delayEnabled} onPress={() => onDelayChange(subDelayMs + 100)} />
+              <DelayButton label="+0.5s" disabled={!delayEnabled} onPress={() => onDelayChange(subDelayMs + 500)} />
+            </View>
+            <Text style={styles.delayHint}>
+              {delayEnabled
+                ? 'Plus shows subtitles later, minus shows them earlier.'
+                : 'Pick a track under External to adjust its timing. Embedded tracks are drawn by VLC, which offers no timing control.'}
+            </Text>
+          </View>
+
+          <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
+            <Text style={styles.modalCloseText}>Close</Text>
+          </TouchableOpacity>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function DelayButton({ label, disabled, onPress }: { label: string; disabled?: boolean; onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      style={[styles.delayBtn, disabled && styles.delayBtnDisabled]}
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.7}
+    >
+      <Text style={[styles.delayBtnText, disabled && styles.delayBtnTextDisabled]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+/**
+ * Audio track picker.
+ *
+ * `declaredCount` is how many tracks Jellyfin said the file has. When that is
+ * more than VLC can see, the stream is being transcoded and the server has
+ * already collapsed it to one - worth saying plainly, because the alternative
+ * is a picker that inexplicably lists a single entry.
+ */
+function AudioTracksModal({
+  visible, tracks, activeId, declaredCount, onPick, onClose,
+}: {
+  visible: boolean;
+  tracks: { id: number; label: string }[];
+  activeId: number;
+  declaredCount: number;
+  onPick: (id: number) => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
+    >
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable style={[styles.modalSheet, styles.modalSheetTall]} onPress={() => {}}>
+          <View style={styles.modalHandle} />
+          <Text style={styles.modalTitle}>Audio</Text>
+          <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
+            {tracks.length === 0 ? (
+              <Text style={styles.modalEmpty}>No audio tracks available</Text>
+            ) : (
+              tracks.map(t => (
+                <TrackRow
+                  key={`aud-${t.id}`}
+                  label={t.label}
+                  selected={activeId === t.id}
+                  onPress={() => onPick(t.id)}
+                />
+              ))
+            )}
+          </ScrollView>
+          {declaredCount > tracks.length && tracks.length > 0 ? (
+            <Text style={styles.delayHint}>
+              This file has {declaredCount} audio tracks, but it is being transcoded and the
+              server sends only one. Set playback quality to Original to switch between them.
+            </Text>
+          ) : null}
           <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
             <Text style={styles.modalCloseText}>Close</Text>
           </TouchableOpacity>
@@ -1045,6 +1301,7 @@ function SeriesEpisodes({ seriesId, userId }: { seriesId: string; userId: string
 function Player({
   config,
   itemId,
+  delayKey,
   title,
   resumeSeconds,
   initialDuration,
@@ -1053,6 +1310,8 @@ function Player({
 }: {
   config: PlaybackConfig;
   itemId: string;
+  /** what a subtitle offset is remembered against: the series, or the film */
+  delayKey: string;
   title: string;
   resumeSeconds: number;
   initialDuration: number;
@@ -1095,6 +1354,8 @@ function Player({
           itemId={itemId}
           mediaSourceId={config.mediaSourceId}
           externalSubs={config.externalSubs}
+          audioStreams={config.audioStreams}
+          delayKey={delayKey}
           title={title}
           resumeSeconds={resumeSeconds}
           initialDuration={initialDuration}
@@ -1777,6 +2038,30 @@ const styles = StyleSheet.create({
     borderTopColor: colors.glassBorder,
   },
   modalSheetTall: { maxHeight: '85%' },
+  delayBlock: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    paddingTop: spacing.md,
+    marginTop: spacing.sm,
+    gap: spacing.sm,
+  },
+  delayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  delayLabel: { ...type.bodyStrong, color: colors.text },
+  delayValue: { ...type.small, color: colors.textMuted, fontVariant: ['tabular-nums'] },
+  delayRow: { flexDirection: 'row', gap: spacing.sm },
+  delayBtn: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  delayBtnDisabled: { opacity: 0.35 },
+  delayBtnText: { ...type.small, color: colors.text, fontWeight: '600' },
+  delayBtnTextDisabled: { color: colors.textMuted },
+  delayHint: { ...type.small, color: colors.textDim, lineHeight: 18 },
   subGroupLabel: {
     ...type.caption,
     color: colors.textMuted,
