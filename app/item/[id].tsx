@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, AppState, Modal, PanResponder, PixelRatio, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -36,6 +36,8 @@ export default function ItemScreen() {
   const castClient = useRemoteMediaClient();
   const castState = useCastState();
   const [castPickerOpen, setCastPickerOpen] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const { width: screenWidth } = useWindowDimensions();
 
   useEffect(() => {
     (async () => {
@@ -127,6 +129,32 @@ export default function ItemScreen() {
   const primary = item.ImageTags?.Primary;
   const backdrop = item.BackdropImageTags?.[0];
   const runtimeMin = item.RunTimeTicks ? Math.round(item.RunTimeTicks / 600_000_000) : null;
+  const backdropPx = Math.min(HERO_MAX_PX, Math.round(screenWidth * PixelRatio.get()));
+
+  // Grows on a downward pull instead of leaving a black bar above it. Scaling
+  // is centre-anchored, so the translate cancels the half that would push the
+  // top edge off screen and all the growth goes downward. Clamped on the right
+  // so ordinary upward scrolling keeps the existing behaviour.
+  const heroStretch = {
+    transform: [
+      {
+        translateY: scrollY.interpolate({
+          inputRange: [-HERO_HEIGHT, 0],
+          outputRange: [-HERO_HEIGHT / 2, 0],
+          extrapolateLeft: 'extend' as const,
+          extrapolateRight: 'clamp' as const,
+        }),
+      },
+      {
+        scale: scrollY.interpolate({
+          inputRange: [-HERO_HEIGHT, 0],
+          outputRange: [2 * HERO_STRETCH_SLOP, 1],
+          extrapolateLeft: 'extend' as const,
+          extrapolateRight: 'clamp' as const,
+        }),
+      },
+    ],
+  };
 
   return (
     <View style={styles.root}>
@@ -140,22 +168,33 @@ export default function ItemScreen() {
           gestureEnabled: true,
         }}
       />
-      <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView
+        contentContainerStyle={{ paddingBottom: spacing.xxl }}
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        scrollEventThrottle={16}
+      >
+        {/* The hero is extended upward with a matching negative margin so its
+            clip box covers the area a downward rubber-band opens. Same layout
+            footprint, so the poster's negative marginTop is unaffected. There
+            is no RefreshControl on this screen, so nothing is hidden by it. */}
         <View style={styles.hero}>
-          {backdrop ? (
-            <Image
-              source={{ uri: Jellyfin.imageUrl(item.Id, backdrop, 'Backdrop', 1200) }}
-              style={styles.backdrop}
-              contentFit="cover"
-              transition={300}
-            />
-          ) : (
-            <View style={[styles.backdrop, { backgroundColor: colors.bgElevated }]} />
-          )}
+          <Animated.View style={[styles.heroBackdrop, heroStretch]}>
+            {backdrop ? (
+              <Image
+                source={{ uri: Jellyfin.imageUrl(item.Id, backdrop, 'Backdrop', backdropPx) }}
+                style={styles.backdrop}
+                contentFit="cover"
+                transition={300}
+              />
+            ) : (
+              <View style={[styles.backdrop, { backgroundColor: colors.bgElevated }]} />
+            )}
+          </Animated.View>
           <LinearGradient
             colors={[colors.scrimTop, colors.bg]}
             locations={[0, 1]}
-            style={StyleSheet.absoluteFill}
+            style={[StyleSheet.absoluteFill, { top: HERO_BLEED }]}
           />
         </View>
 
@@ -220,7 +259,7 @@ export default function ItemScreen() {
             <SeriesEpisodes seriesId={item.Id} userId={state.auth.userId} />
           ) : null}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
       <CastPickerModal visible={castPickerOpen} onClose={() => setCastPickerOpen(false)} />
     </View>
   );
@@ -1650,11 +1689,20 @@ function TrackRow({ label, selected, onPress }: { label: string; selected?: bool
 
 const HERO_HEIGHT = 320;
 const POSTER_OFFSET = -80;
+/** Backdrop is clipped by the hero, so the hero is extended this far upward
+ *  to cover what a downward rubber-band exposes. */
+const HERO_BLEED = 320;
+/** Headroom on the stretch so rounding can't show a hairline at the edge. */
+const HERO_STRETCH_SLOP = 1.08;
+/** Upper bound on requested backdrop width. */
+const HERO_MAX_PX = 2560;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
-  hero: { width: '100%', height: HERO_HEIGHT, overflow: 'hidden' },
+  hero: { width: '100%', height: HERO_HEIGHT + HERO_BLEED, marginTop: -HERO_BLEED, overflow: 'hidden' },
+  // sits below the bleed at rest; the stretch transform grows it into that space
+  heroBackdrop: { position: 'absolute', top: HERO_BLEED, left: 0, right: 0, bottom: 0 },
   backdrop: { width: '100%', height: '100%' },
   body: { paddingHorizontal: spacing.xl, marginTop: POSTER_OFFSET },
   headerRow: { flexDirection: 'row', gap: spacing.lg, alignItems: 'flex-end' },
