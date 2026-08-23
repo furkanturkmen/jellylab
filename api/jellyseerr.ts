@@ -99,6 +99,65 @@ export async function createRequest(
   });
 }
 
+/** Seerr's media status values, as returned per season and per title. */
+export const SEERR_STATUS = {
+  UNKNOWN: 1,
+  PENDING: 2,
+  PROCESSING: 3,
+  PARTIALLY_AVAILABLE: 4,
+  AVAILABLE: 5,
+} as const;
+
+export type SeerrSeason = {
+  seasonNumber: number;
+  name?: string;
+  episodeCount: number;
+  /** UNKNOWN when Seerr is not tracking the season at all */
+  status: number;
+};
+
+/**
+ * Seasons with the status Seerr currently holds for each.
+ *
+ * Specials (season 0) are dropped: they are rarely what anyone means by "the
+ * next season", and requesting them alongside real seasons muddies the picker.
+ */
+export async function getTvSeasons(tmdbId: number): Promise<SeerrSeason[]> {
+  const client = await authClient();
+  const res = await client.get(`/tv/${tmdbId}`);
+  const statuses = new Map<number, number>(
+    ((res.data?.mediaInfo?.seasons ?? []) as any[]).map(s => [s.seasonNumber, s.status])
+  );
+  return ((res.data?.seasons ?? []) as any[])
+    .filter(s => (s?.seasonNumber ?? 0) > 0)
+    .map(s => ({
+      seasonNumber: s.seasonNumber,
+      name: s.name,
+      episodeCount: s.episodeCount ?? 0,
+      status: statuses.get(s.seasonNumber) ?? SEERR_STATUS.UNKNOWN,
+    }));
+}
+
+/**
+ * A season can be asked for when Seerr is not already handling it and it has
+ * episodes. Zero episodes means announced but unaired — Seerr accepts the
+ * request and then has nothing to search for.
+ */
+export function isSeasonRequestable(s: SeerrSeason): boolean {
+  return s.episodeCount > 0 && (s.status === SEERR_STATUS.UNKNOWN || s.status === SEERR_STATUS.PARTIALLY_AVAILABLE);
+}
+
+export function seasonStatusLabel(s: SeerrSeason): string {
+  if (s.episodeCount === 0) return 'Not aired';
+  switch (s.status) {
+    case SEERR_STATUS.AVAILABLE: return 'Available';
+    case SEERR_STATUS.PARTIALLY_AVAILABLE: return 'Partly available';
+    case SEERR_STATUS.PROCESSING: return 'Downloading';
+    case SEERR_STATUS.PENDING: return 'Requested';
+    default: return `${s.episodeCount} episodes`;
+  }
+}
+
 export async function listRequests(filter: 'all' | 'pending' | 'approved' | 'available' = 'all'): Promise<JellyseerrRequest[]> {
   const client = await authClient();
   const res = await client.get('/request', { params: { filter, take: 50 } });
