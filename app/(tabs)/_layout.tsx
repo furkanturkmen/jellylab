@@ -3,12 +3,79 @@ import { SymbolView } from 'expo-symbols';
 import { Tabs } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 
 import { colors, radius, spacing } from '@/theme';
 import { useSearchQuery } from '@/store/search';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function useScaleOnPress() {
+  const scale = useSharedValue(1);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return {
+    style,
+    onPressIn: () => { scale.value = withSpring(0.94, { damping: 12, stiffness: 220 }); },
+    onPressOut: () => { scale.value = withSpring(1, { damping: 10, stiffness: 200 }); },
+  };
+}
+
+function TabItemButton({
+  onPress,
+  focused,
+  ios,
+  android,
+  label,
+}: {
+  onPress: () => void;
+  focused: boolean;
+  ios: string;
+  android: string;
+  label: string;
+}) {
+  const press = useScaleOnPress();
+  const tint = focused ? colors.text : colors.textMuted;
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[styles.pillItem, focused && styles.pillItemActive, press.style]}
+    >
+      <SymbolView name={{ ios: ios as any, android: android as any, web: android as any }} tintColor={tint} size={22} />
+      <Text style={[styles.pillLabel, { color: tint }]} numberOfLines={1}>{label}</Text>
+    </AnimatedPressable>
+  );
+}
+
+function GlassCircle({ onPress, icon, size = 22 }: { onPress: () => void; icon: { ios: string; android: string }; size?: number }) {
+  const press = useScaleOnPress();
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[styles.searchCircle, press.style]}
+    >
+      {Platform.OS === 'ios' ? (
+        <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, styles.blurFallback]} />
+      )}
+      <SymbolView name={{ ios: icon.ios as any, android: icon.android as any, web: icon.android as any }} tintColor={colors.text} size={size} />
+    </AnimatedPressable>
+  );
+}
 
 const ICON_MAP: Record<string, { ios: string; android: string; label: (t: any) => string }> = {
   index: {
@@ -69,10 +136,17 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
     setTimeout(() => inputRef.current?.focus(), 120);
   }
 
+  const transition = LinearTransition.springify().damping(18).stiffness(180);
+
   return (
-    <View style={[styles.container, { bottom }]} pointerEvents="box-none">
+    <Animated.View style={[styles.container, { bottom }]} pointerEvents="box-none" layout={transition}>
       {!isSearchActive ? (
-        <View style={styles.mainPill}>
+        <Animated.View
+          style={styles.mainPill}
+          layout={transition}
+          entering={FadeIn.duration(180)}
+          exiting={FadeOut.duration(120)}
+        >
           {Platform.OS === 'ios' ? (
             <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
           ) : (
@@ -81,44 +155,43 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           {mainRoutes.map(route => {
             const meta = ICON_MAP[route.name];
             if (!meta) return null;
-            const focused = route.name === currentRouteName;
-            const tint = focused ? colors.text : colors.textMuted;
             return (
-              <Pressable
+              <TabItemButton
                 key={route.key}
                 onPress={() => nav(route.name)}
-                style={({ pressed }) => [styles.pillItem, focused && styles.pillItemActive, pressed && { opacity: 0.7 }]}
-              >
-                <SymbolView name={{ ios: meta.ios as any, android: meta.android as any, web: meta.android as any }} tintColor={tint} size={22} />
-                <Text style={[styles.pillLabel, { color: tint }]} numberOfLines={1}>
-                  {meta.label(t)}
-                </Text>
-              </Pressable>
+                focused={route.name === currentRouteName}
+                ios={meta.ios}
+                android={meta.android}
+                label={meta.label(t)}
+              />
             );
           })}
-        </View>
+        </Animated.View>
       ) : (
-        <Pressable
-          onPress={() => {
-            Keyboard.dismiss();
-            setQuery('');
-            nav('index');
-          }}
-          style={({ pressed }) => [styles.searchCircle, pressed && { opacity: 0.7 }]}
+        <Animated.View
+          layout={transition}
+          entering={FadeIn.duration(220)}
+          exiting={FadeOut.duration(120)}
         >
-          {Platform.OS === 'ios' ? (
-            <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, styles.blurFallback]} />
-          )}
-          <SymbolView name={{ ios: 'house.fill', android: 'home', web: 'home' }} tintColor={colors.text} size={22} />
-        </Pressable>
+          <GlassCircle
+            onPress={() => {
+              Keyboard.dismiss();
+              setQuery('');
+              nav('index');
+            }}
+            icon={{ ios: 'house.fill', android: 'home' }}
+          />
+        </Animated.View>
       )}
 
       {searchRoute ? (
         isSearchActive ? (
           <>
-            <View style={styles.searchBar}>
+            <Animated.View
+              style={styles.searchBar}
+              layout={transition}
+              entering={FadeIn.duration(220)}
+            >
               {Platform.OS === 'ios' ? (
                 <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
               ) : (
@@ -137,37 +210,37 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                 returnKeyType="search"
                 clearButtonMode="while-editing"
               />
-            </View>
-            <Pressable
-              onPress={() => {
-                setQuery('');
-                Keyboard.dismiss();
-              }}
-              style={({ pressed }) => [styles.searchCircle, pressed && { opacity: 0.7 }]}
+            </Animated.View>
+            <Animated.View
+              layout={transition}
+              entering={FadeIn.duration(220)}
+              exiting={FadeOut.duration(120)}
             >
-              {Platform.OS === 'ios' ? (
-                <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
-              ) : (
-                <View style={[StyleSheet.absoluteFill, styles.blurFallback]} />
-              )}
-              <SymbolView name={{ ios: 'xmark', android: 'close', web: 'close' }} tintColor={colors.text} size={20} />
-            </Pressable>
+              <GlassCircle
+                onPress={() => {
+                  setQuery('');
+                  Keyboard.dismiss();
+                }}
+                icon={{ ios: 'xmark', android: 'close' }}
+                size={20}
+              />
+            </Animated.View>
           </>
         ) : (
-          <Pressable
-            onPress={openSearch}
-            style={({ pressed }) => [styles.searchCircle, pressed && { opacity: 0.7 }]}
+          <Animated.View
+            layout={transition}
+            entering={FadeIn.duration(180)}
+            exiting={FadeOut.duration(120)}
           >
-            {Platform.OS === 'ios' ? (
-              <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
-            ) : (
-              <View style={[StyleSheet.absoluteFill, styles.blurFallback]} />
-            )}
-            <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} tintColor={colors.text} size={24} />
-          </Pressable>
+            <GlassCircle
+              onPress={openSearch}
+              icon={{ ios: 'magnifyingglass', android: 'search' }}
+              size={24}
+            />
+          </Animated.View>
         )
       ) : null}
-    </View>
+    </Animated.View>
   );
 }
 
