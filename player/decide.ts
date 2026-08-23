@@ -1,6 +1,14 @@
 import type { MediaSource } from '@/api/jellyfin';
 
 export type Engine = 'native' | 'vlc';
+export type PlayMode = 'direct' | 'transcode';
+
+export type PlaybackDecision = {
+  engine: Engine;
+  mode: PlayMode;
+  /** bits per second — only set when mode is 'transcode' */
+  maxBitrate?: number;
+};
 
 const NATIVE_CONTAINERS = new Set(['mp4', 'm4v', 'mov', 'mp3', 'm4a']);
 const NATIVE_VIDEO_CODECS = new Set(['h264', 'hevc', 'h265', 'mpeg4']);
@@ -20,4 +28,26 @@ export function decideEngine(sources: MediaSource[]): Engine {
     if (s.Type === 'Audio' && codec && !NATIVE_AUDIO_CODECS.has(codec)) return 'vlc';
   }
   return 'native';
+}
+
+/**
+ * Direct play is always preferred: the server just reads the file off disk.
+ * We only ask it to transcode when the source bitrate is above the user's
+ * ceiling, which is the case a phone on cellular can't stream otherwise.
+ *
+ * A ceiling of 0 means unlimited, and an unknown source bitrate is treated
+ * as "can't tell" — both fall through to direct play rather than making the
+ * server do work on a guess.
+ */
+export function decidePlayback(sources: MediaSource[], maxBitrateMbps: number): PlaybackDecision {
+  const ceiling = Math.round((maxBitrateMbps || 0) * 1_000_000);
+  const sourceBitrate = sources[0]?.Bitrate ?? 0;
+
+  if (ceiling > 0 && sourceBitrate > ceiling) {
+    // Jellyfin transcodes to h264/aac inside HLS, which is AVPlayer's native
+    // format — so the transcode path gets the better battery and AirPlay story.
+    return { engine: 'native', mode: 'transcode', maxBitrate: ceiling };
+  }
+
+  return { engine: decideEngine(sources), mode: 'direct' };
 }

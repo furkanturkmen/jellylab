@@ -162,6 +162,8 @@ export type MediaSource = {
   Id: string;
   Container?: string;
   MediaStreams?: MediaStream[];
+  /** total bits per second, as reported by Jellyfin */
+  Bitrate?: number;
 };
 
 export async function getPlaybackInfo(userId: string, itemId: string): Promise<MediaSource[]> {
@@ -219,12 +221,18 @@ export function imageUrl(itemId: string, tag?: string, type: 'Primary' | 'Backdr
   return `${getJellyfinUrl()}/Items/${itemId}/Images/${type}?maxWidth=${maxWidth}${tagParam}`;
 }
 
-export async function reportPlaybackStart(itemId: string, positionTicks = 0): Promise<void> {
+export type PlayMethod = 'DirectPlay' | 'Transcode';
+
+export async function reportPlaybackStart(
+  itemId: string,
+  positionTicks = 0,
+  playMethod: PlayMethod = 'DirectPlay',
+): Promise<void> {
   const client = await authClient();
   await client.post('/Sessions/Playing', {
     ItemId: itemId,
     PositionTicks: positionTicks,
-    PlayMethod: 'DirectPlay',
+    PlayMethod: playMethod,
     CanSeek: true,
   });
 }
@@ -232,25 +240,30 @@ export async function reportPlaybackStart(itemId: string, positionTicks = 0): Pr
 export async function reportPlaybackProgress(
   itemId: string,
   positionTicks: number,
-  isPaused: boolean
+  isPaused: boolean,
+  playMethod: PlayMethod = 'DirectPlay',
 ): Promise<void> {
   const client = await authClient();
   await client.post('/Sessions/Playing/Progress', {
     ItemId: itemId,
     PositionTicks: positionTicks,
     IsPaused: isPaused,
-    PlayMethod: 'DirectPlay',
+    PlayMethod: playMethod,
     CanSeek: true,
     EventName: 'timeupdate',
   });
 }
 
-export async function reportPlaybackStopped(itemId: string, positionTicks: number): Promise<void> {
+export async function reportPlaybackStopped(
+  itemId: string,
+  positionTicks: number,
+  playMethod: PlayMethod = 'DirectPlay',
+): Promise<void> {
   const client = await authClient();
   await client.post('/Sessions/Playing/Stopped', {
     ItemId: itemId,
     PositionTicks: positionTicks,
-    PlayMethod: 'DirectPlay',
+    PlayMethod: playMethod,
   });
 }
 
@@ -285,4 +298,30 @@ export function streamUrl(itemId: string, token: string, deviceId: string): stri
     DeviceId: deviceId,
   });
   return `${getJellyfinUrl()}/Videos/${itemId}/stream?${params.toString()}`;
+}
+
+/**
+ * HLS stream the server transcodes down to `maxBitrate`. Unlike streamUrl this
+ * makes the server do real work, so only reach for it when the source is too
+ * fat for the connection — see decidePlayback().
+ */
+export function transcodeUrl(
+  itemId: string,
+  mediaSourceId: string,
+  token: string,
+  deviceId: string,
+  maxBitrate: number,
+): string {
+  const params = new URLSearchParams({
+    api_key: token,
+    DeviceId: deviceId,
+    MediaSourceId: mediaSourceId,
+    VideoCodec: 'h264',
+    AudioCodec: 'aac',
+    MaxStreamingBitrate: String(maxBitrate),
+    TranscodingContainer: 'ts',
+    TranscodingProtocol: 'hls',
+    SegmentContainer: 'ts',
+  });
+  return `${getJellyfinUrl()}/Videos/${itemId}/master.m3u8?${params.toString()}`;
 }

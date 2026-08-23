@@ -11,7 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 
 import * as Jellyfin from '@/api/jellyfin';
-import { decideEngine, type Engine } from '@/player/decide';
+import { decidePlayback, type Engine, type PlayMode } from '@/player/decide';
 import { parseVtt, findActiveCue, type VttCue } from '@/player/vtt';
 import { useAuth } from '@/hooks/useAuth';
 import { getDeviceId } from '@/store/auth';
@@ -22,6 +22,7 @@ import type { JellyfinItem } from '@/types';
 type PlaybackConfig = {
   url: string;
   engine: Engine;
+  mode: PlayMode;
   mediaSourceId?: string;
   externalSubs: { index: number; label: string }[];
 };
@@ -56,15 +57,20 @@ export default function ItemScreen() {
       Jellyfin.getPlaybackInfo(state.auth.userId, item.Id).catch(() => []),
       loadPrefs(),
     ]);
-    const decided = decideEngine(sources);
+    const decision = decidePlayback(sources, prefs.maxBitrateMbps);
     const engine: Engine =
       prefs.preferredEngine === 'native'
         ? 'native'
         : prefs.preferredEngine === 'vlc'
           ? 'vlc'
-          : decided;
-    const url = Jellyfin.streamUrl(item.Id, state.auth.accessToken, deviceId);
+          : decision.engine;
     const source = sources[0];
+    // transcoding needs a MediaSourceId; without one we can only direct play
+    const transcoding = decision.mode === 'transcode' && !!source?.Id && !!decision.maxBitrate;
+    const mode: PlayMode = transcoding ? 'transcode' : 'direct';
+    const url = transcoding
+      ? Jellyfin.transcodeUrl(item.Id, source.Id, state.auth.accessToken, deviceId, decision.maxBitrate!)
+      : Jellyfin.streamUrl(item.Id, state.auth.accessToken, deviceId);
     const externalSubs = (source?.MediaStreams ?? [])
       .filter(s => s.Type === 'Subtitle' && typeof s.Index === 'number')
       .map(s => ({
@@ -77,7 +83,7 @@ export default function ItemScreen() {
         await castClient.loadMedia({
           mediaInfo: {
             contentUrl: url,
-            contentType: 'video/mp4',
+            contentType: transcoding ? 'application/x-mpegURL' : 'video/mp4',
             metadata: {
               type: 'movie',
               title: item.Name,
@@ -94,7 +100,7 @@ export default function ItemScreen() {
       }
     }
 
-    setPlayback({ url, engine, mediaSourceId: source?.Id, externalSubs });
+    setPlayback({ url, engine, mode, mediaSourceId: source?.Id, externalSubs });
   }
 
   if (!item) {
@@ -220,7 +226,7 @@ export default function ItemScreen() {
   );
 }
 
-function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeSeconds, initialDuration, onExit }: {
+function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', onExit }: {
   url: string;
   itemId: string;
   mediaSourceId?: string;
@@ -228,6 +234,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
   title: string;
   resumeSeconds: number;
   initialDuration: number;
+  playMethod?: Jellyfin.PlayMethod;
   onExit: () => void;
 }) {
   const vlcRef = useRef<any>(null);
@@ -272,10 +279,10 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
 
   // Report progress to Jellyfin
   useEffect(() => {
-    Jellyfin.reportPlaybackStart(itemId, Jellyfin.secondsToTicks(resumeSeconds)).catch(() => {});
+    Jellyfin.reportPlaybackStart(itemId, Jellyfin.secondsToTicks(resumeSeconds), playMethod).catch(() => {});
     return () => {
       try {
-        Jellyfin.reportPlaybackStopped(itemId, Jellyfin.secondsToTicks(position)).catch(() => {});
+        Jellyfin.reportPlaybackStopped(itemId, Jellyfin.secondsToTicks(position), playMethod).catch(() => {});
       } catch {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -377,7 +384,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
   useEffect(() => {
     const id = setInterval(() => {
       try {
-        Jellyfin.reportPlaybackProgress(itemId, Jellyfin.secondsToTicks(position), paused).catch(() => {});
+        Jellyfin.reportPlaybackProgress(itemId, Jellyfin.secondsToTicks(position), paused, playMethod).catch(() => {});
       } catch {}
     }, 15000);
     return () => clearInterval(id);
@@ -1029,6 +1036,7 @@ function Player({
           externalSubs={config.externalSubs}
           title={title}
           resumeSeconds={resumeSeconds}
+          playMethod={config.mode === 'transcode' ? 'Transcode' : 'DirectPlay'}
           onError={onNativeError}
           onExit={onExit}
         />
@@ -1041,6 +1049,7 @@ function Player({
           title={title}
           resumeSeconds={resumeSeconds}
           initialDuration={initialDuration}
+          playMethod={config.mode === 'transcode' ? 'Transcode' : 'DirectPlay'}
           onExit={onExit}
         />
       )}
@@ -1050,13 +1059,14 @@ function Player({
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeSeconds, onError, onExit }: {
+function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeSeconds, playMethod = 'DirectPlay', onError, onExit }: {
   url: string;
   itemId: string;
   mediaSourceId?: string;
   externalSubs: { index: number; label: string }[];
   title: string;
   resumeSeconds: number;
+  playMethod?: Jellyfin.PlayMethod;
   onError: () => void;
   onExit: () => void;
 }) {
@@ -1093,7 +1103,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
       setPlaying(isPlaying);
       // Fire an immediate progress ping when pause/resume toggles
       try {
-        Jellyfin.reportPlaybackProgress(itemId, Jellyfin.secondsToTicks(player.currentTime ?? 0), !isPlaying).catch(() => {});
+        Jellyfin.reportPlaybackProgress(itemId, Jellyfin.secondsToTicks(player.currentTime ?? 0), !isPlaying, playMethod).catch(() => {});
       } catch {}
     });
     return () => sub.remove();
@@ -1142,11 +1152,11 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
 
   // Report start on mount, stop on unmount.
   useEffect(() => {
-    Jellyfin.reportPlaybackStart(itemId, Jellyfin.secondsToTicks(resumeSeconds)).catch(() => {});
+    Jellyfin.reportPlaybackStart(itemId, Jellyfin.secondsToTicks(resumeSeconds), playMethod).catch(() => {});
     return () => {
       try {
         const pos = Jellyfin.secondsToTicks(player.currentTime ?? 0);
-        Jellyfin.reportPlaybackStopped(itemId, pos).catch(() => {});
+        Jellyfin.reportPlaybackStopped(itemId, pos, playMethod).catch(() => {});
       } catch {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1160,6 +1170,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
           itemId,
           Jellyfin.secondsToTicks(player.currentTime ?? 0),
           !playing,
+          playMethod,
         ).catch(() => {});
       } catch {}
     }, 15000);
