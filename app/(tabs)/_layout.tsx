@@ -140,9 +140,8 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             </View>
             <Pressable
               onPress={() => {
-                Keyboard.dismiss();
                 setQuery('');
-                nav('index');
+                Keyboard.dismiss();
               }}
               style={({ pressed }) => [styles.searchCircle, pressed && { opacity: 0.7 }]}
             >
