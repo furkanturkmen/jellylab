@@ -165,6 +165,49 @@ export function imageUrl(itemId: string, tag?: string, type: 'Primary' | 'Backdr
   return `${CONFIG.JELLYFIN_URL}/Items/${itemId}/Images/${type}?maxWidth=${maxWidth}${tagParam}`;
 }
 
+export async function reportPlaybackStart(itemId: string, positionTicks = 0): Promise<void> {
+  const client = await authClient();
+  await client.post('/Sessions/Playing', {
+    ItemId: itemId,
+    PositionTicks: positionTicks,
+    PlayMethod: 'DirectPlay',
+    CanSeek: true,
+  });
+}
+
+export async function reportPlaybackProgress(
+  itemId: string,
+  positionTicks: number,
+  isPaused: boolean
+): Promise<void> {
+  const client = await authClient();
+  await client.post('/Sessions/Playing/Progress', {
+    ItemId: itemId,
+    PositionTicks: positionTicks,
+    IsPaused: isPaused,
+    PlayMethod: 'DirectPlay',
+    CanSeek: true,
+    EventName: 'timeupdate',
+  });
+}
+
+export async function reportPlaybackStopped(itemId: string, positionTicks: number): Promise<void> {
+  const client = await authClient();
+  await client.post('/Sessions/Playing/Stopped', {
+    ItemId: itemId,
+    PositionTicks: positionTicks,
+    PlayMethod: 'DirectPlay',
+  });
+}
+
+export function secondsToTicks(seconds: number): number {
+  return Math.round(seconds * 10_000_000);
+}
+
+export function ticksToSeconds(ticks: number): number {
+  return ticks / 10_000_000;
+}
+
 export function streamUrl(itemId: string, token: string, deviceId: string): string {
   const params = new URLSearchParams({
     static: 'true',

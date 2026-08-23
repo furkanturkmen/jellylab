@@ -93,7 +93,9 @@ export default function ItemScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <Player
           config={playback}
+          itemId={item.Id}
           title={item.Name}
+          resumeSeconds={Jellyfin.ticksToSeconds(item.UserData?.PlaybackPositionTicks ?? 0)}
           onExit={() => setPlayback(null)}
           onNativeError={() => setPlayback(p => (p ? { ...p, engine: 'vlc' } : p))}
         />
@@ -300,12 +302,16 @@ function CastPickerModal({ visible, onClose }: { visible: boolean; onClose: () =
 
 function Player({
   config,
+  itemId,
   title,
+  resumeSeconds,
   onExit,
   onNativeError,
 }: {
   config: PlaybackConfig;
+  itemId: string;
   title: string;
+  resumeSeconds: number;
   onExit: () => void;
   onNativeError: () => void;
 }) {
@@ -328,7 +334,7 @@ function Player({
   return (
     <View style={styles.playerContainer}>
       {config.engine === 'native' ? (
-        <NativePlayer url={config.url} title={title} onError={onNativeError} onExit={onExit} />
+        <NativePlayer url={config.url} itemId={itemId} title={title} resumeSeconds={resumeSeconds} onError={onNativeError} onExit={onExit} />
       ) : (
         <>
           <VLCPlayer
@@ -351,8 +357,13 @@ function Player({
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-function NativePlayer({ url, title, onError, onExit }: { url: string; title: string; onError: () => void; onExit: () => void }) {
+function NativePlayer({ url, itemId, title, resumeSeconds, onError, onExit }: {
+  url: string; itemId: string; title: string; resumeSeconds: number; onError: () => void; onExit: () => void;
+}) {
   const player = useVideoPlayer(url, p => {
+    if (resumeSeconds > 0) {
+      try { p.currentTime = resumeSeconds; } catch {}
+    }
     p.play();
   });
   const [tracksOpen, setTracksOpen] = useState(false);
@@ -373,9 +384,41 @@ function NativePlayer({ url, title, onError, onExit }: { url: string; title: str
   }, [player, onError]);
 
   useEffect(() => {
-    const sub = player.addListener('playingChange', ({ isPlaying }) => setPlaying(isPlaying));
+    const sub = player.addListener('playingChange', ({ isPlaying }) => {
+      setPlaying(isPlaying);
+      // Fire an immediate progress ping when pause/resume toggles
+      try {
+        Jellyfin.reportPlaybackProgress(itemId, Jellyfin.secondsToTicks(player.currentTime ?? 0), !isPlaying).catch(() => {});
+      } catch {}
+    });
     return () => sub.remove();
-  }, [player]);
+  }, [player, itemId]);
+
+  // Report start on mount, stop on unmount.
+  useEffect(() => {
+    Jellyfin.reportPlaybackStart(itemId, Jellyfin.secondsToTicks(resumeSeconds)).catch(() => {});
+    return () => {
+      try {
+        const pos = Jellyfin.secondsToTicks(player.currentTime ?? 0);
+        Jellyfin.reportPlaybackStopped(itemId, pos).catch(() => {});
+      } catch {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Periodic progress ping every 15s.
+  useEffect(() => {
+    const id = setInterval(() => {
+      try {
+        Jellyfin.reportPlaybackProgress(
+          itemId,
+          Jellyfin.secondsToTicks(player.currentTime ?? 0),
+          !playing,
+        ).catch(() => {});
+      } catch {}
+    }, 15000);
+    return () => clearInterval(id);
+  }, [player, itemId, playing]);
 
   useEffect(() => {
     const id = setInterval(() => {
