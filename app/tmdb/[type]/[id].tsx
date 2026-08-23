@@ -241,6 +241,24 @@ export default function TmdbDetailScreen() {
             onRequest={onRequest}
           />
 
+          {/* A series can always gain seasons — one already downloading, one
+              partly there, even one Seerr calls complete until the next season
+              airs. So this stays available whenever the primary button is doing
+              something else. The picker itself reports when there is nothing
+              left to ask for, rather than this having to predict it. */}
+          {type === 'tv' && (available || partiallyAvailable || processing || requested) ? (
+            <TouchableOpacity
+              style={[styles.secondaryBtn, acting && styles.primaryBtnDisabled]}
+              onPress={onRequest}
+              disabled={acting}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.secondaryBtnText, acting && styles.primaryBtnTextDisabled]}>
+                {acting ? 'Checking seasons…' : 'Request more seasons'}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+
           {processing && activeDownloads.length > 0 ? (
             <View style={styles.card}>
               <Text style={styles.sectionLabel}>Downloading</Text>
@@ -434,8 +452,16 @@ function PrimaryAction({
       </View>
     );
   }
+  // Partially available means some seasons are there and some are not, which
+  // is exactly when you want to ask for the rest. It used to render a disabled
+  // "Partially Available" label, so a series like this could never be topped
+  // up. Play what exists; the Request seasons button below covers the gap.
   if (partiallyAvailable) {
-    return (
+    return hasJellyfinId ? (
+      <TouchableOpacity style={styles.primaryBtn} onPress={onPlay} activeOpacity={0.85}>
+        <Text style={styles.primaryBtnText}>▶  Play what's available</Text>
+      </TouchableOpacity>
+    ) : (
       <View style={[styles.primaryBtn, styles.primaryBtnDisabled]}>
         <Text style={[styles.primaryBtnText, styles.primaryBtnTextDisabled]}>Partially Available</Text>
       </View>
@@ -515,6 +541,17 @@ const HERO_HEIGHT = 320;
 const POSTER_OFFSET = -80;
 
 const styles = StyleSheet.create({
+  secondaryBtn: {
+    height: 48,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    marginTop: spacing.md,
+  },
+  secondaryBtnText: { ...type.bodyStrong, color: colors.text },
   sheet: { flex: 1, backgroundColor: colors.bg },
   sheetHeader: {
     flexDirection: 'row',
