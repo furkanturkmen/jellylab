@@ -84,7 +84,8 @@
           "cameraPermission": "jellylab needs camera access to take a new profile picture."
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "./plugins/withoutPushEntitlement"
     ],
     "experiments": {
       "typedRoutes": true
