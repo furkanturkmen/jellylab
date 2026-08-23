@@ -208,6 +208,188 @@ export default function ItemScreen() {
   );
 }
 
+function VLCEnginePlayer({ url, itemId, title, resumeSeconds, onExit }: {
+  url: string; itemId: string; title: string; resumeSeconds: number; onExit: () => void;
+}) {
+  const vlcRef = useRef<any>(null);
+  const [paused, setPaused] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [seekTarget, setSeekTarget] = useState<number | null>(null);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [scrubbing, setScrubbing] = useState(false);
+  const [scrubValue, setScrubValue] = useState(0);
+  const [isLandscape, setIsLandscape] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  // Report progress to Jellyfin
+  useEffect(() => {
+    Jellyfin.reportPlaybackStart(itemId, Jellyfin.secondsToTicks(resumeSeconds)).catch(() => {});
+    return () => {
+      try {
+        Jellyfin.reportPlaybackStopped(itemId, Jellyfin.secondsToTicks(position)).catch(() => {});
+      } catch {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      try {
+        Jellyfin.reportPlaybackProgress(itemId, Jellyfin.secondsToTicks(position), paused).catch(() => {});
+      } catch {}
+    }, 15000);
+    return () => clearInterval(id);
+  }, [itemId, position, paused]);
+
+  // Auto-hide controls
+  useEffect(() => {
+    if (!controlsVisible || paused) return;
+    const t = setTimeout(() => setControlsVisible(false), 4000);
+    return () => clearTimeout(t);
+  }, [controlsVisible, paused, position]);
+
+  function togglePlay() {
+    setPaused(p => !p);
+    setControlsVisible(true);
+  }
+
+  function skip(seconds: number) {
+    const next = Math.max(0, Math.min(duration, position + seconds));
+    setSeekTarget(next);
+    setPosition(next);
+    setControlsVisible(true);
+  }
+
+  function seekTo(t: number) {
+    setSeekTarget(t);
+    setPosition(t);
+  }
+
+  async function toggleFullscreen() {
+    setControlsVisible(true);
+    try {
+      if (isLandscape) {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+        setIsLandscape(false);
+      } else {
+        await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        setIsLandscape(true);
+      }
+    } catch {}
+  }
+
+  // Resume once loaded
+  const onLoad = (e: any) => {
+    setReady(true);
+    if (resumeSeconds > 0 && e?.duration) {
+      setSeekTarget(resumeSeconds);
+    }
+  };
+
+  const onProgress = (e: any) => {
+    if (scrubbing) return;
+    const cur = (e?.currentTime ?? 0) / 1000;
+    const dur = (e?.duration ?? 0) / 1000;
+    setPosition(cur);
+    if (dur > 0) setDuration(dur);
+    if (seekTarget != null && Math.abs(cur - seekTarget) < 2) setSeekTarget(null);
+  };
+
+  return (
+    <>
+      <Pressable style={{ flex: 1 }} onPress={() => setControlsVisible(v => !v)}>
+        <VLCPlayer
+          ref={vlcRef}
+          style={{ flex: 1 }}
+          source={{ uri: url }}
+          autoplay
+          paused={paused}
+          seek={seekTarget != null ? seekTarget : undefined}
+          resizeMode="contain"
+          onLoad={onLoad}
+          onProgress={onProgress}
+          onEnd={onExit}
+        />
+        {!ready ? (
+          <View style={styles.vlcLoading} pointerEvents="none">
+            <ActivityIndicator color={colors.text} size="large" />
+          </View>
+        ) : null}
+        {controlsVisible ? (
+          <View style={styles.overlay} pointerEvents="box-none">
+            <LinearGradient
+              colors={['rgba(0,0,0,0.7)', 'transparent', 'rgba(0,0,0,0.8)']}
+              locations={[0, 0.4, 1]}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+            <View style={styles.overlayTop} pointerEvents="box-none">
+              <TouchableOpacity style={styles.overlayIconBtn} onPress={onExit} activeOpacity={0.7}>
+                <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }} tintColor={colors.text} size={22} />
+              </TouchableOpacity>
+              <Text style={styles.overlayTitle} numberOfLines={1}>{title}</Text>
+              <View style={styles.engineBadge}>
+                <Text style={styles.engineBadgeText}>VLC</Text>
+              </View>
+            </View>
+
+            <View style={styles.overlayCenter} pointerEvents="box-none">
+              <TouchableOpacity style={styles.skipBtn} onPress={() => skip(-10)} activeOpacity={0.7}>
+                <SymbolView name={{ ios: 'gobackward.10', android: 'replay_10', web: 'replay_10' }} tintColor={colors.text} size={38} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.playPauseBtn} onPress={togglePlay} activeOpacity={0.7}>
+                <SymbolView
+                  name={{ ios: paused ? 'play.fill' : 'pause.fill', android: 'play_arrow', web: 'play_arrow' }}
+                  tintColor={colors.text}
+                  size={44}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.skipBtn} onPress={() => skip(10)} activeOpacity={0.7}>
+                <SymbolView name={{ ios: 'goforward.10', android: 'forward_10', web: 'forward_10' }} tintColor={colors.text} size={38} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.overlayBottomWrap} pointerEvents="box-none">
+              <View style={styles.scrubRow} pointerEvents="box-none">
+                <Text style={styles.timeText}>{formatTime(scrubbing ? scrubValue : position)}</Text>
+                <Scrubber
+                  position={scrubbing ? scrubValue : position}
+                  duration={duration}
+                  onScrubStart={() => setScrubbing(true)}
+                  onScrub={(t) => setScrubValue(t)}
+                  onScrubEnd={(t) => {
+                    seekTo(t);
+                    setScrubbing(false);
+                    setControlsVisible(true);
+                  }}
+                />
+                <Text style={styles.timeText}>
+                  -{formatTime(Math.max(0, duration - (scrubbing ? scrubValue : position)))}
+                </Text>
+              </View>
+              <View style={styles.actionsRow} pointerEvents="box-none">
+                <View style={{ flex: 1 }} />
+                <TouchableOpacity style={styles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
+                  <SymbolView
+                    name={{
+                      ios: isLandscape ? 'arrow.down.right.and.arrow.up.left' : 'arrow.up.left.and.arrow.down.right',
+                      android: 'fullscreen',
+                      web: 'fullscreen',
+                    }}
+                    tintColor={colors.text}
+                    size={22}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        ) : null}
+      </Pressable>
+    </>
+  );
+}
+
 function CastPickerModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const castState = useCastState();
   const [devices, setDevices] = useState<any[]>([]);
@@ -358,20 +540,13 @@ function Player({
           onExit={onExit}
         />
       ) : (
-        <>
-          <VLCPlayer
-            style={{ flex: 1 }}
-            source={{ uri: config.url }}
-            autoplay
-            resizeMode="contain"
-          />
-          <TouchableOpacity style={styles.exitBtn} onPress={onExit} activeOpacity={0.8}>
-            <Text style={styles.exitBtnText}>Close</Text>
-          </TouchableOpacity>
-          <View style={styles.engineBadge}>
-            <Text style={styles.engineBadgeText}>{config.engine.toUpperCase()}</Text>
-          </View>
-        </>
+        <VLCEnginePlayer
+          url={config.url}
+          itemId={itemId}
+          title={title}
+          resumeSeconds={resumeSeconds}
+          onExit={onExit}
+        />
       )}
     </View>
   );
@@ -1158,6 +1333,12 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: colors.text,
     marginLeft: -7,
+  },
+  vlcLoading: {
+    position: 'absolute',
+    left: 0, right: 0, top: 0, bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   subOverlay: {
     position: 'absolute',
