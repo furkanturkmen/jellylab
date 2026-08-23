@@ -218,6 +218,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
   onExit: () => void;
 }) {
   const vlcRef = useRef<any>(null);
+  const lastSeekAt = useRef(0);
   const [paused, setPaused] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -348,6 +349,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
   function vlcSeek(seconds: number) {
     if (duration <= 0) return;
     const ratio = Math.max(0, Math.min(1, seconds / duration));
+    lastSeekAt.current = Date.now();
     try {
       // react-native-vlc-media-player ref.seek takes a 0..1 percentage
       vlcRef.current?.seek?.(ratio);
@@ -400,10 +402,14 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
 
   const onProgress = (e: any) => {
     if (scrubbing) return;
+    // Ignore progress right after a seek — VLC briefly reports 0 while it catches up.
+    if (Date.now() - lastSeekAt.current < 1500) return;
     const cur = (e?.currentTime ?? 0) / 1000;
     const dur = (e?.duration ?? 0) / 1000;
-    setPosition(cur);
     if (dur > 0) setDuration(dur);
+    // Ignore a stray 0 when we know we were much further in.
+    if (cur < 0.5 && position > 5) return;
+    setPosition(cur);
     if (seekTarget != null && Math.abs(cur - seekTarget) < 2) setSeekTarget(null);
   };
 
