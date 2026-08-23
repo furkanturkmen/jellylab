@@ -46,8 +46,10 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const isSearchActive = currentRouteName === 'search';
 
   function nav(name: string) {
-    const event = navigation.emit({ type: 'tabPress', target: name, canPreventDefault: true });
-    if (!event.defaultPrevented) navigation.navigate(name as never);
+    const route = state.routes.find(r => r.name === name);
+    if (!route) return;
+    const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+    if (!event.defaultPrevented) navigation.navigate(route.name as never);
   }
 
   function openSearch() {
