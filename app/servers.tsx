@@ -27,6 +27,8 @@ export default function ServersScreen() {
             await clearJellyfinAuth();
             await clearJellyseerrAuth();
             await setCurrentServer(s.id);
+            // Pop any modal stack (Profile → Servers) so login renders clean at root.
+            try { if ((router as any).canDismiss?.()) (router as any).dismissAll?.(); } catch {}
             router.replace('/login');
           },
         },

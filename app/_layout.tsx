@@ -74,13 +74,22 @@ function RootLayoutNav() {
     const inServers = first === 'servers' || first === 'server-edit';
     const inLogin = first === 'login';
 
+    const dismissModals = () => {
+      try { if ((router as any).canDismiss?.()) (router as any).dismissAll?.(); } catch {}
+    };
+
     if (!server) {
-      if (!inServers) router.replace('/servers');
+      if (!inServers) {
+        dismissModals();
+        router.replace('/servers');
+      }
       return;
     }
     if (state.status === 'signed-out' && !inLogin && !inServers) {
+      dismissModals();
       router.replace('/login');
     } else if (state.status === 'signed-in' && inLogin) {
+      dismissModals();
       router.replace('/(tabs)');
     }
   }, [state.status, segments, server, serverReady]);
