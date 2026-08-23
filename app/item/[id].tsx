@@ -608,6 +608,20 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
   );
 }
 
+function cleanSubLabel(raw: string): string {
+  // Collapse redundant "English - [English]" style into "English",
+  // drop empty brackets, trim separators.
+  let s = raw ?? '';
+  // Strip "- [X]" if X duplicates a preceding word
+  s = s.replace(/\s*-\s*\[([^\]]+)\]/g, (_, inner) => {
+    const before = s.split(/\s*-\s*\[/)[0].trim().toLowerCase();
+    return before.includes(inner.toLowerCase()) ? '' : ` (${inner})`;
+  });
+  // Trim trailing " - Default" style dashes
+  s = s.replace(/\s*-\s*Default\b/i, '');
+  return s.trim();
+}
+
 function VlcSubsModal({
   visible, externalSubs, internalTracks, activeExternalIndex, activeInternalId,
   onPickExternal, onPickInternal, onOff, onClose,
@@ -626,32 +640,36 @@ function VlcSubsModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
-        <Pressable style={styles.modalSheet} onPress={() => {}}>
+        <Pressable style={[styles.modalSheet, styles.modalSheetTall]} onPress={() => {}}>
           <View style={styles.modalHandle} />
           <Text style={styles.modalTitle}>Subtitles</Text>
-          {externalSubs.length === 0 && internalTracks.length === 0 ? (
-            <Text style={styles.modalEmpty}>No subtitle tracks available</Text>
-          ) : (
-            <>
-              <TrackRow label="Off" selected={isOff} onPress={onOff} />
-              {internalTracks.map(t => (
-                <TrackRow
-                  key={`int-${t.id}`}
-                  label={`${t.name ?? `Track ${t.id}`} (embedded)`}
-                  selected={activeInternalId === t.id}
-                  onPress={() => onPickInternal(t.id)}
-                />
-              ))}
-              {externalSubs.map(s => (
-                <TrackRow
-                  key={`ext-${s.index}`}
-                  label={`${s.label} (external)`}
-                  selected={activeExternalIndex === s.index}
-                  onPress={() => onPickExternal(s.index)}
-                />
-              ))}
-            </>
-          )}
+          <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
+            {externalSubs.length === 0 && internalTracks.length === 0 ? (
+              <Text style={styles.modalEmpty}>No subtitle tracks available</Text>
+            ) : (
+              <>
+                <TrackRow label="Off" selected={isOff} onPress={onOff} />
+                {internalTracks.length > 0 ? <SubGroupLabel>Embedded</SubGroupLabel> : null}
+                {internalTracks.map(t => (
+                  <TrackRow
+                    key={`int-${t.id}`}
+                    label={cleanSubLabel(t.name ?? `Track ${t.id}`)}
+                    selected={activeInternalId === t.id}
+                    onPress={() => onPickInternal(t.id)}
+                  />
+                ))}
+                {externalSubs.length > 0 ? <SubGroupLabel>External</SubGroupLabel> : null}
+                {externalSubs.map(s => (
+                  <TrackRow
+                    key={`ext-${s.index}`}
+                    label={cleanSubLabel(s.label)}
+                    selected={activeExternalIndex === s.index}
+                    onPress={() => onPickExternal(s.index)}
+                  />
+                ))}
+              </>
+            )}
+          </ScrollView>
           <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
             <Text style={styles.modalCloseText}>Close</Text>
           </TouchableOpacity>
@@ -659,6 +677,10 @@ function VlcSubsModal({
       </Pressable>
     </Modal>
   );
+}
+
+function SubGroupLabel({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.subGroupLabel}>{children}</Text>;
 }
 
 function ExternalSubsModal({
@@ -1623,6 +1645,14 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.glassBorder,
+  },
+  modalSheetTall: { maxHeight: '85%' },
+  subGroupLabel: {
+    ...type.caption,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
   },
   modalHandle: {
     width: 44,
