@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
@@ -17,6 +18,7 @@ type LibraryItem = { view: JellyfinView; items: JellyfinItem[] };
 export default function LibraryScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { state } = useAuth();
   const [resume, setResume] = useState<JellyfinItem[]>([]);
   const [libs, setLibs] = useState<LibraryItem[]>([]);
@@ -57,25 +59,60 @@ export default function LibraryScreen() {
   }
 
   const heroItem = resume[0] ?? libs[0]?.items[0];
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 40, 90],
+    outputRange: [1, 0.6, 0],
+    extrapolate: 'clamp',
+  });
+  const titleTranslate = scrollY.interpolate({
+    inputRange: [0, 90],
+    outputRange: [0, -20],
+    extrapolate: 'clamp',
+  });
+  const avatarScale = scrollY.interpolate({
+    inputRange: [0, 90],
+    outputRange: [1, 0.88],
+    extrapolate: 'clamp',
+  });
+
+  const headerHeight = insets.top + 52;
 
   return (
     <View style={styles.root}>
-      <StatusBar hidden />
-      <FlatList
+      <StatusBar style="light" />
+      <Animated.FlatList
         data={libs}
-        keyExtractor={l => l.view.Id}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.text} />}
+        keyExtractor={(l: LibraryItem) => l.view.Id}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.text} progressViewOffset={headerHeight} />}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
         ListHeaderComponent={
           <>
+            <View style={{ height: headerHeight }} />
             {heroItem ? <HeroSpotlight item={heroItem} /> : null}
             {resume.length > 0 ? <ContinueWatchingRow items={resume} title={t('library.continueWatching')} /> : null}
           </>
         }
-        renderItem={({ item }) => <LibraryRow lib={item} />}
+        renderItem={({ item }: { item: LibraryItem }) => <LibraryRow lib={item} />}
         contentContainerStyle={{ paddingBottom: 120 }}
       />
-      <View style={styles.avatarFloating} pointerEvents="box-none">
-        <AvatarButton auth={state.auth} onPress={() => router.push('/profile')} />
+      <View style={[styles.headerBar, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
+        <Animated.Text
+          style={[
+            styles.headerTitle,
+            { opacity: titleOpacity, transform: [{ translateY: titleTranslate }] },
+          ]}
+        >
+          {t('tabs.library')}
+        </Animated.Text>
+        <Animated.View style={{ transform: [{ scale: avatarScale }] }}>
+          <AvatarButton auth={state.auth} onPress={() => router.push('/profile')} />
+        </Animated.View>
       </View>
     </View>
   );
@@ -268,14 +305,25 @@ const styles = StyleSheet.create({
   },
   greetingSmall: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.xs },
   greeting: { ...type.h1, color: colors.text },
-  avatarBtn: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.glassBorder },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface },
+  avatarBtn: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.glassBorder },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface },
   avatarPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.glassTint },
-  avatarInitials: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  avatarFloating: {
+  avatarInitials: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  headerBar: {
     position: 'absolute',
-    top: spacing.lg,
-    right: spacing.lg,
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerTitle: {
+    color: colors.text,
+    fontSize: 34,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
 
   section: { marginBottom: spacing.xxl },
