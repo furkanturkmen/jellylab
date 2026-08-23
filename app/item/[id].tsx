@@ -488,7 +488,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
 
   return (
     <>
-      <Pressable style={{ flex: 1 }} onPress={() => setControlsVisible(v => !v)}>
+      <View style={{ flex: 1 }}>
         <VLCPlayer
           key={vlcKey}
           ref={vlcRef}
@@ -503,6 +503,10 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
           onLoad={onLoad}
           onProgress={onProgress}
           onEnd={onExit}
+        />
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => setControlsVisible(v => !v)}
         />
         {!ready ? (
           <View style={styles.vlcLoading} pointerEvents="none">
@@ -591,7 +595,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
             </View>
           </View>
         ) : null}
-      </Pressable>
+      </View>
       <VlcSubsModal
         visible={subsOpen}
         externalSubs={externalSubs}
@@ -1271,7 +1275,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
 
   return (
     <>
-      <Pressable style={{ flex: 1 }} onPress={() => setControlsVisible(v => !v)}>
+      <View style={{ flex: 1 }}>
         <VideoView
           player={player}
           style={{ flex: 1 }}
@@ -1279,6 +1283,10 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
           allowsPictureInPicture
           nativeControls={false}
           contentFit="contain"
+        />
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => setControlsVisible(v => !v)}
         />
         {controlsVisible ? (
           <View style={styles.overlay} pointerEvents="box-none">
@@ -1360,17 +1368,17 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
             </View>
           </View>
         ) : null}
-      </Pressable>
-      {activeCue ? (
-        <View
-          style={[styles.subOverlay, { bottom: controlsVisible ? 130 : 40 }]}
-          pointerEvents="none"
-        >
-          <Text style={[styles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
-            {activeCue.text}
-          </Text>
-        </View>
-      ) : null}
+        {activeCue ? (
+          <View
+            style={[styles.subOverlay, { bottom: controlsVisible ? 130 : 40 }]}
+            pointerEvents="none"
+          >
+            <Text style={[styles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
+              {activeCue.text}
+            </Text>
+          </View>
+        ) : null}
+      </View>
       <TrackPickerModal
         visible={tracksOpen}
         player={player}
@@ -1795,7 +1803,14 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xxl,
     gap: spacing.md,
   },
-  overlayIconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  overlayIconBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
   overlayTitle: { ...type.bodyStrong, color: colors.text, flex: 1 },
   speedLabel: { color: colors.text, ...type.small, fontWeight: '700' },
   overlayCenter: {
