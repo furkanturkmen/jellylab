@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Stack } from 'expo-router';
 
-import { getPushToken, registerDevice, unregisterDevice, sendTest } from '@/api/push';
+import { getPushToken, registerDevice, unregisterDevice, sendTest, health } from '@/api/push';
 import { loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
 
@@ -57,12 +57,48 @@ export default function NotificationSettings() {
     }
   }
 
+  /**
+   * Reachability only — no auth, no registration. Separated from the send test
+   * so a failure tells you which half is broken: the address, or the push
+   * chain behind it.
+   */
+  async function checkConnection() {
+    if (!prefs || busy) return;
+    const url = prefs.pushUrl.trim();
+    if (!url) {
+      Alert.alert('Missing address', 'Enter the push server address first.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const h = await health(url);
+      Alert.alert(
+        'Server reachable',
+        h.devices === 0
+          ? 'Connected. No devices registered yet — turn the toggle on below.'
+          : `Connected. ${h.devices} device(s) registered.`
+      );
+    } catch (e: any) {
+      Alert.alert(
+        'Could not reach the server',
+        `${e?.message ?? 'Unknown error'}\n\nCheck the address, and that the VPN is connected if you are away from home.`
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function test() {
-    if (!prefs) return;
+    if (!prefs || busy) return;
     setBusy(true);
     try {
       const count = await sendTest(prefs.pushUrl.trim(), prefs.pushSecret.trim());
-      Alert.alert('Test sent', count > 0 ? `Sent to ${count} device(s).` : 'No devices registered yet.');
+      Alert.alert(
+        'Test sent',
+        count > 0
+          ? `Sent to ${count} device(s). It should arrive in a second or two.`
+          : 'The server accepted it but no devices are registered, so nothing was delivered.'
+      );
     } catch (e: any) {
       Alert.alert('Test failed', e?.message ?? 'Unknown error');
     } finally {
@@ -116,10 +152,21 @@ export default function NotificationSettings() {
           </View>
         </View>
 
-        {enabled ? (
-          <TouchableOpacity style={styles.button} onPress={test} disabled={busy}>
-            <Text style={styles.buttonText}>Send a test notification</Text>
-          </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={checkConnection} disabled={busy}>
+          {busy ? <ActivityIndicator color={colors.text} /> : <Text style={styles.buttonText}>Test connection</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, !enabled && styles.buttonDisabled]}
+          onPress={test}
+          disabled={busy || !enabled}
+        >
+          <Text style={[styles.buttonText, !enabled && styles.buttonTextDisabled]}>
+            Send a test notification
+          </Text>
+        </TouchableOpacity>
+        {!enabled ? (
+          <Text style={styles.buttonHint}>Turn notifications on first.</Text>
         ) : null}
 
         <Text style={styles.note}>
@@ -169,5 +216,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   buttonText: { ...type.bodyStrong, color: colors.text },
+  buttonDisabled: { opacity: 0.4 },
+  buttonTextDisabled: { color: colors.textMuted },
+  buttonHint: { ...type.caption, color: colors.textDim, textAlign: 'center', marginTop: -spacing.md, marginBottom: spacing.lg },
   note: { ...type.small, color: colors.textMuted, lineHeight: 18 },
 });
