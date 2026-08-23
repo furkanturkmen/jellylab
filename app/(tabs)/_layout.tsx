@@ -97,7 +97,23 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             );
           })}
         </View>
-      ) : null}
+      ) : (
+        <Pressable
+          onPress={() => {
+            Keyboard.dismiss();
+            setQuery('');
+            nav('index');
+          }}
+          style={({ pressed }) => [styles.searchCircle, pressed && { opacity: 0.7 }]}
+        >
+          {Platform.OS === 'ios' ? (
+            <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, styles.blurFallback]} />
+          )}
+          <SymbolView name={{ ios: 'house.fill', android: 'home', web: 'home' }} tintColor={colors.text} size={22} />
+        </Pressable>
+      )}
 
       {searchRoute ? (
         isSearchActive ? (
