@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Animated, FlatList, PixelRatio, RefreshControl, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
@@ -16,6 +16,14 @@ type LibraryItem = { view: JellyfinView; items: JellyfinItem[] };
 
 const HERO_COUNT = 5;
 const HERO_INTERVAL_MS = 7000;
+/**
+ * Extra backdrop height below the hero. The image stays pinned while the list
+ * rubber-bands downward, so without this the container would out-run it and
+ * expose bare colour at the bottom. Covers a pull well past refresh distance.
+ */
+const HERO_OVERSCROLL = 280;
+/** Upper bound on requested backdrop width, so a tablet doesn't pull 4K. */
+const HERO_MAX_PX = 2560;
 
 /**
  * The hero taps straight through to playback, so it can only feature things
@@ -187,24 +195,21 @@ function HeroSpotlight({ item, topInset, scrollY }: { item: JellyfinItem; topIns
   const tag = backdrop ?? primary;
   const imageType: 'Backdrop' | 'Primary' = backdrop ? 'Backdrop' : 'Primary';
   const height = HERO_HEIGHT + topInset;
+  const { width } = useWindowDimensions();
+  // Ask for the real pixel width of the device. Jellyfin caps at the source
+  // resolution anyway, so over-asking costs nothing and avoids upscaling.
+  const requestPx = Math.min(HERO_MAX_PX, Math.round(width * PixelRatio.get()));
 
-  // Backdrop holds still while the list scrolls over it (1:1 with scrollY),
-  // and grows on overscroll so a pull-to-refresh never exposes bare colour.
+  // Backdrop holds still in both directions — translateY tracks scrollY 1:1,
+  // so it neither scrolls away under the list nor rides the rubber-band down.
+  // No scale: zooming a backdrop past 1x is what made it look soft.
   const backdropStyle = {
     transform: [
       {
         translateY: scrollY.interpolate({
           inputRange: [0, height],
           outputRange: [0, height],
-          extrapolateLeft: 'clamp' as const,
-          extrapolateRight: 'extend' as const,
-        }),
-      },
-      {
-        scale: scrollY.interpolate({
-          inputRange: [-height, 0],
-          outputRange: [2, 1],
-          extrapolateRight: 'clamp' as const,
+          extrapolate: 'extend' as const,
         }),
       },
     ],
@@ -213,9 +218,9 @@ function HeroSpotlight({ item, topInset, scrollY }: { item: JellyfinItem; topIns
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={() => router.push(`/item/${item.Id}`)}>
       <View style={[styles.hero, { height }]}>
-        <Animated.View style={[StyleSheet.absoluteFill, backdropStyle]}>
+        <Animated.View style={[styles.heroBackdrop, backdropStyle]}>
           <Image
-            source={{ uri: Jellyfin.imageUrl(item.Id, tag, imageType, 1200) }}
+            source={{ uri: Jellyfin.imageUrl(item.Id, tag, imageType, requestPx) }}
             style={StyleSheet.absoluteFill}
             contentFit="cover"
             transition={300}
@@ -352,6 +357,14 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
 
   hero: { width: '100%', height: HERO_HEIGHT, backgroundColor: colors.bgElevated, overflow: 'hidden', marginBottom: spacing.xl },
+  heroBackdrop: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    // extends past the hero so a downward rubber-band cannot out-run the image
+    bottom: -HERO_OVERSCROLL,
+  },
   heroDots: {
     position: 'absolute',
     bottom: spacing.xl + spacing.md,
