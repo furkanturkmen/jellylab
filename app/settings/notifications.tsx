@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Stack } from 'expo-router';
 
-import { getPushToken, registerDevice, unregisterDevice, sendTest, health } from '@/api/push';
+import { getPushToken, registerDevice, unregisterDevice, sendTest, health, PushModuleMissingError } from '@/api/push';
 import { loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
 
@@ -38,7 +38,20 @@ export default function NotificationSettings() {
         return;
       }
 
-      const token = await getPushToken();
+      let token: string | null;
+      try {
+        token = await getPushToken();
+      } catch (e: any) {
+        if (e instanceof PushModuleMissingError) {
+          Alert.alert(
+            'Needs a rebuild',
+            'This copy of Jellylab was built before notifications were added, so the native part is missing. Build the app again and this will work — nothing is wrong with your server settings.'
+          );
+          return;
+        }
+        throw e;
+      }
+
       if (!token) {
         Alert.alert(
           'Notifications unavailable',

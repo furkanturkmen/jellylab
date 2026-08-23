@@ -24,14 +24,20 @@ SplashScreen.preventAutoHideAsync();
 
 // Without this a notification arriving while the app is open is swallowed
 // silently, which reads as "notifications are broken".
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// Wrapped because this runs at module scope: in Expo Go, or a dev client
+// built before expo-notifications was added, the native module is absent and
+// an uncaught throw here would take down the whole app rather than just
+// notifications.
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+} catch {}
 
 // Info.plist now supports landscape (needed so the player can rotate),
 // but the rest of the app is portrait-only. Lock at app boot.

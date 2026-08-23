@@ -12,6 +12,25 @@ import { Platform } from 'react-native';
 
 export type PushRegistration = { token: string };
 
+/**
+ * Thrown when expo-notifications' native side is not in the running binary —
+ * Expo Go, or a dev client built before the package was added. Importing the
+ * module succeeds either way; only the native calls fail, and they fail with
+ * "Cannot find native module ExpoPushTokenManager", which reads like a bug
+ * rather than "you need to rebuild".
+ */
+export class PushModuleMissingError extends Error {
+  constructor() {
+    super('Push notifications need a native build of the app.');
+    this.name = 'PushModuleMissingError';
+  }
+}
+
+function isMissingNativeModule(e: unknown): boolean {
+  const msg = String((e as any)?.message ?? e ?? '');
+  return msg.includes('Cannot find native module') || msg.includes('ExpoPushTokenManager');
+}
+
 function base(url: string): string {
   return url.replace(/\/+$/, '');
 }
@@ -22,25 +41,30 @@ function base(url: string): string {
  * capability, and a previous denial cannot be re-prompted from inside the app.
  */
 export async function getPushToken(): Promise<string | null> {
-  if (!Device.isDevice) return null;
+  try {
+    if (!Device.isDevice) return null;
 
-  const existing = await Notifications.getPermissionsAsync();
-  let status = existing.status;
-  if (status !== 'granted') {
-    // iOS only ever shows this prompt once per install; after a denial the
-    // user has to go through the Settings app.
-    const asked = await Notifications.requestPermissionsAsync();
-    status = asked.status;
+    const existing = await Notifications.getPermissionsAsync();
+    let status = existing.status;
+    if (status !== 'granted') {
+      // iOS only ever shows this prompt once per install; after a denial the
+      // user has to go through the Settings app.
+      const asked = await Notifications.requestPermissionsAsync();
+      status = asked.status;
+    }
+    if (status !== 'granted') return null;
+
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ??
+      (Constants as any).easConfig?.projectId;
+    if (!projectId) return null;
+
+    const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
+    return data ?? null;
+  } catch (e) {
+    if (isMissingNativeModule(e)) throw new PushModuleMissingError();
+    throw e;
   }
-  if (status !== 'granted') return null;
-
-  const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId ??
-    (Constants as any).easConfig?.projectId;
-  if (!projectId) return null;
-
-  const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
-  return data ?? null;
 }
 
 export async function registerDevice(url: string, secret: string, token: string): Promise<void> {
