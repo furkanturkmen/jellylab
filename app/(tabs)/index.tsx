@@ -61,19 +61,14 @@ export default function LibraryScreen() {
 
   const heroItem = resume[0] ?? libs[0]?.items[0];
 
-  const titleOpacity = scrollY.interpolate({
-    inputRange: [0, 40, 90],
-    outputRange: [1, 0.6, 0],
+  const headerFade = scrollY.interpolate({
+    inputRange: [0, 60, 130],
+    outputRange: [1, 0.5, 0],
     extrapolate: 'clamp',
   });
-  const titleTranslate = scrollY.interpolate({
-    inputRange: [0, 90],
-    outputRange: [0, -20],
-    extrapolate: 'clamp',
-  });
-  const avatarScale = scrollY.interpolate({
-    inputRange: [0, 90],
-    outputRange: [1, 0.88],
+  const headerTranslate = scrollY.interpolate({
+    inputRange: [0, 130],
+    outputRange: [0, -24],
     extrapolate: 'clamp',
   });
 
@@ -93,27 +88,23 @@ export default function LibraryScreen() {
         scrollEventThrottle={16}
         ListHeaderComponent={
           <>
-            <View style={{ height: headerHeight }} />
-            {heroItem ? <HeroSpotlight item={heroItem} /> : null}
+            {heroItem ? <HeroSpotlight item={heroItem} topInset={headerHeight} /> : null}
             {resume.length > 0 ? <ContinueWatchingRow items={resume} title={t('library.continueWatching')} /> : null}
           </>
         }
         renderItem={({ item }: { item: LibraryItem }) => <LibraryRow lib={item} />}
         contentContainerStyle={{ paddingBottom: 120 }}
       />
-      <View style={[styles.headerBar, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
-        <Animated.Text
-          style={[
-            styles.headerTitle,
-            { opacity: titleOpacity, transform: [{ translateY: titleTranslate }] },
-          ]}
-        >
-          {t('tabs.library')}
-        </Animated.Text>
-        <Animated.View style={{ transform: [{ scale: avatarScale }] }}>
-          <AvatarButton auth={state.auth} onPress={() => router.push('/profile')} />
-        </Animated.View>
-      </View>
+      <Animated.View
+        style={[
+          styles.headerBar,
+          { paddingTop: insets.top, height: headerHeight, opacity: headerFade, transform: [{ translateY: headerTranslate }] },
+        ]}
+        pointerEvents="box-none"
+      >
+        <Text style={styles.headerTitle}>{t('tabs.library')}</Text>
+        <AvatarButton auth={state.auth} onPress={() => router.push('/profile')} />
+      </Animated.View>
     </View>
   );
 }
@@ -138,7 +129,7 @@ function AvatarButton({ auth, onPress }: { auth: JellyfinAuth; onPress: () => vo
   );
 }
 
-function HeroSpotlight({ item }: { item: JellyfinItem }) {
+function HeroSpotlight({ item, topInset }: { item: JellyfinItem; topInset: number }) {
   const router = useRouter();
   const { t } = useTranslation();
   const backdrop = item.BackdropImageTags?.[0];
@@ -148,7 +139,7 @@ function HeroSpotlight({ item }: { item: JellyfinItem }) {
 
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={() => router.push(`/item/${item.Id}`)}>
-      <View style={styles.hero}>
+      <View style={[styles.hero, { height: HERO_HEIGHT + topInset }]}>
         <Image
           source={{ uri: Jellyfin.imageUrl(item.Id, tag, imageType, 1200) }}
           style={StyleSheet.absoluteFill}
@@ -156,8 +147,13 @@ function HeroSpotlight({ item }: { item: JellyfinItem }) {
           transition={300}
         />
         <LinearGradient
-          colors={[colors.scrimTop, colors.bg]}
-          locations={[0.35, 1]}
+          colors={['rgba(0,0,0,0.55)', 'transparent']}
+          locations={[0, 1]}
+          style={[StyleSheet.absoluteFill, { height: topInset + 40, bottom: undefined }]}
+        />
+        <LinearGradient
+          colors={['transparent', colors.bg]}
+          locations={[0.55, 1]}
           style={StyleSheet.absoluteFill}
         />
         <View style={styles.heroBody}>
