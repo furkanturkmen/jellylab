@@ -7,6 +7,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { VLCPlayer } from 'react-native-vlc-media-player';
 import GoogleCast, { useCastState, useRemoteMediaClient } from 'react-native-google-cast';
 import { SymbolView } from 'expo-symbols';
+import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 
 import * as Jellyfin from '@/api/jellyfin';
@@ -488,6 +489,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
 
   return (
     <>
+      <StatusBar hidden />
       <View style={{ flex: 1 }}>
         <VLCPlayer
           key={vlcKey}
@@ -1277,6 +1279,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
 
   return (
     <>
+      <StatusBar hidden />
       <View style={{ flex: 1 }}>
         <VideoView
           player={player}
@@ -1811,7 +1814,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: colors.glassTint,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.glassBorder,
   },
   overlayTitle: { ...type.bodyStrong, color: colors.text, flex: 1 },
   speedLabel: { color: colors.text, ...type.small, fontWeight: '700' },
