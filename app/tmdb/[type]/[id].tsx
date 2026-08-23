@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -31,6 +31,23 @@ export default function TmdbDetailScreen() {
     if (!type || !tmdbId) return;
     refresh();
   }, [type, tmdbId, refresh]);
+
+  /**
+   * Poll while the server is working on this, so the download bars move instead
+   * of showing whatever was true when the screen opened.
+   *
+   * Gated on the status rather than on `details`, otherwise every refresh would
+   * rebuild the interval and reset its own timer. Skipped while the app is
+   * backgrounded — a progress bar nobody is looking at is not worth the radio.
+   */
+  const isProcessing = details?.mediaInfo?.status === Jellyseerr.SEERR_STATUS.PROCESSING;
+  useEffect(() => {
+    if (!isProcessing) return;
+    const id = setInterval(() => {
+      if (AppState.currentState === 'active') refresh();
+    }, 8000);
+    return () => clearInterval(id);
+  }, [isProcessing, refresh]);
 
   /**
    * Movies go straight through. TV opens a picker instead of sending
