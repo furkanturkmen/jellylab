@@ -2,13 +2,35 @@ import { SymbolView } from 'expo-symbols';
 import { Tabs } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import { Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
-import { colors } from '@/theme';
+import { colors, radius, spacing } from '@/theme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 
 export default function TabLayout() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+
+  const floatingBar = {
+    position: 'absolute' as const,
+    left: spacing.lg,
+    right: spacing.lg,
+    bottom: insets.bottom > 0 ? insets.bottom + 4 : spacing.md,
+    height: 60,
+    borderRadius: radius.pill,
+    backgroundColor: Platform.OS === 'ios' ? 'transparent' : colors.bgElevated,
+    borderTopWidth: 0,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.glassBorder,
+    overflow: 'hidden' as const,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+  };
+
   return (
     <Tabs
       screenOptions={{
@@ -18,15 +40,11 @@ export default function TabLayout() {
         headerStyle: { backgroundColor: colors.bg },
         headerTitleStyle: { color: colors.text, fontWeight: '600' },
         headerTintColor: colors.text,
-        tabBarStyle: {
-          backgroundColor: Platform.OS === 'ios' ? 'transparent' : colors.bgElevated,
-          borderTopColor: colors.border,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          position: 'absolute',
-        },
+        tabBarStyle: floatingBar,
         tabBarBackground: Platform.OS === 'ios'
-          ? () => <BlurView tint="dark" intensity={80} style={StyleSheet.absoluteFill} />
+          ? () => <BlurView tint="dark" intensity={60} style={StyleSheet.absoluteFill} />
           : undefined,
+        tabBarItemStyle: { paddingVertical: 6 },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
       }}>
       <Tabs.Screen
@@ -35,7 +53,7 @@ export default function TabLayout() {
           title: t('tabs.library'),
           headerShown: false,
           tabBarIcon: ({ color }) => (
-            <SymbolView name={{ ios: 'play.rectangle.on.rectangle', android: 'video_library', web: 'video_library' }} tintColor={color} size={26} />
+            <SymbolView name={{ ios: 'play.rectangle.on.rectangle', android: 'video_library', web: 'video_library' }} tintColor={color} size={24} />
           ),
         }}
       />
@@ -45,7 +63,7 @@ export default function TabLayout() {
           title: t('tabs.search'),
           headerShown: false,
           tabBarIcon: ({ color }) => (
-            <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} tintColor={color} size={26} />
+            <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} tintColor={color} size={24} />
           ),
         }}
       />
@@ -55,7 +73,7 @@ export default function TabLayout() {
           title: t('tabs.requests'),
           headerShown: false,
           tabBarIcon: ({ color }) => (
-            <SymbolView name={{ ios: 'tray.and.arrow.down', android: 'inbox', web: 'inbox' }} tintColor={color} size={26} />
+            <SymbolView name={{ ios: 'tray.and.arrow.down', android: 'inbox', web: 'inbox' }} tintColor={color} size={24} />
           ),
         }}
       />
