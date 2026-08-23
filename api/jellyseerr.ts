@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { getJellyseerrUrl } from '@/config';
+import { getJellyfinUrl, getJellyseerrUrl } from '@/config';
 import { loadJellyseerrAuth, saveJellyseerrAuth, clearJellyseerrAuth } from '@/store/auth';
 import type { JellyseerrAuth, JellyseerrRequest, JellyseerrSearchResult } from '@/types';
 
@@ -21,11 +21,14 @@ export async function authClient(): Promise<AxiosInstance> {
 }
 
 export async function loginJellyfin(username: string, password: string): Promise<JellyseerrAuth> {
-  // Jellyseerr supports Jellyfin auth passthrough via /auth/jellyfin
+  // Seerr/Jellyseerr auth passthrough. Seerr v3+ requires the Jellyfin hostname
+  // in the body so it can bind the session to the right media server.
   const client = makeClient();
-  const res = await client.post('/auth/jellyfin', { username, password }, {
-    withCredentials: true,
-  });
+  const res = await client.post(
+    '/auth/jellyfin',
+    { username, password, hostname: getJellyfinUrl() },
+    { withCredentials: true },
+  );
   const setCookie = res.headers['set-cookie'];
   const cookie = Array.isArray(setCookie) ? setCookie.map(c => c.split(';')[0]).join('; ') : '';
   const auth: JellyseerrAuth = {
