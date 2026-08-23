@@ -13,6 +13,10 @@ export const colors = {
   pink: '#F92672',
   glassTint: 'rgba(42, 42, 42, 0.72)',
   glassBorder: 'rgba(245, 245, 247, 0.16)',
+  // tvOS-style glass: lift the material with a white wash rather than darkening
+  // it, and give the edge a brighter specular line so it reads as a surface.
+  glassLift: 'rgba(255, 255, 255, 0.08)',
+  glassEdge: 'rgba(255, 255, 255, 0.30)',
   overlay: 'rgba(0, 0, 0, 0.55)',
   scrimTop: 'rgba(10, 10, 10, 0)',
   scrimBottom: 'rgba(10, 10, 10, 0.95)',

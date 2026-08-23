@@ -7,6 +7,7 @@ import Animated, {
   FadeIn,
   FadeOut,
   LinearTransition,
+  useAnimatedKeyboard,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -71,7 +72,7 @@ function GlassCircle({ onPress, icon, size = 22 }: { onPress: () => void; icon: 
       style={[styles.searchCircle, press.style]}
     >
       {Platform.OS === 'ios' ? (
-        <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
+        <BlurView tint="systemUltraThinMaterialDark" intensity={100} style={[StyleSheet.absoluteFill, styles.blur]} />
       ) : (
         <View style={[StyleSheet.absoluteFill, styles.blurFallback]} />
       )}
@@ -111,24 +112,25 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useSearchQuery();
-  const [kbHeight, setKbHeight] = useState(0);
+  const [searchFocused, setSearchFocused] = useState(false);
+  // Native keyboard frame, so the bar rides the keyboard instead of snapping
+  // to its final height on the show/hide event.
+  const keyboard = useAnimatedKeyboard();
 
   const mainRoutes = state.routes.filter(r => r.name !== 'search');
   const searchRoute = state.routes.find(r => r.name === 'search');
   const currentRouteName = state.routes[state.index]?.name;
   const isSearchActive = currentRouteName === 'search';
 
+  // Leaving the search tab drops focus, so the home button comes back.
   useEffect(() => {
-    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const s1 = Keyboard.addListener(showEvt, e => setKbHeight(e.endCoordinates.height));
-    const s2 = Keyboard.addListener(hideEvt, () => setKbHeight(0));
-    return () => { s1.remove(); s2.remove(); };
-  }, []);
+    if (!isSearchActive && searchFocused) setSearchFocused(false);
+  }, [isSearchActive, searchFocused]);
 
-  const bottom = kbHeight > 0
-    ? kbHeight + spacing.sm
-    : (insets.bottom > 0 ? insets.bottom + 8 : spacing.lg);
+  const restingBottom = insets.bottom > 0 ? insets.bottom + 8 : spacing.lg;
+  const containerStyle = useAnimatedStyle(() => ({
+    bottom: keyboard.height.value > 0 ? keyboard.height.value + spacing.sm : restingBottom,
+  }));
 
   function nav(name: string) {
     const route = state.routes.find(r => r.name === name);
@@ -143,15 +145,22 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
   const transition = LinearTransition.duration(260);
 
+  // Typing collapses the left slot to nothing so the field owns the full width.
+  const hideLeft = isSearchActive && searchFocused;
+
   return (
-    <Animated.View style={[styles.container, { bottom }]} pointerEvents="box-none">
-      {/* Left slot: pill (with tabs) OR home circle — same Animated node so width interpolates */}
+    <Animated.View style={[styles.container, containerStyle]} pointerEvents="box-none">
+      {/* Left slot: pill (with tabs) OR home circle OR gone — same Animated node so width interpolates */}
       <Animated.View
         layout={transition}
-        style={[styles.leftSlot, isSearchActive ? styles.leftCollapsed : styles.leftExpanded]}
+        pointerEvents={hideLeft ? 'none' : 'auto'}
+        style={[
+          styles.leftSlot,
+          hideLeft ? styles.leftHidden : isSearchActive ? styles.leftCollapsed : styles.leftExpanded,
+        ]}
       >
         {Platform.OS === 'ios' ? (
-          <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
+          <BlurView tint="systemUltraThinMaterialDark" intensity={100} style={[StyleSheet.absoluteFill, styles.blur]} />
         ) : (
           <View style={[StyleSheet.absoluteFill, styles.blurFallback]} />
         )}
@@ -197,7 +206,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
           style={[styles.rightSlot, isSearchActive ? styles.rightExpanded : styles.rightCollapsed]}
         >
           {Platform.OS === 'ios' ? (
-            <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
+            <BlurView tint="systemUltraThinMaterialDark" intensity={100} style={[StyleSheet.absoluteFill, styles.blur]} />
           ) : (
             <View style={[StyleSheet.absoluteFill, styles.blurFallback]} />
           )}
@@ -214,6 +223,8 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                 autoCorrect={false}
                 returnKeyType="search"
                 clearButtonMode="while-editing"
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
               />
             </Animated.View>
           ) : (
@@ -278,15 +289,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.glassBorder,
+    borderColor: colors.glassEdge,
     shadowColor: '#000',
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 8,
     flexShrink: 1,
   },
-  blur: { backgroundColor: 'rgba(15,15,15,0.4)' },
+  blur: { backgroundColor: colors.glassLift },
   blurFallback: { backgroundColor: colors.bgElevated },
   pillItem: {
     height: PILL_HEIGHT - 12,
@@ -316,11 +327,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.glassBorder,
+    borderColor: colors.glassEdge,
     shadowColor: '#000',
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
   searchBar: {
@@ -333,11 +344,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.glassBorder,
+    borderColor: colors.glassEdge,
     shadowColor: '#000',
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
   searchInput: {
@@ -353,11 +364,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.glassBorder,
+    borderColor: colors.glassEdge,
     shadowColor: '#000',
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
   leftExpanded: {
@@ -368,16 +379,24 @@ const styles = StyleSheet.create({
     width: CIRCLE,
     alignSelf: 'flex-start',
   },
+  leftHidden: {
+    width: 0,
+    opacity: 0,
+    borderWidth: 0,
+    alignSelf: 'flex-start',
+    // cancels the container's gap so the field reclaims the full width
+    marginRight: -spacing.md,
+  },
   rightSlot: {
     height: PILL_HEIGHT,
     borderRadius: radius.pill,
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.glassBorder,
+    borderColor: colors.glassEdge,
     shadowColor: '#000',
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
   rightCollapsed: {
