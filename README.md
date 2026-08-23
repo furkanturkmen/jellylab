@@ -7,16 +7,18 @@ Built with Expo Router (SDK 57), React Native 0.86, and TypeScript. iOS-first; A
 ## What it does
 
 - **Library** — Apple TV-style layout: featured hero, Continue Watching row, one row per Jellyfin library. Header (page title + avatar) fades on scroll, status bar overlays the hero.
-- **Item detail** — poster, backdrop, overview, cast, download-progress bars for in-flight Jellyseerr requests. Series show a season/episode picker.
+- **Item detail** — poster, backdrop, overview, cast, download-progress bars for in-flight Jellyseerr/Seerr requests. Series show a season/episode picker.
 - **Player** — custom overlay. AVPlayer for compatible files, VLC fallback for MKV/DTS/anime/whatever AVPlayer refuses. Engine picker in settings.
   - Scrubbing, ±10s skip, speed control, PiP, fullscreen with rotation lock
   - Embedded + external subtitle picker with size and language preferences
   - Watch progress reported to Jellyfin (start/progress/stopped)
   - AirPlay button (native) + Chromecast (Google Cast SDK — uses the public default media receiver; register your own for custom branding)
-- **Search** — Jellyseerr TMDB search + Discover categories (Trending / Popular Movies / Popular TV / Anime / Upcoming). Tap a card for TMDB detail. Admins can delete requests or remove media from Jellyfin (Radarr/Sonarr file wipe).
+- **Search** — Seerr (Jellyseerr fork) TMDB search + Discover categories (Trending / Popular Movies / Popular TV / Anime / Upcoming). Tap a card for TMDB detail. Admins can delete requests or remove media from Jellyfin (Radarr/Sonarr file wipe).
 - **Requests** — pull-to-refresh with human-readable status + admin actions.
-- **Profile** — Apple TV-style grouped list. Change display name, password, avatar (camera / library / remove). Preferences: subtitles, playback, content (adult toggle), language. Admin shortcuts to Jellyfin/Jellyseerr dashboards when signed in as admin.
-- **Servers** — add/edit/delete/switch multiple Jellyfin+Jellyseerr pairs from Profile → Servers. Switching signs you out and re-prompts login for the new server. No server URLs baked in the app.
+- **Downloads** — dedicated tab with empty state; offline playback is on the roadmap.
+- **Profile** — Apple TV-style grouped list. Change display name, password, avatar (camera / library / remove). Preferences: subtitles, playback, language. Admin shortcuts to Jellyfin/Seerr dashboards when signed in as admin. Servers section for managing multiple homelab pairs.
+- **Custom tab bar** — floating glass pill (Library / Requests / Downloads) + detached search circle that expands into an inline search bar (Apple TV pattern). Smooth Reanimated layout transitions between states.
+- **Servers** — add/edit/delete/switch multiple Jellyfin+Jellyseerr pairs from Profile → App → Servers. Switching signs you out and re-prompts login for the new server. Server-edit screen has a "Test connection" button that pings both endpoints before you save. No server URLs baked in the app.
 - **i18n** — English, Dutch, Turkish, German. Auto-detects device language; override in Profile → Language.
 
 ## Requirements
@@ -24,7 +26,7 @@ Built with Expo Router (SDK 57), React Native 0.86, and TypeScript. iOS-first; A
 - Node.js 20+ and npm 10+
 - macOS with Xcode 15+ for local iOS builds. Windows can use [EAS Build](https://docs.expo.dev/build/introduction/).
 - Apple Developer account ($99/yr) for TestFlight distribution or long-lived on-device installs.
-- A running Jellyfin server and a running Jellyseerr server with your Jellyfin account imported (Jellyseerr → Settings → Users → Import from Jellyfin).
+- A running Jellyfin server and a running [Seerr](https://github.com/seerr-team/seerr) (Jellyseerr fork, ships as `ghcr.io/seerr-team/seerr:latest`) or Jellyseerr instance with your Jellyfin account imported (Users → Import from Jellyfin).
 - The device must resolve and reach the Jellyfin/Jellyseerr hostnames — LAN or mesh VPN (NetBird / Tailscale) with DNS routing pointing your internal domain at a local resolver.
 - Chromecast (optional): the app ships with Google's public default media receiver so casting works out of the box. If you want a branded receiver or Cast-side custom features, register one in the [Cast Developer Console](https://cast.google.com/publish/) and set `iosReceiverAppId` in `app.json` locally (do not commit your ID).
 
@@ -86,22 +88,23 @@ Open the app on the phone — it connects to Metro over the same wifi.
 
 ```
 app/                    Expo Router routes (file-based)
-  (tabs)/               Bottom tab screens (library, search, requests)
+  (tabs)/               Bottom tab screens (library, search, requests, downloads)
+  (tabs)/_layout.tsx    Custom floating pill tab bar (Reanimated transitions)
   item/[id].tsx         Item detail + custom player (~1500 lines)
-  tmdb/[id].tsx         Jellyseerr/TMDB detail (search results)
-  profile.tsx           Profile + preferences + admin
+  tmdb/[id].tsx         Seerr/TMDB detail (search results)
+  profile.tsx           Profile + preferences + admin + servers link
   servers.tsx           Server list + switch/edit/delete
-  server-edit.tsx       Add/edit server form
+  server-edit.tsx       Add/edit server form + connection test
   settings/             Subtitles, playback, content, language, password
-  login.tsx             Auth (Jellyfin credentials, via Jellyseerr for session)
-  _layout.tsx           Root layout with auth + server guard
-api/                    Jellyfin + Jellyseerr HTTP clients (read base URL from server store)
-components/             Themed UI primitives
+  login.tsx             Auth (Jellyfin credentials, via Seerr for session)
+  _layout.tsx           Root layout with auth + server guard (dismisses modals on nav)
+api/                    Jellyfin + Seerr/Jellyseerr HTTP clients (read base URL from server store)
+components/             Themed UI primitives (TabHeader for scroll-fade page titles)
 config.ts               Client identity only — server URLs come from the store
 hooks/                  useAuth, useServer (both pub/sub for cross-screen refresh)
 i18n/                   4 languages (en, nl, tr, de) + init
 player/                 Codec-based engine selection + VTT parser
-store/                  auth.ts, servers.ts, prefs.ts (expo-secure-store)
+store/                  auth.ts, servers.ts, prefs.ts, search.ts (expo-secure-store + in-memory pub/sub)
 theme/                  Abyss design tokens (colors, spacing, type)
 types/                  Shared TypeScript types
 ```
@@ -119,25 +122,27 @@ types/                  Shared TypeScript types
 Ordered by realistic priority — small wins first, bigger platform work later.
 
 **Recently shipped**
-- Runtime server management (add / edit / delete / switch, no baked-in URLs)
+- Runtime server management (add / edit / delete / switch, no baked-in URLs, connection test)
+- Custom Apple TV-style floating tab bar with search-bar transformation (Reanimated transitions)
+- Downloads tab (empty state; wiring in progress)
+- Shared TabHeader (scroll-fade page titles) on every tab
 - Custom player overlay in Abyss style with per-engine glass controls
 - Watch progress sync to Jellyfin
 - Season / episode picker for TV
 - Chromecast + AirPlay
 - 4-language i18n (en / nl / tr / de)
-- Apple TV-style Library header with scroll-fade + status-bar overlay
 
 **Next up (small, ships soon)**
 1. Watch history screen (finished items, separate from Continue Watching)
 2. Friendlier error surfaces when a server URL is unreachable (currently mostly axios raw)
 3. Per-server saved credentials (skip re-login on switch — currently signs out)
-4. Search inside your own Jellyfin library (currently search only hits Jellyseerr/TMDB)
+4. Search inside your own Jellyfin library (currently search only hits Seerr/TMDB)
 
 **Mid-term (medium effort, high value)**
 5. Downloads / offline playback (needs codec-aware file cache + player fallback for local file:// URLs)
 6. iPad-friendly split layout (sidebar + detail pane; adaptive from 768pt)
 7. Home Screen Widget (Continue Watching)
-8. Push notifications for request approval / media available (needs APNS + Jellyseerr webhook bridge)
+8. Push notifications for request approval / media available (needs APNS + Seerr webhook bridge)
 
 **Platform expansion (larger scope)**
 9. Music library browsing + playback
