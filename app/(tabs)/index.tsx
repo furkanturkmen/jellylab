@@ -24,6 +24,12 @@ const HERO_MAX_PX = 2560;
  * percent of headroom keeps rounding from showing a hairline of background.
  */
 const HERO_STRETCH_SLOP = 1.08;
+/**
+ * Flat darkening over the backdrop, on top of the two gradients. Those only
+ * shade the top and bottom edges, so a bright frame still washed out the title
+ * across the middle. One dial: 0 is off, 0.9 is almost solid black.
+ */
+const HERO_SHADE = 0.3;
 
 /**
  * The hero taps straight through to playback, so it can only feature things
@@ -212,6 +218,9 @@ function HeroBackdrop({ item, height, topInset, scrollY }: {
         contentFit="cover"
         transition={400}
       />
+      {/* Inside the transform so it stretches with the image — a fixed shade
+          would leave unshaded edges on a downward pull. */}
+      <View style={styles.heroShade} />
       <LinearGradient
         colors={['rgba(0,0,0,0.55)', 'transparent']}
         locations={[0, 1]}
@@ -407,6 +416,11 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
 
+  heroShade: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: `rgba(0,0,0,${HERO_SHADE})`,
+  },
   // screen-fixed layer behind the list; height is applied inline
   heroBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: colors.bgElevated },
   // transparent twin inside the list, carrying the swipe, title and dots
