@@ -19,14 +19,6 @@ const HERO_INTERVAL_MS = 7000;
 /** Upper bound on requested backdrop width, so a tablet doesn't pull 4K. */
 const HERO_MAX_PX = 2560;
 /**
- * The hero clips its children, so a backdrop growing inside it can never reach
- * the gap a pull-to-refresh opens above the list. The container is therefore
- * extended this far upward with a matching negative margin — same layout
- * footprint, but its clip box now covers the refresh area. heroBody is
- * bottom-anchored so the text is unaffected.
- */
-const HERO_BLEED = 340;
-/**
  * Slight over-scale on the stretchy header. The maths for "grow to exactly
  * fill the rubber-band" lands on the container edge precisely, so a few
  * percent of headroom keeps rounding from showing a hairline of background.
@@ -161,18 +153,12 @@ function HeroCarousel({ items, topInset, scrollY }: { items: JellyfinItem[]; top
     return () => clearInterval(id);
   }, [items.length, width]);
 
-  // The negative margin lives here, not on the hero itself: the horizontal
-  // list would otherwise clip the bleed at its own top edge.
   if (items.length === 1) {
-    return (
-      <View style={styles.heroBleedShift}>
-        <HeroSpotlight item={items[0]} topInset={topInset} scrollY={scrollY} />
-      </View>
-    );
+    return <HeroSpotlight item={items[0]} topInset={topInset} scrollY={scrollY} />;
   }
 
   return (
-    <View style={styles.heroBleedShift}>
+    <View>
       <FlatList
         ref={listRef}
         horizontal
@@ -247,7 +233,7 @@ function HeroSpotlight({ item, topInset, scrollY }: { item: JellyfinItem; topIns
 
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={() => router.push(`/item/${item.Id}`)}>
-      <View style={[styles.hero, { height: height + HERO_BLEED }]}>
+      <View style={[styles.hero, { height }]}>
         <Animated.View style={[styles.heroBackdrop, backdropStyle]}>
           <Image
             source={{ uri: Jellyfin.imageUrl(item.Id, tag, imageType, requestPx) }}
@@ -259,12 +245,12 @@ function HeroSpotlight({ item, topInset, scrollY }: { item: JellyfinItem; topIns
         <LinearGradient
           colors={['rgba(0,0,0,0.55)', 'transparent']}
           locations={[0, 1]}
-          style={[StyleSheet.absoluteFill, { top: HERO_BLEED, height: topInset + 40, bottom: undefined }]}
+          style={[StyleSheet.absoluteFill, { height: topInset + 40, bottom: undefined }]}
         />
         <LinearGradient
           colors={['transparent', colors.bg]}
           locations={[0.55, 1]}
-          style={[StyleSheet.absoluteFill, { top: HERO_BLEED }]}
+          style={StyleSheet.absoluteFill}
         />
         <View style={styles.heroBody}>
           <Text style={styles.heroLabel}>{t('library.featured')}</Text>
@@ -387,10 +373,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
 
   hero: { width: '100%', height: HERO_HEIGHT, backgroundColor: colors.bgElevated, overflow: 'hidden', marginBottom: spacing.xl },
-  // sits below the bleed at rest; the stretch transform moves it up into it
-  heroBackdrop: { position: 'absolute', top: HERO_BLEED, left: 0, right: 0, bottom: 0 },
-  // pulls the whole carousel up so the bleed occupies no layout space
-  heroBleedShift: { marginTop: -HERO_BLEED },
+  heroBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   heroDots: {
     position: 'absolute',
     bottom: spacing.xl + spacing.md,
