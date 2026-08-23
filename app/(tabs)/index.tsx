@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
@@ -14,12 +14,41 @@ import type { JellyfinItem, JellyfinView } from '@/types';
 
 type LibraryItem = { view: JellyfinView; items: JellyfinItem[] };
 
+const HERO_COUNT = 5;
+const HERO_INTERVAL_MS = 7000;
+
+/**
+ * The hero taps straight through to playback, so it can only feature things
+ * you actually own — trending/TMDB would land on a Request screen instead.
+ *
+ * Priority: what you're part-way through, then what arrived recently, then
+ * anything else. Backdrop-less items are skipped because the fallback is a
+ * portrait poster stretched across a 360pt-tall banner.
+ */
+function buildHeroPool(resume: JellyfinItem[], latest: JellyfinItem[], libs: LibraryItem[]): JellyfinItem[] {
+  const seen = new Set<string>();
+  const pool: JellyfinItem[] = [];
+  const add = (item?: JellyfinItem) => {
+    if (!item || seen.has(item.Id)) return;
+    if (item.Type !== 'Movie' && item.Type !== 'Series') return;
+    if ((item.BackdropImageTags?.length ?? 0) === 0) return;
+    seen.add(item.Id);
+    pool.push(item);
+  };
+
+  resume.slice(0, 2).forEach(add);
+  latest.forEach(add);
+  libs.flatMap(l => l.items).forEach(add);
+  return pool.slice(0, HERO_COUNT);
+}
+
 export default function LibraryScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { headerHeight } = useTabHeaderMetrics();
   const { state } = useAuth();
   const [resume, setResume] = useState<JellyfinItem[]>([]);
+  const [latest, setLatest] = useState<JellyfinItem[]>([]);
   const [libs, setLibs] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -39,7 +68,13 @@ export default function LibraryScreen() {
           items: await Jellyfin.getItems(state.auth.userId, view.Id, 20),
         }))
       );
+      const latestItems = (
+        await Promise.all(
+          filtered.map(view => Jellyfin.getLatestItems(state.auth.userId, view.Id, 6).catch(() => []))
+        )
+      ).flat();
       setResume(resumeItems);
+      setLatest(latestItems);
       setLibs(withItems);
     } finally {
       setLoading(false);
@@ -58,7 +93,11 @@ export default function LibraryScreen() {
     );
   }
 
-  const heroItem = resume[0] ?? libs[0]?.items[0];
+  const heroPool = buildHeroPool(resume, latest, libs);
+  // Nothing in the library has a backdrop — fall back to a single still hero.
+  const heroItems = heroPool.length > 0
+    ? heroPool
+    : [resume[0] ?? libs[0]?.items[0]].filter(Boolean) as JellyfinItem[];
 
   return (
     <View style={styles.root}>
@@ -74,7 +113,7 @@ export default function LibraryScreen() {
         scrollEventThrottle={16}
         ListHeaderComponent={
           <>
-            {heroItem ? <HeroSpotlight item={heroItem} topInset={headerHeight} /> : null}
+            {heroItems.length > 0 ? <HeroCarousel items={heroItems} topInset={headerHeight} scrollY={scrollY} /> : null}
             {resume.length > 0 ? <ContinueWatchingRow items={resume} title={t('library.continueWatching')} /> : null}
           </>
         }
@@ -86,23 +125,102 @@ export default function LibraryScreen() {
   );
 }
 
-function HeroSpotlight({ item, topInset }: { item: JellyfinItem; topInset: number }) {
+function HeroCarousel({ items, topInset, scrollY }: { items: JellyfinItem[]; topInset: number; scrollY: Animated.Value }) {
+  const { width } = useWindowDimensions();
+  const listRef = useRef<FlatList<JellyfinItem>>(null);
+  const [index, setIndex] = useState(0);
+  const dragging = useRef(false);
+
+  // Auto-advance, held while a finger is down so it never yanks mid-swipe.
+  useEffect(() => {
+    if (items.length < 2) return;
+    const id = setInterval(() => {
+      if (dragging.current) return;
+      setIndex(prev => {
+        const next = (prev + 1) % items.length;
+        listRef.current?.scrollToOffset({ offset: next * width, animated: true });
+        return next;
+      });
+    }, HERO_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [items.length, width]);
+
+  if (items.length === 1) {
+    return <HeroSpotlight item={items[0]} topInset={topInset} scrollY={scrollY} />;
+  }
+
+  return (
+    <View>
+      <FlatList
+        ref={listRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        data={items}
+        keyExtractor={i => i.Id}
+        getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+        onScrollBeginDrag={() => { dragging.current = true; }}
+        onMomentumScrollEnd={e => {
+          dragging.current = false;
+          setIndex(Math.round(e.nativeEvent.contentOffset.x / width));
+        }}
+        renderItem={({ item }) => (
+          <View style={{ width }}>
+            <HeroSpotlight item={item} topInset={topInset} scrollY={scrollY} />
+          </View>
+        )}
+      />
+      <View style={styles.heroDots} pointerEvents="none">
+        {items.map((item, i) => (
+          <View key={item.Id} style={[styles.heroDot, i === index && styles.heroDotActive]} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function HeroSpotlight({ item, topInset, scrollY }: { item: JellyfinItem; topInset: number; scrollY: Animated.Value }) {
   const router = useRouter();
   const { t } = useTranslation();
   const backdrop = item.BackdropImageTags?.[0];
   const primary = item.ImageTags?.Primary;
   const tag = backdrop ?? primary;
   const imageType: 'Backdrop' | 'Primary' = backdrop ? 'Backdrop' : 'Primary';
+  const height = HERO_HEIGHT + topInset;
+
+  // Backdrop holds still while the list scrolls over it (1:1 with scrollY),
+  // and grows on overscroll so a pull-to-refresh never exposes bare colour.
+  const backdropStyle = {
+    transform: [
+      {
+        translateY: scrollY.interpolate({
+          inputRange: [0, height],
+          outputRange: [0, height],
+          extrapolateLeft: 'clamp' as const,
+          extrapolateRight: 'extend' as const,
+        }),
+      },
+      {
+        scale: scrollY.interpolate({
+          inputRange: [-height, 0],
+          outputRange: [2, 1],
+          extrapolateRight: 'clamp' as const,
+        }),
+      },
+    ],
+  };
 
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={() => router.push(`/item/${item.Id}`)}>
-      <View style={[styles.hero, { height: HERO_HEIGHT + topInset }]}>
-        <Image
-          source={{ uri: Jellyfin.imageUrl(item.Id, tag, imageType, 1200) }}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          transition={300}
-        />
+      <View style={[styles.hero, { height }]}>
+        <Animated.View style={[StyleSheet.absoluteFill, backdropStyle]}>
+          <Image
+            source={{ uri: Jellyfin.imageUrl(item.Id, tag, imageType, 1200) }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            transition={300}
+          />
+        </Animated.View>
         <LinearGradient
           colors={['rgba(0,0,0,0.55)', 'transparent']}
           locations={[0, 1]}
@@ -234,6 +352,22 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
 
   hero: { width: '100%', height: HERO_HEIGHT, backgroundColor: colors.bgElevated, overflow: 'hidden', marginBottom: spacing.xl },
+  heroDots: {
+    position: 'absolute',
+    bottom: spacing.xl + spacing.md,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  heroDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.32)',
+  },
+  heroDotActive: { backgroundColor: colors.text, width: 18 },
   heroBody: { position: 'absolute', left: spacing.xl, right: spacing.xl, bottom: spacing.xl },
   heroLabel: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.sm },
   heroTitle: { ...type.display, color: colors.text, marginBottom: spacing.md },
