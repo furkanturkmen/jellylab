@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
   },
-  pillAvailable: { backgroundColor: 'rgba(52, 199, 89, 0.24)', borderColor: 'rgba(52, 199, 89, 0.5)' },
+  pillAvailable: { backgroundColor: colors.successTint, borderColor: colors.successBorder },
   pillText: { color: colors.text, ...t.caption, textTransform: 'uppercase' },
   by: { ...t.small, color: colors.textDim, marginTop: spacing.xs },
 });

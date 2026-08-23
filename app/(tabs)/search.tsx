@@ -204,7 +204,7 @@ function DiscoverCard({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: 
           <View style={[styles.poster, styles.posterEmpty]} />
         )}
         {available ? (
-          <View style={styles.badgeOverlay}><Text style={styles.badgeOverlayText}>Available</Text></View>
+          <View style={[styles.badgeOverlay, styles.badgeAvailable]}><Text style={styles.badgeOverlayText}>Available</Text></View>
         ) : requested ? (
           <View style={styles.badgeOverlay}><Text style={styles.badgeOverlayText}>Requested</Text></View>
         ) : null}
@@ -233,7 +233,7 @@ function LibraryRow({ item, onOpen }: { item: JellyfinItem; onOpen: () => void }
         <Text style={styles.rowMeta}>{kind} {year ? `· ${year}` : ''}</Text>
         {item.Overview ? <Text style={styles.rowOverview} numberOfLines={2}>{item.Overview}</Text> : null}
       </View>
-      <View style={styles.badge}><Text style={styles.badgeText}>Play</Text></View>
+      <View style={[styles.badge, styles.badgeAvailable]}><Text style={styles.badgeText}>Play</Text></View>
     </TouchableOpacity>
   );
 }
@@ -258,7 +258,7 @@ function ResultRow({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: () 
         {item.overview ? <Text style={styles.rowOverview} numberOfLines={2}>{item.overview}</Text> : null}
       </View>
       {available ? (
-        <View style={styles.badge}><Text style={styles.badgeText}>Available</Text></View>
+        <View style={[styles.badge, styles.badgeAvailable]}><Text style={styles.badgeText}>Available</Text></View>
       ) : requested ? (
         <View style={styles.badge}><Text style={styles.badgeText}>Requested</Text></View>
       ) : null}
@@ -328,4 +328,6 @@ const styles = StyleSheet.create({
 
   badge: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: radius.pill, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, backgroundColor: colors.surface },
   badgeText: { color: colors.text, ...type.caption, textTransform: 'uppercase' },
+  // green means you can watch it now - both 'Available' and the library's 'Play'
+  badgeAvailable: { backgroundColor: colors.successTint, borderColor: colors.successBorder },
 });

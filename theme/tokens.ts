@@ -17,6 +17,10 @@ export const colors = {
   // it, and give the edge a brighter specular line so it reads as a surface.
   glassLift: 'rgba(255, 255, 255, 0.08)',
   glassEdge: 'rgba(255, 255, 255, 0.30)',
+  // 'available' green, shared by the search and requests badges so the same
+  // state never renders two different ways
+  successTint: 'rgba(52, 199, 89, 0.24)',
+  successBorder: 'rgba(52, 199, 89, 0.5)',
   overlay: 'rgba(0, 0, 0, 0.55)',
   scrimTop: 'rgba(10, 10, 10, 0)',
   scrimBottom: 'rgba(10, 10, 10, 0.95)',
