@@ -120,14 +120,22 @@ export async function getItem(userId: string, itemId: string): Promise<JellyfinI
   return res.data;
 }
 
+export type MediaStream = {
+  Type: 'Video' | 'Audio' | 'Subtitle';
+  Codec?: string;
+  Profile?: string;
+  Index?: number;
+  Language?: string;
+  DisplayTitle?: string;
+  IsExternal?: boolean;
+  IsDefault?: boolean;
+  IsForced?: boolean;
+};
+
 export type MediaSource = {
   Id: string;
   Container?: string;
-  MediaStreams?: {
-    Type: 'Video' | 'Audio' | 'Subtitle';
-    Codec?: string;
-    Profile?: string;
-  }[];
+  MediaStreams?: MediaStream[];
 };
 
 export async function getPlaybackInfo(userId: string, itemId: string): Promise<MediaSource[]> {
@@ -206,6 +214,22 @@ export function secondsToTicks(seconds: number): number {
 
 export function ticksToSeconds(ticks: number): number {
   return ticks / 10_000_000;
+}
+
+export function subtitleUrl(
+  itemId: string,
+  mediaSourceId: string,
+  streamIndex: number,
+  token: string,
+  format: 'vtt' | 'srt' = 'vtt',
+): string {
+  return `${CONFIG.JELLYFIN_URL}/Videos/${itemId}/${mediaSourceId}/Subtitles/${streamIndex}/0/Stream.${format}?api_key=${token}`;
+}
+
+export async function fetchSubtitleVtt(url: string): Promise<string> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Subtitle fetch failed: ${res.status}`);
+  return res.text();
 }
 
 export function streamUrl(itemId: string, token: string, deviceId: string): string {

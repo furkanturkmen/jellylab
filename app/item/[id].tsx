@@ -11,13 +11,19 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { decideEngine, type Engine } from '@/player/decide';
+import { parseVtt, findActiveCue, type VttCue } from '@/player/vtt';
 import { useAuth } from '@/hooks/useAuth';
 import { getDeviceId } from '@/store/auth';
 import { loadPrefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem } from '@/types';
 
-type PlaybackConfig = { url: string; engine: Engine };
+type PlaybackConfig = {
+  url: string;
+  engine: Engine;
+  mediaSourceId?: string;
+  externalSubs: { index: number; label: string }[];
+};
 
 export default function ItemScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -57,6 +63,13 @@ export default function ItemScreen() {
           ? 'vlc'
           : decided;
     const url = Jellyfin.streamUrl(item.Id, state.auth.accessToken, deviceId);
+    const source = sources[0];
+    const externalSubs = (source?.MediaStreams ?? [])
+      .filter(s => s.Type === 'Subtitle' && typeof s.Index === 'number')
+      .map(s => ({
+        index: s.Index as number,
+        label: s.DisplayTitle ?? s.Language ?? `Track ${s.Index}`,
+      }));
 
     if (castClient) {
       try {
@@ -80,7 +93,7 @@ export default function ItemScreen() {
       }
     }
 
-    setPlayback({ url, engine });
+    setPlayback({ url, engine, mediaSourceId: source?.Id, externalSubs });
   }
 
   if (!item) {
@@ -334,7 +347,16 @@ function Player({
   return (
     <View style={styles.playerContainer}>
       {config.engine === 'native' ? (
-        <NativePlayer url={config.url} itemId={itemId} title={title} resumeSeconds={resumeSeconds} onError={onNativeError} onExit={onExit} />
+        <NativePlayer
+          url={config.url}
+          itemId={itemId}
+          mediaSourceId={config.mediaSourceId}
+          externalSubs={config.externalSubs}
+          title={title}
+          resumeSeconds={resumeSeconds}
+          onError={onNativeError}
+          onExit={onExit}
+        />
       ) : (
         <>
           <VLCPlayer
@@ -357,8 +379,15 @@ function Player({
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-function NativePlayer({ url, itemId, title, resumeSeconds, onError, onExit }: {
-  url: string; itemId: string; title: string; resumeSeconds: number; onError: () => void; onExit: () => void;
+function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeSeconds, onError, onExit }: {
+  url: string;
+  itemId: string;
+  mediaSourceId?: string;
+  externalSubs: { index: number; label: string }[];
+  title: string;
+  resumeSeconds: number;
+  onError: () => void;
+  onExit: () => void;
 }) {
   const player = useVideoPlayer(url, p => {
     if (resumeSeconds > 0) {
@@ -375,6 +404,9 @@ function NativePlayer({ url, itemId, title, resumeSeconds, onError, onExit }: {
   const [scrubbing, setScrubbing] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const [activeSubIndex, setActiveSubIndex] = useState<number | null>(null);
+  const [externalCues, setExternalCues] = useState<VttCue[]>([]);
+  const [activeCue, setActiveCue] = useState<VttCue | null>(null);
 
   useEffect(() => {
     const sub = player.addListener('statusChange', ({ status }) => {
@@ -424,12 +456,19 @@ function NativePlayer({ url, itemId, title, resumeSeconds, onError, onExit }: {
     const id = setInterval(() => {
       if (scrubbing) return;
       try {
-        setPosition(player.currentTime ?? 0);
+        const t = player.currentTime ?? 0;
+        setPosition(t);
         setDuration(player.duration ?? 0);
+        if (externalCues.length > 0) {
+          const cue = findActiveCue(externalCues, t);
+          setActiveCue(cue);
+        } else if (activeCue) {
+          setActiveCue(null);
+        }
       } catch {}
-    }, 500);
+    }, 250);
     return () => clearInterval(id);
-  }, [player, scrubbing]);
+  }, [player, scrubbing, externalCues, activeCue]);
 
   // Auto-hide controls after 4s when playing
   useEffect(() => {
@@ -485,6 +524,25 @@ function NativePlayer({ url, itemId, title, resumeSeconds, onError, onExit }: {
       setSpeed(rate);
     } catch {}
     setSpeedOpen(false);
+  }
+
+  async function pickExternalSub(streamIndex: number | null) {
+    setActiveSubIndex(streamIndex);
+    if (streamIndex == null || !mediaSourceId) {
+      setExternalCues([]);
+      setActiveCue(null);
+      return;
+    }
+    try {
+      const auth = await import('@/store/auth').then(m => m.loadJellyfinAuth());
+      if (!auth) return;
+      const url = Jellyfin.subtitleUrl(itemId, mediaSourceId, streamIndex, auth.accessToken, 'vtt');
+      const vtt = await Jellyfin.fetchSubtitleVtt(url);
+      const cues = parseVtt(vtt);
+      setExternalCues(cues);
+    } catch (e) {
+      setExternalCues([]);
+    }
   }
 
   return (
@@ -578,9 +636,17 @@ function NativePlayer({ url, itemId, title, resumeSeconds, onError, onExit }: {
           </View>
         ) : null}
       </Pressable>
+      {activeCue ? (
+        <View style={styles.subOverlay} pointerEvents="none">
+          <Text style={styles.subText}>{activeCue.text}</Text>
+        </View>
+      ) : null}
       <TrackPickerModal
         visible={tracksOpen}
         player={player}
+        externalSubs={externalSubs}
+        activeExternalSubIndex={activeSubIndex}
+        onPickExternal={pickExternalSub}
         onClose={() => setTracksOpen(false)}
       />
       <SpeedPickerModal
@@ -607,10 +673,16 @@ function formatTime(seconds: number): string {
 function TrackPickerModal({
   visible,
   player,
+  externalSubs,
+  activeExternalSubIndex,
+  onPickExternal,
   onClose,
 }: {
   visible: boolean;
   player: ReturnType<typeof useVideoPlayer>;
+  externalSubs: { index: number; label: string }[];
+  activeExternalSubIndex: number | null;
+  onPickExternal: (index: number | null) => void;
   onClose: () => void;
 }) {
   const [subtitles, setSubtitles] = useState<any[]>([]);
@@ -630,10 +702,11 @@ function TrackPickerModal({
     } catch {}
   }, [visible, player]);
 
-  function pickSub(track: any | null) {
+  function pickEmbedded(track: any | null) {
     try {
       (player as any).subtitleTrack = track;
       setActiveSub(track);
+      if (track) onPickExternal(null); // stop external overlay
     } catch {}
   }
 
@@ -644,6 +717,8 @@ function TrackPickerModal({
     } catch {}
   }
 
+  const hasAnySub = subtitles.length > 0 || externalSubs.length > 0;
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
@@ -651,17 +726,35 @@ function TrackPickerModal({
           <View style={styles.modalHandle} />
 
           <Text style={styles.modalTitle}>Subtitles</Text>
-          {subtitles.length === 0 ? (
-            <Text style={styles.modalEmpty}>No subtitle tracks in this file</Text>
+          {!hasAnySub ? (
+            <Text style={styles.modalEmpty}>No subtitle tracks available</Text>
           ) : (
             <>
-              <TrackRow label="Off" selected={!activeSub} onPress={() => pickSub(null)} />
+              <TrackRow
+                label="Off"
+                selected={!activeSub && activeExternalSubIndex == null}
+                onPress={() => {
+                  pickEmbedded(null);
+                  onPickExternal(null);
+                }}
+              />
               {subtitles.map((t, i) => (
                 <TrackRow
-                  key={`sub-${i}`}
-                  label={t.label ?? t.language ?? `Track ${i + 1}`}
+                  key={`emb-${i}`}
+                  label={`${t.label ?? t.language ?? `Track ${i + 1}`} (embedded)`}
                   selected={activeSub && (activeSub.id === t.id || activeSub.label === t.label)}
-                  onPress={() => pickSub(t)}
+                  onPress={() => pickEmbedded(t)}
+                />
+              ))}
+              {externalSubs.map((s) => (
+                <TrackRow
+                  key={`ext-${s.index}`}
+                  label={`${s.label} (external)`}
+                  selected={activeExternalSubIndex === s.index}
+                  onPress={() => {
+                    pickEmbedded(null);
+                    onPickExternal(s.index);
+                  }}
                 />
               ))}
             </>
@@ -931,4 +1024,22 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   scrubberFill: { height: '100%', backgroundColor: colors.text },
+  subOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 110,
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  subText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    lineHeight: 24,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.85)',
+    textShadowRadius: 4,
+    textShadowOffset: { width: 0, height: 1 },
+  },
 });
