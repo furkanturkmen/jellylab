@@ -97,7 +97,9 @@
       "5": "Beschikbaar",
       "6": "Geblokkeerd",
       "7": "Verwijderd"
-    }
+    },
+    "signedOut": "Log in bij Jellyseerr om je verzoeken te zien",
+    "unavailable": "Geen verbinding met Jellyseerr"
   },
   "detail": {
     "overview": "Overzicht",

@@ -97,7 +97,9 @@
       "5": "Mevcut",
       "6": "Engellendi",
       "7": "Kaldırıldı"
-    }
+    },
+    "signedOut": "İsteklerini görmek için Jellyseerr’e giriş yap",
+    "unavailable": "Jellyseerr’e ulaşılamıyor"
   },
   "detail": {
     "overview": "Özet",

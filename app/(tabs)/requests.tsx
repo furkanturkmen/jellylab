@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 
 import * as Jellyseerr from '@/api/jellyseerr';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
+import { useAuth } from '@/hooks/useAuth';
 import { type JellyseerrRequest } from '@/types';
 import { colors, radius, spacing, type as t } from '@/theme';
 
@@ -30,8 +31,11 @@ export default function RequestsScreen() {
   const { t: tr } = useTranslation();
   const { headerHeight } = useTabHeaderMetrics();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const { state } = useAuth();
+  const signedIn = state.status === 'signed-in';
   const [items, setItems] = useState<EnrichedRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   /**
    * `silent` keeps the poll invisible. loading drives the RefreshControl, so
@@ -56,12 +60,32 @@ export default function RequestsScreen() {
         })
       );
       setItems(enriched);
+      setError(null);
+    } catch (e) {
+      // This used to be try/finally with no catch, so a rejection escaped as an
+      // unhandled promise and showed up as a red screen at launch. The root
+      // layout sends a signed-out user to /login from an effect, which means
+      // this tab mounts and runs its own effect first - reliably hitting an
+      // absent session before the redirect lands.
+      setError(
+        e instanceof Jellyseerr.NotAuthenticatedError
+          ? tr('requests.signedOut')
+          : tr('requests.unavailable')
+      );
+      setItems([]);
     } finally {
       if (!silent) setLoading(false);
     }
-  }, []);
+  }, [tr]);
 
-  useEffect(() => { load(); }, [load]);
+  // Nothing to ask Jellyseerr for until there is a session to ask with.
+  useEffect(() => {
+    if (!signedIn) {
+      setLoading(false);
+      return;
+    }
+    load();
+  }, [signedIn, load]);
 
   /**
    * Refresh while anything is actually in the download queue, so the bars move
@@ -105,7 +129,7 @@ export default function RequestsScreen() {
         contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 150 }}
         ListEmptyComponent={
           <View style={styles.center}>
-            <Text style={styles.empty}>{tr('requests.empty')}</Text>
+            <Text style={styles.empty}>{error ?? tr('requests.empty')}</Text>
           </View>
         }
       />

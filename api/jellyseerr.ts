@@ -15,9 +15,26 @@ async function makeClient(cookie?: string): Promise<AxiosInstance> {
   });
 }
 
+/**
+ * No Jellyseerr session. Its own class so a screen can tell "you are not signed
+ * in" apart from "Jellyseerr did not answer" - the two look identical to a
+ * caller otherwise, and they want opposite things said to the user.
+ *
+ * Signing in is allowed to leave this state behind: useAuth treats a failed
+ * Jellyseerr login as non-fatal, so that Jellyfin still works when only Seerr
+ * is down. Being signed into Jellyfin is therefore no guarantee of a Seerr
+ * session, and callers have to cope with that rather than assume.
+ */
+export class NotAuthenticatedError extends Error {
+  constructor() {
+    super('Not signed in to Jellyseerr');
+    this.name = 'NotAuthenticatedError';
+  }
+}
+
 export async function authClient(): Promise<AxiosInstance> {
   const auth = await loadJellyseerrAuth();
-  if (!auth) throw new Error('Not authenticated');
+  if (!auth) throw new NotAuthenticatedError();
   return makeClient(auth.cookie);
 }
 

@@ -97,7 +97,9 @@
       "5": "Available",
       "6": "Blocked",
       "7": "Removed"
-    }
+    },
+    "signedOut": "Sign in to Jellyseerr to see your requests",
+    "unavailable": "Can't reach Jellyseerr"
   },
   "detail": {
     "overview": "Overview",

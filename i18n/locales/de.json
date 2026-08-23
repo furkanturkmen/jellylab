@@ -97,7 +97,9 @@
       "5": "Verfügbar",
       "6": "Blockiert",
       "7": "Entfernt"
-    }
+    },
+    "signedOut": "Melde dich bei Jellyseerr an, um deine Anfragen zu sehen",
+    "unavailable": "Jellyseerr nicht erreichbar"
   },
   "detail": {
     "overview": "Übersicht",
