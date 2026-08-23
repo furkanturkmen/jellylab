@@ -23,6 +23,7 @@ export default function LibraryScreen() {
   const [resume, setResume] = useState<JellyfinItem[]>([]);
   const [libs, setLibs] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   async function load() {
     if (state.status !== 'signed-in') return;
@@ -59,7 +60,6 @@ export default function LibraryScreen() {
   }
 
   const heroItem = resume[0] ?? libs[0]?.items[0];
-  const scrollY = useRef(new Animated.Value(0)).current;
 
   const titleOpacity = scrollY.interpolate({
     inputRange: [0, 40, 90],
