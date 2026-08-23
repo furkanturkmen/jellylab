@@ -1,12 +1,34 @@
 import { SymbolView } from 'expo-symbols';
 import { Tabs } from 'expo-router';
 import { BlurView } from 'expo-blur';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { colors, radius, spacing } from '@/theme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+
+type SFName = 'play.rectangle.on.rectangle' | 'magnifyingglass' | 'tray.and.arrow.down';
+type MDName = 'video_library' | 'search' | 'inbox';
+
+function TabButton({
+  focused,
+  label,
+  ios,
+  android,
+}: {
+  focused: boolean;
+  label: string;
+  ios: SFName;
+  android: MDName;
+}) {
+  const color = focused ? colors.pink : colors.textMuted;
+  return (
+    <View style={[styles.tabInner, focused && styles.tabInnerActive]}>
+      <SymbolView name={{ ios, android, web: android }} tintColor={color} size={22} />
+      <Text style={[styles.tabLabel, { color }]} numberOfLines={1}>{label}</Text>
+    </View>
+  );
+}
 
 export default function TabLayout() {
   const { t } = useTranslation();
@@ -18,8 +40,6 @@ export default function TabLayout() {
     right: spacing.xl,
     bottom: insets.bottom > 0 ? insets.bottom + 8 : spacing.lg,
     height: 72,
-    paddingBottom: 0,
-    paddingTop: 0,
     borderRadius: radius.pill,
     backgroundColor: Platform.OS === 'ios' ? 'transparent' : colors.bgElevated,
     borderTopWidth: 0,
@@ -36,57 +56,60 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.pink,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarActiveBackgroundColor: 'rgba(249, 38, 114, 0.12)',
-        headerShown: useClientOnlyValue(false, true),
-        headerStyle: { backgroundColor: colors.bg },
-        headerTitleStyle: { color: colors.text, fontWeight: '600' },
-        headerTintColor: colors.text,
+        headerShown: false,
+        tabBarShowLabel: false,
         tabBarStyle: floatingBar,
         tabBarBackground: Platform.OS === 'ios'
           ? () => <BlurView tint="dark" intensity={70} style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(20,20,20,0.55)' }]} />
           : undefined,
-        tabBarItemStyle: {
-          height: 56,
-          marginVertical: 8,
-          marginHorizontal: 4,
-          borderRadius: radius.pill,
-          paddingTop: 8,
-          paddingBottom: 8,
-        },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3, marginTop: 2 },
+        tabBarItemStyle: { height: 72, paddingHorizontal: 6 },
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: t('tabs.library'),
-          headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <SymbolView name={{ ios: 'play.rectangle.on.rectangle', android: 'video_library', web: 'video_library' }} tintColor={color} size={24} />
+          tabBarIcon: ({ focused }) => (
+            <TabButton focused={focused} label={t('tabs.library')} ios="play.rectangle.on.rectangle" android="video_library" />
           ),
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
-          title: t('tabs.search'),
-          headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} tintColor={color} size={24} />
+          tabBarIcon: ({ focused }) => (
+            <TabButton focused={focused} label={t('tabs.search')} ios="magnifyingglass" android="search" />
           ),
         }}
       />
       <Tabs.Screen
         name="requests"
         options={{
-          title: t('tabs.requests'),
-          headerShown: false,
-          tabBarIcon: ({ color }) => (
-            <SymbolView name={{ ios: 'tray.and.arrow.down', android: 'inbox', web: 'inbox' }} tintColor={color} size={24} />
+          tabBarIcon: ({ focused }) => (
+            <TabButton focused={focused} label={t('tabs.requests')} ios="tray.and.arrow.down" android="inbox" />
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabInner: {
+    minWidth: 96,
+    height: 56,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    gap: 2,
+  },
+  tabInnerActive: {
+    backgroundColor: 'rgba(249, 38, 114, 0.14)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(249, 38, 114, 0.35)',
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+});
