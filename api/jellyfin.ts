@@ -144,6 +144,26 @@ export async function getPlaybackInfo(userId: string, itemId: string): Promise<M
   return res.data.MediaSources ?? [];
 }
 
+export async function getSeasons(userId: string, seriesId: string): Promise<JellyfinItem[]> {
+  const client = await authClient();
+  const res = await client.get(`/Shows/${seriesId}/Seasons`, {
+    params: { userId, Fields: 'PrimaryImageAspectRatio' },
+  });
+  return res.data.Items ?? [];
+}
+
+export async function getEpisodes(userId: string, seriesId: string, seasonId: string): Promise<JellyfinItem[]> {
+  const client = await authClient();
+  const res = await client.get(`/Shows/${seriesId}/Episodes`, {
+    params: {
+      userId,
+      seasonId,
+      Fields: 'Overview,PrimaryImageAspectRatio,MediaSources',
+    },
+  });
+  return res.data.Items ?? [];
+}
+
 export async function getResumeItems(userId: string, limit = 12): Promise<JellyfinItem[]> {
   const client = await authClient();
   const res = await client.get(`/Users/${userId}/Items/Resume`, {

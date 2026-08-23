@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { VLCPlayer } from 'react-native-vlc-media-player';
 import GoogleCast, { useCastState, useRemoteMediaClient } from 'react-native-google-cast';
@@ -125,9 +125,11 @@ export default function ItemScreen() {
       <Stack.Screen
         options={{
           title: '',
+          headerShown: true,
           headerTransparent: true,
           headerBackTitle: 'Back',
           headerTintColor: colors.text,
+          gestureEnabled: true,
         }}
       />
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }} showsVerticalScrollIndicator={false}>
@@ -175,31 +177,39 @@ export default function ItemScreen() {
             </View>
           </View>
 
-          <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.playBtn} onPress={play} activeOpacity={0.85}>
-              <Text style={styles.playBtnText}>▶  Play</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.castChip}
-              onPress={() => setCastPickerOpen(true)}
-              activeOpacity={0.75}
-            >
-              <SymbolView
-                name={{ ios: 'tv.badge.wifi', android: 'cast', web: 'cast' }}
-                tintColor={castState === 'connected' ? colors.pink : colors.text}
-                size={26}
-              />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.castHint}>
-            Cast: {castState ?? 'sdk-not-ready'} · AirPlay picker is inside the player
-          </Text>
+          {item.Type !== 'Series' ? (
+            <>
+              <View style={styles.actionRow}>
+                <TouchableOpacity style={styles.playBtn} onPress={play} activeOpacity={0.85}>
+                  <Text style={styles.playBtnText}>▶  Play</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.castChip}
+                  onPress={() => setCastPickerOpen(true)}
+                  activeOpacity={0.75}
+                >
+                  <SymbolView
+                    name={{ ios: 'tv.badge.wifi', android: 'cast', web: 'cast' }}
+                    tintColor={castState === 'connected' ? colors.pink : colors.text}
+                    size={26}
+                  />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.castHint}>
+                Cast: {castState ?? 'sdk-not-ready'} · AirPlay picker is inside the player
+              </Text>
+            </>
+          ) : null}
 
           {item.Overview ? (
             <View style={styles.overviewCard}>
               <Text style={styles.sectionLabel}>Overview</Text>
               <Text style={styles.overview}>{item.Overview}</Text>
             </View>
+          ) : null}
+
+          {item.Type === 'Series' && state.status === 'signed-in' ? (
+            <SeriesEpisodes seriesId={item.Id} userId={state.auth.userId} />
           ) : null}
         </View>
       </ScrollView>
@@ -709,6 +719,124 @@ function CastPickerModal({ visible, onClose }: { visible: boolean; onClose: () =
         </Pressable>
       </Pressable>
     </Modal>
+  );
+}
+
+function SeriesEpisodes({ seriesId, userId }: { seriesId: string; userId: string }) {
+  const router = useRouter();
+  const [seasons, setSeasons] = useState<any[]>([]);
+  const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null);
+  const [episodes, setEpisodes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingEps, setLoadingEps] = useState(false);
+
+  useEffect(() => {
+    Jellyfin.getSeasons(userId, seriesId)
+      .then(list => {
+        setSeasons(list);
+        const first = list[0];
+        if (first) setActiveSeasonId(first.Id);
+      })
+      .finally(() => setLoading(false));
+  }, [seriesId, userId]);
+
+  useEffect(() => {
+    if (!activeSeasonId) return;
+    setLoadingEps(true);
+    Jellyfin.getEpisodes(userId, seriesId, activeSeasonId)
+      .then(setEpisodes)
+      .finally(() => setLoadingEps(false));
+  }, [activeSeasonId, seriesId, userId]);
+
+  if (loading) {
+    return (
+      <View style={{ marginTop: spacing.xl, alignItems: 'center' }}>
+        <ActivityIndicator color={colors.text} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={{ marginTop: spacing.xl }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: spacing.sm, paddingRight: spacing.md }}
+      >
+        {seasons.map(s => {
+          const active = s.Id === activeSeasonId;
+          return (
+            <TouchableOpacity
+              key={s.Id}
+              style={[styles.seasonPill, active && styles.seasonPillActive]}
+              onPress={() => setActiveSeasonId(s.Id)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.seasonPillText, active && styles.seasonPillTextActive]}>
+                {s.Name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      <View style={{ marginTop: spacing.md }}>
+        {loadingEps ? (
+          <ActivityIndicator color={colors.text} style={{ marginTop: spacing.lg }} />
+        ) : (
+          episodes.map(ep => {
+            const primary = ep.ImageTags?.Primary;
+            const runtimeMin = ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 600_000_000) : null;
+            const played = ep.UserData?.Played;
+            const progress =
+              ep.UserData?.PlaybackPositionTicks && ep.RunTimeTicks
+                ? Math.min(1, ep.UserData.PlaybackPositionTicks / ep.RunTimeTicks)
+                : 0;
+            return (
+              <TouchableOpacity
+                key={ep.Id}
+                style={styles.epRow}
+                onPress={() => router.push(`/item/${ep.Id}`)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.epThumbWrap}>
+                  {primary ? (
+                    <Image
+                      source={{ uri: Jellyfin.imageUrl(ep.Id, primary, 'Primary', 400) }}
+                      style={styles.epThumb}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                  ) : (
+                    <View style={[styles.epThumb, { backgroundColor: colors.surface }]} />
+                  )}
+                  {progress > 0 && !played ? (
+                    <View style={styles.epProgressTrack}>
+                      <View style={[styles.epProgressFill, { width: `${progress * 100}%` }]} />
+                    </View>
+                  ) : null}
+                  {played ? (
+                    <View style={styles.epWatchedBadge}>
+                      <SymbolView name={{ ios: 'checkmark', android: 'check', web: 'check' }} tintColor={colors.text} size={12} />
+                    </View>
+                  ) : null}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.epTitle} numberOfLines={2}>
+                    {ep.IndexNumber != null ? `${ep.IndexNumber}. ` : ''}{ep.Name}
+                  </Text>
+                  <Text style={styles.epMeta}>
+                    {runtimeMin ? `${runtimeMin}m` : ''}
+                    {ep.PremiereDate ? ` · ${ep.PremiereDate.slice(0, 10)}` : ''}
+                  </Text>
+                  {ep.Overview ? <Text style={styles.epOverview} numberOfLines={2}>{ep.Overview}</Text> : null}
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -1565,6 +1693,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+  seasonPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  seasonPillActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  seasonPillText: { color: colors.text, ...type.small, fontWeight: '600' },
+  seasonPillTextActive: { color: colors.accentContrast },
+
+  epRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  epThumbWrap: { width: 120, height: 68, borderRadius: radius.sm, overflow: 'hidden', backgroundColor: colors.surface },
+  epThumb: { width: '100%', height: '100%' },
+  epProgressTrack: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0,
+    height: 3,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  epProgressFill: { height: '100%', backgroundColor: colors.text },
+  epWatchedBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(52, 199, 89, 0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  epTitle: { ...type.bodyStrong, color: colors.text },
+  epMeta: { ...type.caption, color: colors.textMuted, marginTop: 2, textTransform: 'uppercase' },
+  epOverview: { ...type.small, color: colors.textMuted, marginTop: spacing.xs },
   subOverlay: {
     position: 'absolute',
     left: 0,
