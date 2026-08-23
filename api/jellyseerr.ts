@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { getJellyfinUrl, getJellyseerrUrl, requireJellyseerrUrl } from '@/config';
+import { getJellyseerrUrl, requireJellyfinUrl, requireJellyseerrUrl } from '@/config';
 import { loadJellyseerrAuth, saveJellyseerrAuth, clearJellyseerrAuth } from '@/store/auth';
 import type { JellyseerrAuth, JellyseerrRequest, JellyseerrSearchResult } from '@/types';
 
@@ -42,9 +42,13 @@ export async function loginJellyfin(username: string, password: string): Promise
   // Seerr/Jellyseerr auth passthrough. Seerr v3+ requires the Jellyfin hostname
   // in the body so it can bind the session to the right media server.
   const client = await makeClient();
+  // awaited, not the sync getter: this runs during sign-in, which is exactly
+  // when the server store may still be hydrating. An empty hostname here makes
+  // Seerr reject the login for a reason that looks nothing like the cause.
+  const hostname = await requireJellyfinUrl();
   const res = await client.post(
     '/auth/jellyfin',
-    { username, password, hostname: getJellyfinUrl() },
+    { username, password, hostname },
     { withCredentials: true },
   );
   const setCookie = res.headers['set-cookie'];

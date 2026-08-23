@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import * as Jellyseerr from '@/api/jellyseerr';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
+import { getSeerrError } from '@/store/seerrStatus';
 import { type JellyseerrRequest } from '@/types';
 import { colors, radius, spacing, type as t } from '@/theme';
 
@@ -67,10 +68,14 @@ export default function RequestsScreen() {
       // layout sends a signed-out user to /login from an effect, which means
       // this tab mounts and runs its own effect first - reliably hitting an
       // absent session before the redirect lands.
+      // A recorded sign-in failure is the more useful message: it names the
+      // address that could not be reached, where the generic strings can only
+      // say that something is wrong.
       setError(
-        e instanceof Jellyseerr.NotAuthenticatedError
-          ? tr('requests.signedOut')
-          : tr('requests.unavailable')
+        getSeerrError() ??
+          (e instanceof Jellyseerr.NotAuthenticatedError
+            ? tr('requests.signedOut')
+            : tr('requests.unavailable'))
       );
       setItems([]);
     } finally {

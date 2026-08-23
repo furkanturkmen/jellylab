@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import * as Jellyfin from '@/api/jellyfin';
 import * as Jellyseerr from '@/api/jellyseerr';
 import { loadJellyfinAuth, subscribeJellyfinAuth } from '@/store/auth';
+import { describeSeerrError, setSeerrError } from '@/store/seerrStatus';
+import { getJellyseerrUrl } from '@/config';
 import type { JellyfinAuth } from '@/types';
 
 export type AuthState =
@@ -29,12 +31,19 @@ export function useAuth() {
     const auth = await Jellyfin.login(username, password);
     try {
       await Jellyseerr.loginJellyfin(username, password);
-    } catch {}
+      setSeerrError(null);
+    } catch (e) {
+      // Still non-fatal - Jellyfin is what the app is for, and it must keep
+      // working when only Seerr is down. But the reason is kept now instead of
+      // dropped, so the screens that go empty because of it can say why.
+      setSeerrError(describeSeerrError(e, getJellyseerrUrl()));
+    }
     setState({ status: 'signed-in', auth });
     return auth;
   }, []);
 
   const signOut = useCallback(async () => {
+    setSeerrError(null);
     await Promise.allSettled([Jellyfin.logout(), Jellyseerr.logout()]);
     setState({ status: 'signed-out', auth: null });
   }, []);

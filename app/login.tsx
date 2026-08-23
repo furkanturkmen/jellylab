@@ -4,6 +4,7 @@ import { BlurView } from 'expo-blur';
 import { useTranslation } from 'react-i18next';
 
 import { useAuth } from '@/hooks/useAuth';
+import { getSeerrError } from '@/store/seerrStatus';
 import { useCurrentServer } from '@/hooks/useServer';
 import { useRouter } from 'expo-router';
 import { colors, radius, spacing, type } from '@/theme';
@@ -22,6 +23,15 @@ export default function LoginScreen() {
     setBusy(true);
     try {
       await signIn(username, password);
+      // Sign-in can half-succeed. Saying so here, once, beats letting the user
+      // discover it later as a Requests tab and a search that return nothing.
+      const seerr = getSeerrError();
+      if (seerr) {
+        Alert.alert(
+          'Signed in to Jellyfin only',
+          `${seerr}\n\nBrowsing and playback work. Requests and search need Jellyseerr - check its address in Servers.`
+        );
+      }
     } catch (e: any) {
       Alert.alert(t('login.failed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
     } finally {
