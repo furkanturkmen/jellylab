@@ -1,3 +1,4 @@
+import * as Notifications from 'expo-notifications';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -20,6 +21,17 @@ export const unstable_settings = {
 };
 
 SplashScreen.preventAutoHideAsync();
+
+// Without this a notification arriving while the app is open is swallowed
+// silently, which reads as "notifications are broken".
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 // Info.plist now supports landscape (needed so the player can rotate),
 // but the rest of the app is portrait-only. Lock at app boot.
