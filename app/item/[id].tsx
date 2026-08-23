@@ -420,6 +420,13 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
         } catch {}
       }, 200);
     }
+    // If we're supposed to be paused (e.g. user paused before backgrounding),
+    // VLC will still autoplay after remount. Force pause here to match UI state.
+    if (paused) {
+      setTimeout(() => {
+        try { vlcRef.current?.pause?.(); } catch {}
+      }, 300);
+    }
   };
 
   const onProgress = (e: any) => {
@@ -1249,6 +1256,7 @@ function Scrubber({
   const [width, setWidth] = useState(0);
   const durationRef = useRef(duration);
   const widthRef = useRef(width);
+  const startXRef = useRef(0);
   durationRef.current = duration;
   widthRef.current = width;
 
@@ -1263,17 +1271,22 @@ function Scrubber({
     onMoveShouldSetPanResponder: () => true,
     onPanResponderTerminationRequest: () => false,
     onPanResponderGrant: (e) => {
+      const x = (e.nativeEvent as any).locationX ?? 0;
+      startXRef.current = x;
       onScrubStart();
-      onScrub(xToTime((e.nativeEvent as any).locationX ?? 0));
+      onScrub(xToTime(x));
     },
-    onPanResponderMove: (e) => {
-      onScrub(xToTime((e.nativeEvent as any).locationX ?? 0));
+    onPanResponderMove: (_e, gs) => {
+      const x = startXRef.current + gs.dx;
+      onScrub(xToTime(x));
     },
-    onPanResponderRelease: (e) => {
-      onScrubEnd(xToTime((e.nativeEvent as any).locationX ?? 0));
+    onPanResponderRelease: (_e, gs) => {
+      const x = startXRef.current + gs.dx;
+      onScrubEnd(xToTime(x));
     },
-    onPanResponderTerminate: (e) => {
-      onScrubEnd(xToTime((e.nativeEvent as any).locationX ?? 0));
+    onPanResponderTerminate: (_e, gs) => {
+      const x = startXRef.current + gs.dx;
+      onScrubEnd(xToTime(x));
     },
   }), []);
 
