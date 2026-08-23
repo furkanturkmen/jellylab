@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 
 import * as Jellyseerr from '@/api/jellyseerr';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
-import { loadPrefs } from '@/store/prefs';
 import { useSearchQuery } from '@/store/search';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyseerrSearchResult } from '@/types';
@@ -24,16 +23,10 @@ export default function SearchScreen() {
   const [busy, setBusy] = useState(false);
   const [discover, setDiscover] = useState<Section[]>([]);
   const [discoverLoading, setDiscoverLoading] = useState(true);
-  const [includeAdult, setIncludeAdult] = useState(false);
 
   useEffect(() => {
-    loadPrefs().then(p => setIncludeAdult(p.includeAdult));
     loadDiscover();
   }, []);
-
-  function filterAdult(list: JellyseerrSearchResult[]): JellyseerrSearchResult[] {
-    return includeAdult ? list : list.filter(i => !i.adult);
-  }
 
   async function loadDiscover() {
     setDiscoverLoading(true);
@@ -45,15 +38,12 @@ export default function SearchScreen() {
         Jellyseerr.discoverAnime().catch(() => []),
         Jellyseerr.discoverUpcomingMovies().catch(() => []),
       ]);
-      const prefs = await loadPrefs();
-      setIncludeAdult(prefs.includeAdult);
-      const applyAdult = (list: JellyseerrSearchResult[]) => prefs.includeAdult ? list : list.filter(i => !i.adult);
       setDiscover([
-        { title: t('search.sections.trending'), items: applyAdult(trending) },
-        { title: t('search.sections.popularMovies'), items: applyAdult(movies) },
-        { title: t('search.sections.popularTv'), items: applyAdult(tv) },
-        { title: t('search.sections.anime'), items: applyAdult(anime) },
-        { title: t('search.sections.upcoming'), items: applyAdult(upcoming) },
+        { title: t('search.sections.trending'), items: trending },
+        { title: t('search.sections.popularMovies'), items: movies },
+        { title: t('search.sections.popularTv'), items: tv },
+        { title: t('search.sections.anime'), items: anime },
+        { title: t('search.sections.upcoming'), items: upcoming },
       ].filter(s => s.items.length > 0));
     } finally {
       setDiscoverLoading(false);
@@ -71,7 +61,7 @@ export default function SearchScreen() {
     const handle = setTimeout(async () => {
       try {
         const r = await Jellyseerr.search(query);
-        setResults(filterAdult(r.filter(x => x.mediaType !== 'person')));
+        setResults(r.filter(x => x.mediaType !== 'person'));
       } catch (e: any) {
         Alert.alert('Search failed', e?.message ?? 'Unknown error');
       } finally {
@@ -79,7 +69,7 @@ export default function SearchScreen() {
       }
     }, 350);
     return () => clearTimeout(handle);
-  }, [query, includeAdult]);
+  }, [query]);
 
   function openDetail(item: JellyseerrSearchResult) {
     router.push(`/tmdb/${item.mediaType}/${item.id}`);

@@ -11,7 +11,6 @@ export type Prefs = {
   audioLanguage: string;
   autoplayNext: boolean;
   preferredEngine: PlayerEngine;
-  includeAdult: boolean;
   uiLanguage: string; // 'system' or one of SUPPORTED_LANGS
 };
 
@@ -22,7 +21,6 @@ export const DEFAULT_PREFS: Prefs = {
   audioLanguage: 'original',
   autoplayNext: true,
   preferredEngine: 'auto',
-  includeAdult: false,
   uiLanguage: 'system',
 };
 
