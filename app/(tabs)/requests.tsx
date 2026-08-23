@@ -63,7 +63,7 @@ export default function RequestsScreen() {
           <RequestCard r={item} onOpen={() => router.push(`/tmdb/${item.media.mediaType}/${item.media.tmdbId}`)} />
         )}
         ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
-        contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 120 }}
+        contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 150 }}
         ListEmptyComponent={
           <View style={styles.center}>
             <Text style={styles.empty}>{tr('requests.empty')}</Text>

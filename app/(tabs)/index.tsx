@@ -79,7 +79,7 @@ export default function LibraryScreen() {
           </>
         }
         renderItem={({ item }: { item: LibraryItem }) => <LibraryRow lib={item} />}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 150 }}
       />
       <TabHeader title={t('tabs.library')} scrollY={scrollY} />
     </View>

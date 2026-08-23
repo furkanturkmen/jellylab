@@ -17,8 +17,9 @@ export default function TabLayout() {
     left: spacing.xl,
     right: spacing.xl,
     bottom: insets.bottom > 0 ? insets.bottom + 8 : spacing.lg,
-    height: 64,
-    paddingHorizontal: spacing.sm,
+    height: 72,
+    paddingBottom: 0,
+    paddingTop: 0,
     borderRadius: radius.pill,
     backgroundColor: Platform.OS === 'ios' ? 'transparent' : colors.bgElevated,
     borderTopWidth: 0,
@@ -43,10 +44,10 @@ export default function TabLayout() {
         headerTintColor: colors.text,
         tabBarStyle: floatingBar,
         tabBarBackground: Platform.OS === 'ios'
-          ? () => <BlurView tint="dark" intensity={70} style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(20,20,20,0.35)' }]} />
+          ? () => <BlurView tint="dark" intensity={70} style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(20,20,20,0.55)' }]} />
           : undefined,
-        tabBarItemStyle: { paddingVertical: 8 },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
+        tabBarItemStyle: { height: 72, paddingTop: 12, paddingBottom: 12 },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600', letterSpacing: 0.3, marginTop: 2 },
       }}>
       <Tabs.Screen
         name="index"

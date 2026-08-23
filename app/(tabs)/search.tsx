@@ -122,7 +122,7 @@ export default function SearchScreen() {
             }
             onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
             scrollEventThrottle={16}
-            contentContainerStyle={{ paddingBottom: 120 }}
+            contentContainerStyle={{ paddingBottom: 150 }}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
               <View style={styles.center}>
@@ -139,7 +139,7 @@ export default function SearchScreen() {
         </>
       ) : (
         <Animated.ScrollView
-          contentContainerStyle={{ paddingBottom: 120 }}
+          contentContainerStyle={{ paddingBottom: 150 }}
           showsVerticalScrollIndicator={false}
           onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
           scrollEventThrottle={16}
