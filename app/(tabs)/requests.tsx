@@ -21,8 +21,13 @@ export default function RequestsScreen() {
   const [items, setItems] = useState<EnrichedRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  /**
+   * `silent` keeps the poll invisible. loading drives the RefreshControl, so
+   * without it every 5-second tick flashed the pull-to-refresh spinner - which
+   * looks like the list is reloading when only a percentage moved.
+   */
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const raw = await Jellyseerr.listRequests('all');
       const enriched = await Promise.all(
@@ -33,7 +38,7 @@ export default function RequestsScreen() {
       );
       setItems(enriched);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -49,7 +54,7 @@ export default function RequestsScreen() {
   useEffect(() => {
     if (!anyDownloading) return;
     const id = setInterval(() => {
-      if (AppState.currentState === 'active') load();
+      if (AppState.currentState === 'active') load(true);
     }, 5000);
     return () => clearInterval(id);
   }, [anyDownloading, load]);
@@ -70,7 +75,7 @@ export default function RequestsScreen() {
       <Animated.FlatList
         data={items}
         keyExtractor={(r: EnrichedRequest) => String(r.id)}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.text} progressViewOffset={headerHeight} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={() => load()} tintColor={colors.text} progressViewOffset={headerHeight} />}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
         ListHeaderComponent={<View style={{ height: headerHeight }} />}
