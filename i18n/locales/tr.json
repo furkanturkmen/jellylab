@@ -53,7 +53,12 @@
   "tabs": {
     "library": "Kitaplık",
     "search": "Ara",
-    "requests": "İstekler"
+    "requests": "İstekler",
+    "downloads": "İndirilenler"
+  },
+  "downloads": {
+    "emptyTitle": "Henüz indirme yok",
+    "emptyBody": "Çevrimdışı oynatma yol haritasında. İndirilen içerikler burada görünecek."
   },
   "library": {
     "welcomeBack": "Tekrar hoş geldin",

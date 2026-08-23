@@ -53,7 +53,12 @@
   "tabs": {
     "library": "Library",
     "search": "Search",
-    "requests": "Requests"
+    "requests": "Requests",
+    "downloads": "Downloads"
+  },
+  "downloads": {
+    "emptyTitle": "No downloads yet",
+    "emptyBody": "Offline playback is on the roadmap. Downloaded titles will appear here."
   },
   "library": {
     "welcomeBack": "Welcome back",

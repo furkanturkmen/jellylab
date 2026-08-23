@@ -53,7 +53,12 @@
   "tabs": {
     "library": "Bibliothek",
     "search": "Suche",
-    "requests": "Anfragen"
+    "requests": "Anfragen",
+    "downloads": "Downloads"
+  },
+  "downloads": {
+    "emptyTitle": "Noch keine Downloads",
+    "emptyBody": "Offline-Wiedergabe steht auf der Roadmap. Heruntergeladene Titel erscheinen hier."
   },
   "library": {
     "welcomeBack": "Willkommen zurück",

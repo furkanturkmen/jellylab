@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import * as Jellyseerr from '@/api/jellyseerr';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { loadPrefs } from '@/store/prefs';
+import { useSearchQuery } from '@/store/search';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyseerrSearchResult } from '@/types';
 
@@ -18,7 +19,7 @@ export default function SearchScreen() {
   const { t } = useTranslation();
   const { headerHeight } = useTabHeaderMetrics();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const [query, setQuery] = useState('');
+  const [query] = useSearchQuery();
   const [results, setResults] = useState<JellyseerrSearchResult[]>([]);
   const [busy, setBusy] = useState(false);
   const [discover, setDiscover] = useState<Section[]>([]);
@@ -59,44 +60,32 @@ export default function SearchScreen() {
     }
   }
 
-  async function doSearch() {
+  // Debounced auto-search when the shared query changes.
+  useEffect(() => {
     if (!query.trim()) {
       setResults([]);
+      setBusy(false);
       return;
     }
     setBusy(true);
-    try {
-      const r = await Jellyseerr.search(query);
-      setResults(filterAdult(r.filter(x => x.mediaType !== 'person')));
-    } catch (e: any) {
-      Alert.alert('Search failed', e?.message ?? 'Unknown error');
-    } finally {
-      setBusy(false);
-    }
-  }
+    const handle = setTimeout(async () => {
+      try {
+        const r = await Jellyseerr.search(query);
+        setResults(filterAdult(r.filter(x => x.mediaType !== 'person')));
+      } catch (e: any) {
+        Alert.alert('Search failed', e?.message ?? 'Unknown error');
+      } finally {
+        setBusy(false);
+      }
+    }, 350);
+    return () => clearTimeout(handle);
+  }, [query, includeAdult]);
 
   function openDetail(item: JellyseerrSearchResult) {
     router.push(`/tmdb/${item.mediaType}/${item.id}`);
   }
 
   const showingSearch = query.trim().length > 0;
-
-  const searchBar = (
-    <View style={styles.searchBar}>
-      <TextInput
-        style={styles.input}
-        placeholder={t('search.placeholder')}
-        placeholderTextColor={colors.textDim}
-        value={query}
-        onChangeText={setQuery}
-        returnKeyType="search"
-        onSubmitEditing={doSearch}
-        autoCapitalize="none"
-        autoCorrect={false}
-        clearButtonMode="while-editing"
-      />
-    </View>
-  );
 
   return (
     <View style={styles.root}>
@@ -105,7 +94,6 @@ export default function SearchScreen() {
         busy ? (
           <>
             <View style={{ height: headerHeight }} />
-            {searchBar}
             <View style={styles.center}><ActivityIndicator color={colors.text} /></View>
           </>
         ) : (
@@ -114,12 +102,7 @@ export default function SearchScreen() {
             keyExtractor={(r: JellyseerrSearchResult) => `${r.mediaType}-${r.id}`}
             renderItem={({ item }: { item: JellyseerrSearchResult }) => <ResultRow item={item} onOpen={() => openDetail(item)} />}
             ItemSeparatorComponent={() => <View style={styles.sep} />}
-            ListHeaderComponent={
-              <>
-                <View style={{ height: headerHeight }} />
-                {searchBar}
-              </>
-            }
+            ListHeaderComponent={<View style={{ height: headerHeight }} />}
             onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
             scrollEventThrottle={16}
             contentContainerStyle={{ paddingBottom: 150 }}
@@ -134,7 +117,6 @@ export default function SearchScreen() {
       ) : discoverLoading ? (
         <>
           <View style={{ height: headerHeight }} />
-          {searchBar}
           <View style={styles.center}><ActivityIndicator color={colors.text} /></View>
         </>
       ) : (
@@ -145,7 +127,6 @@ export default function SearchScreen() {
           scrollEventThrottle={16}
         >
           <View style={{ height: headerHeight }} />
-          {searchBar}
           {discover.map(sec => (
             <DiscoverRow key={sec.title} section={sec} onOpen={openDetail} />
           ))}

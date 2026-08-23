@@ -53,7 +53,12 @@
   "tabs": {
     "library": "Bibliotheek",
     "search": "Zoeken",
-    "requests": "Aanvragen"
+    "requests": "Aanvragen",
+    "downloads": "Downloads"
+  },
+  "downloads": {
+    "emptyTitle": "Nog geen downloads",
+    "emptyBody": "Offline afspelen staat op de roadmap. Gedownloade titels verschijnen hier."
   },
   "library": {
     "welcomeBack": "Welkom terug",
