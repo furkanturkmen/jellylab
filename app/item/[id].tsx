@@ -529,13 +529,15 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
               pointerEvents="none"
             />
             <View style={styles.overlayTop} pointerEvents="box-none">
-              <TouchableOpacity style={styles.overlayIconBtn} onPress={onExit} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.overlayIconBtn}
+                onPress={onExit}
+                activeOpacity={0.7}
+                hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+              >
                 <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }} tintColor={colors.text} size={22} />
               </TouchableOpacity>
               <Text style={styles.overlayTitle} numberOfLines={1}>{title}</Text>
-              <View style={styles.engineBadge}>
-                <Text style={styles.engineBadgeText}>VLC</Text>
-              </View>
             </View>
 
             <View style={styles.overlayCenter} pointerEvents="box-none">
