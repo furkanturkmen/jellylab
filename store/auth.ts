@@ -5,8 +5,22 @@ const KEY_JELLYFIN = 'jellyfin_auth';
 const KEY_JELLYSEERR = 'jellyseerr_auth';
 const KEY_DEVICE_ID = 'device_id';
 
+// Simple pub/sub so every useAuth hook re-reads the store when auth changes.
+type AuthListener = () => void;
+const authListeners = new Set<AuthListener>();
+
+export function subscribeJellyfinAuth(fn: AuthListener): () => void {
+  authListeners.add(fn);
+  return () => { authListeners.delete(fn); };
+}
+
+function notifyAuthChanged() {
+  authListeners.forEach(fn => fn());
+}
+
 export async function saveJellyfinAuth(auth: JellyfinAuth): Promise<void> {
   await SecureStore.setItemAsync(KEY_JELLYFIN, JSON.stringify(auth));
+  notifyAuthChanged();
 }
 
 export async function loadJellyfinAuth(): Promise<JellyfinAuth | null> {
@@ -16,6 +30,7 @@ export async function loadJellyfinAuth(): Promise<JellyfinAuth | null> {
 
 export async function clearJellyfinAuth(): Promise<void> {
   await SecureStore.deleteItemAsync(KEY_JELLYFIN);
+  notifyAuthChanged();
 }
 
 export async function saveJellyseerrAuth(auth: JellyseerrAuth): Promise<void> {

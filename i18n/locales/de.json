@@ -136,6 +136,7 @@
     "changePicture": "Profilbild ändern",
     "takePhoto": "Foto aufnehmen",
     "chooseFromLibrary": "Aus Mediathek wählen",
+    "removePicture": "Aktuelles Foto entfernen",
     "permissionDenied": "Berechtigung verweigert",
     "uploadFailed": "Upload fehlgeschlagen"
   },

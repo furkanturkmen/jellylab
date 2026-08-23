@@ -136,6 +136,7 @@
     "changePicture": "Profielfoto wijzigen",
     "takePhoto": "Foto maken",
     "chooseFromLibrary": "Kies uit bibliotheek",
+    "removePicture": "Huidige foto verwijderen",
     "permissionDenied": "Toestemming geweigerd",
     "uploadFailed": "Uploaden mislukt"
   },

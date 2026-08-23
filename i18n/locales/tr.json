@@ -136,6 +136,7 @@
     "changePicture": "Profil fotoğrafını değiştir",
     "takePhoto": "Fotoğraf Çek",
     "chooseFromLibrary": "Galeriden Seç",
+    "removePicture": "Mevcut fotoğrafı kaldır",
     "permissionDenied": "İzin reddedildi",
     "uploadFailed": "Yükleme başarısız"
   },

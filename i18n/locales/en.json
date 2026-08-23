@@ -136,6 +136,7 @@
     "changePicture": "Change profile picture",
     "takePhoto": "Take Photo",
     "chooseFromLibrary": "Choose from Library",
+    "removePicture": "Remove current picture",
     "permissionDenied": "Permission denied",
     "uploadFailed": "Upload failed"
   },

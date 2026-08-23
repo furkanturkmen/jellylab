@@ -100,6 +100,11 @@ export async function uploadProfileImage(userId: string, base64: string, mimeTyp
   }
 }
 
+export async function deleteProfileImage(userId: string): Promise<void> {
+  const client = await authClient();
+  await client.delete(`/Users/${userId}/Images/Primary`);
+}
+
 export function userImageUrl(userId: string, tag?: string, size = 96): string {
   const tagParam = tag ? `&tag=${tag}` : '';
   return `${CONFIG.JELLYFIN_URL}/Users/${userId}/Images/Primary?maxWidth=${size}&maxHeight=${size}${tagParam}`;

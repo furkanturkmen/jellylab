@@ -94,11 +94,34 @@ export default function ProfileScreen() {
   }
 
   function chooseImageSource() {
-    Alert.alert(t('profile.changePicture'), undefined, [
+    const buttons: any[] = [
       { text: t('profile.takePhoto'), onPress: () => pickImage('camera') },
       { text: t('profile.chooseFromLibrary'), onPress: () => pickImage('library') },
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
+    ];
+    if (state.status === 'signed-in' && state.auth.primaryImageTag) {
+      buttons.push({ text: t('profile.removePicture'), style: 'destructive', onPress: removeImage });
+    }
+    buttons.push({ text: t('common.cancel'), style: 'cancel' });
+    Alert.alert(t('profile.changePicture'), undefined, buttons);
+  }
+
+  async function removeImage() {
+    if (state.status !== 'signed-in') return;
+    setUploadingImage(true);
+    try {
+      await Jellyfin.deleteProfileImage(state.auth.userId);
+      const refreshed = await Jellyfin.getCurrentUser(state.auth.userId);
+      const authNow = await loadJellyfinAuth();
+      if (authNow) {
+        await saveJellyfinAuth({ ...authNow, primaryImageTag: refreshed?.PrimaryImageTag });
+      }
+      setUser(refreshed);
+      setAvatarBust(Date.now());
+    } catch (e: any) {
+      Alert.alert(t('common.failed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
+    } finally {
+      setUploadingImage(false);
+    }
   }
 
   function editName() {

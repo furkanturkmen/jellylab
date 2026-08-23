@@ -86,6 +86,7 @@ function AvatarButton({ auth, onPress }: { auth: JellyfinAuth; onPress: () => vo
     <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.avatarBtn}>
       {auth.primaryImageTag ? (
         <Image
+          key={auth.primaryImageTag}
           source={{ uri: Jellyfin.userImageUrl(auth.userId, auth.primaryImageTag, 96) }}
           style={styles.avatar}
           contentFit="cover"

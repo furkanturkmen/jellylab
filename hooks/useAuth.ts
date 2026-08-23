@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as Jellyfin from '@/api/jellyfin';
 import * as Jellyseerr from '@/api/jellyseerr';
-import { loadJellyfinAuth } from '@/store/auth';
+import { loadJellyfinAuth, subscribeJellyfinAuth } from '@/store/auth';
 import type { JellyfinAuth } from '@/types';
 
 export type AuthState =
@@ -13,9 +13,16 @@ export function useAuth() {
   const [state, setState] = useState<AuthState>({ status: 'loading', auth: null });
 
   useEffect(() => {
-    loadJellyfinAuth().then(auth => {
-      setState(auth ? { status: 'signed-in', auth } : { status: 'signed-out', auth: null });
-    });
+    let cancelled = false;
+    const refresh = () => {
+      loadJellyfinAuth().then(auth => {
+        if (cancelled) return;
+        setState(auth ? { status: 'signed-in', auth } : { status: 'signed-out', auth: null });
+      });
+    };
+    refresh();
+    const unsub = subscribeJellyfinAuth(refresh);
+    return () => { cancelled = true; unsub(); };
   }, []);
 
   const signIn = useCallback(async (username: string, password: string) => {
