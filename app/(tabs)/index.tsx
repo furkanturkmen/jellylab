@@ -72,15 +72,19 @@ export default function LibraryScreen() {
     if (state.status !== 'signed-in') return;
     setLoading(true);
     try {
+      // Each call is allowed to fail on its own. One slow or unhappy library
+      // used to reject the whole Promise.all, which surfaced as an uncaught
+      // "AxiosError: Network Error" and left the screen empty even though
+      // everything else had loaded fine.
       const [views, resumeItems] = await Promise.all([
-        Jellyfin.getViews(state.auth.userId),
-        Jellyfin.getResumeItems(state.auth.userId, 12),
+        Jellyfin.getViews(state.auth.userId).catch(() => [] as JellyfinView[]),
+        Jellyfin.getResumeItems(state.auth.userId, 12).catch(() => [] as JellyfinItem[]),
       ]);
       const filtered = views.filter(v => v.CollectionType === 'movies' || v.CollectionType === 'tvshows');
       const withItems = await Promise.all(
         filtered.map(async view => ({
           view,
-          items: await Jellyfin.getItems(state.auth.userId, view.Id, 20),
+          items: await Jellyfin.getItems(state.auth.userId, view.Id, 20).catch(() => [] as JellyfinItem[]),
         }))
       );
       const latestItems = (
@@ -91,6 +95,11 @@ export default function LibraryScreen() {
       setResume(resumeItems);
       setLatest(latestItems);
       setLibs(withItems);
+    } catch (e) {
+      // Nothing to show the user here: the per-call catches above already keep
+      // partial results, so anything reaching this point is unexpected rather
+      // than a server being briefly unreachable.
+      console.warn('library load failed', e);
     } finally {
       setLoading(false);
     }
