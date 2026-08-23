@@ -1,22 +1,23 @@
 {
   "expo": {
-    "name": "jellylab",
+    "name": "JellyLab",
     "slug": "jellylab",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "jellylab",
     "userInterfaceStyle": "automatic",
+    "primaryColor": "#00A4DC",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.furkanturkmen.jellylab",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocalNetworkUsageDescription": "jellylab uses the local network to discover Chromecast and other streaming receivers.",
-        "NSPhotoLibraryUsageDescription": "jellylab needs photo library access to update your profile picture.",
-        "NSPhotoLibraryAddUsageDescription": "jellylab needs permission to save photos to your library.",
-        "NSCameraUsageDescription": "jellylab needs camera access to take a new profile picture.",
-        "NSMicrophoneUsageDescription": "jellylab needs microphone access if you record a video with the camera.",
+        "NSLocalNetworkUsageDescription": "JellyLab uses the local network to discover Chromecast and other streaming receivers.",
+        "NSPhotoLibraryUsageDescription": "JellyLab needs photo library access to update your profile picture.",
+        "NSPhotoLibraryAddUsageDescription": "JellyLab needs permission to save photos to your library.",
+        "NSCameraUsageDescription": "JellyLab needs camera access to take a new profile picture.",
+        "NSMicrophoneUsageDescription": "JellyLab needs microphone access if you record a video with the camera.",
         "UISupportedInterfaceOrientations": [
           "UIInterfaceOrientationPortrait",
           "UIInterfaceOrientationLandscapeLeft",
@@ -32,7 +33,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0B1220",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -44,7 +45,14 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "JellyLab",
+      "shortName": "JellyLab",
+      "description": "iOS client for self-hosted Jellyfin + Jellyseerr",
+      "themeColor": "#0B1220",
+      "backgroundColor": "#0B1220",
+      "display": "standalone",
+      "lang": "en"
     },
     "plugins": [
       "expo-router",
@@ -53,7 +61,7 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#0B1220"
         }
       ],
       "expo-secure-store",
@@ -80,8 +88,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "jellylab needs photo library access to update your profile picture.",
-          "cameraPermission": "jellylab needs camera access to take a new profile picture."
+          "photosPermission": "JellyLab needs photo library access to update your profile picture.",
+          "cameraPermission": "JellyLab needs camera access to take a new profile picture."
         }
       ],
       "expo-localization",

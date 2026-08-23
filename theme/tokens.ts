@@ -1,3 +1,22 @@
+/**
+ * The JellyLab palette, from brand/BRAND.md.
+ *
+ * Held separately from `colors` on purpose. The UI is deliberately monochrome
+ * - Apple TV's grammar, where artwork supplies all the colour - so the brand
+ * hues belong on the things that are the brand itself (the mark, the splash,
+ * the icon) rather than sprayed across chrome that is meant to recede.
+ */
+export const brand = {
+  purple: '#AA5CC3',   // gradient start
+  blue: '#00A4DC',     // gradient end
+  purpleBright: '#C77BDE', // gradient start, on dark
+  blueBright: '#3AB7E8',   // gradient end, on dark
+  iris: '#C9B8F0',
+  ink: '#0B2545',
+  sclera: '#F4F1FB',
+  night: '#0B1220',    // icon tile and splash ground
+} as const;
+
 export const colors = {
   bg: '#0A0A0A',
   bgElevated: '#141414',

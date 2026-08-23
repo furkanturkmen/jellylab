@@ -33,7 +33,7 @@ Mark height = 2× cap height. Gap between mark and wordmark = ½ mark width.
 ## Files
 
 ```
-assets/
+brand/
 ├── BRAND.md                 this file
 ├── USAGE.md                 per-file usage + web snippets
 ├── site.webmanifest         PWA manifest (icons wired up)
@@ -71,7 +71,7 @@ In-app glyphs: `svg/jellylab-mono.svg` tinted with your accent colour, or the ma
 
 **README**
 ```markdown
-<p align="center"><img src="assets/png/social/readme-hero-1200x400.png" width="640" alt="JellyLab"></p>
+<p align="center"><img src="brand/png/social/readme-hero-1200x400.png" width="640" alt="JellyLab"></p>
 ```
 
 **GitHub** — Settings → Social preview: `png/social/github-social-preview-1280x640.png`.

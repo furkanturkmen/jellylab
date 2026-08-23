@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTranslation } from 'react-i18next';
 
@@ -33,6 +33,12 @@ export default function LoginScreen() {
     <View style={styles.root}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
         <View style={styles.header}>
+          <Image
+            source={require('@/assets/images/mark.png')}
+            style={styles.mark}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+          />
           <Text style={styles.brand}>{t('login.title')}</Text>
           <TouchableOpacity onPress={() => router.push('/servers')} activeOpacity={0.7} style={styles.hostChip}>
             <Text style={styles.hostLabel}>
@@ -93,6 +99,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1, padding: spacing.xl, justifyContent: 'center' },
   header: { marginBottom: spacing.xxl, alignItems: 'center' },
+  // taller than wide (939:1024), so contain inside a square box
+  mark: { width: 76, height: 76, marginBottom: spacing.md },
   brand: { ...type.display, color: colors.text, marginBottom: spacing.md },
   hostChip: {
     flexDirection: 'row',

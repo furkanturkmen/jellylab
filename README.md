@@ -1,6 +1,16 @@
-# jellylab
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/png/mark/jellylab-mark-dark-256.png">
+    <img src="brand/png/mark/jellylab-mark-256.png" width="104" alt="JellyLab">
+  </picture>
+</p>
 
-iOS client for self-hosted Jellyfin + Jellyseerr. Browse your Jellyfin library, play something, or ask for what you don't have — all from one app.
+<h1 align="center">JellyLab</h1>
+
+<p align="center">iOS client for self-hosted <b>Jellyfin</b> + <b>Jellyseerr</b><br>
+<sub>Browse your library, play something, or ask for what you don&rsquo;t have &mdash; from one app.</sub></p>
+
+---
 
 Built with Expo Router (SDK 57), React Native 0.86, and TypeScript. iOS-first; Android builds but isn't polished.
 
