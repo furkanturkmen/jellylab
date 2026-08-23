@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyseerr from '@/api/jellyseerr';
+import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { loadPrefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyseerrSearchResult } from '@/types';
@@ -14,6 +16,8 @@ type Section = { title: string; items: JellyseerrSearchResult[] };
 export default function SearchScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { headerHeight } = useTabHeaderMetrics();
+  const scrollY = useRef(new Animated.Value(0)).current;
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<JellyseerrSearchResult[]>([]);
   const [busy, setBusy] = useState(false);
@@ -77,32 +81,47 @@ export default function SearchScreen() {
 
   const showingSearch = query.trim().length > 0;
 
+  const searchBar = (
+    <View style={styles.searchBar}>
+      <TextInput
+        style={styles.input}
+        placeholder={t('search.placeholder')}
+        placeholderTextColor={colors.textDim}
+        value={query}
+        onChangeText={setQuery}
+        returnKeyType="search"
+        onSubmitEditing={doSearch}
+        autoCapitalize="none"
+        autoCorrect={false}
+        clearButtonMode="while-editing"
+      />
+    </View>
+  );
+
   return (
     <View style={styles.root}>
-      <View style={styles.searchBar}>
-        <TextInput
-          style={styles.input}
-          placeholder={t('search.placeholder')}
-          placeholderTextColor={colors.textDim}
-          value={query}
-          onChangeText={setQuery}
-          returnKeyType="search"
-          onSubmitEditing={doSearch}
-          autoCapitalize="none"
-          autoCorrect={false}
-          clearButtonMode="while-editing"
-        />
-      </View>
-
+      <StatusBar style="light" />
       {showingSearch ? (
         busy ? (
-          <View style={styles.center}><ActivityIndicator color={colors.text} /></View>
+          <>
+            <View style={{ height: headerHeight }} />
+            {searchBar}
+            <View style={styles.center}><ActivityIndicator color={colors.text} /></View>
+          </>
         ) : (
-          <FlatList
+          <Animated.FlatList
             data={results}
-            keyExtractor={r => `${r.mediaType}-${r.id}`}
-            renderItem={({ item }) => <ResultRow item={item} onOpen={() => openDetail(item)} />}
+            keyExtractor={(r: JellyseerrSearchResult) => `${r.mediaType}-${r.id}`}
+            renderItem={({ item }: { item: JellyseerrSearchResult }) => <ResultRow item={item} onOpen={() => openDetail(item)} />}
             ItemSeparatorComponent={() => <View style={styles.sep} />}
+            ListHeaderComponent={
+              <>
+                <View style={{ height: headerHeight }} />
+                {searchBar}
+              </>
+            }
+            onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+            scrollEventThrottle={16}
             contentContainerStyle={{ paddingBottom: 120 }}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
@@ -113,14 +132,26 @@ export default function SearchScreen() {
           />
         )
       ) : discoverLoading ? (
-        <View style={styles.center}><ActivityIndicator color={colors.text} /></View>
+        <>
+          <View style={{ height: headerHeight }} />
+          {searchBar}
+          <View style={styles.center}><ActivityIndicator color={colors.text} /></View>
+        </>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: 120, paddingTop: spacing.sm }} showsVerticalScrollIndicator={false}>
+        <Animated.ScrollView
+          contentContainerStyle={{ paddingBottom: 120 }}
+          showsVerticalScrollIndicator={false}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+          scrollEventThrottle={16}
+        >
+          <View style={{ height: headerHeight }} />
+          {searchBar}
           {discover.map(sec => (
             <DiscoverRow key={sec.title} section={sec} onOpen={openDetail} />
           ))}
-        </ScrollView>
+        </Animated.ScrollView>
       )}
+      <TabHeader title={t('tabs.search')} scrollY={scrollY} />
     </View>
   );
 }

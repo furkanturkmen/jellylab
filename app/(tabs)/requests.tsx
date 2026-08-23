@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyseerr from '@/api/jellyseerr';
+import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { type JellyseerrRequest } from '@/types';
 import { colors, radius, spacing, type as t } from '@/theme';
 
@@ -14,6 +16,8 @@ type EnrichedRequest = JellyseerrRequest & { details: Jellyseerr.MediaDetails | 
 export default function RequestsScreen() {
   const router = useRouter();
   const { t: tr } = useTranslation();
+  const { headerHeight } = useTabHeaderMetrics();
+  const scrollY = useRef(new Animated.Value(0)).current;
   const [items, setItems] = useState<EnrichedRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,26 +40,38 @@ export default function RequestsScreen() {
   useEffect(() => { load(); }, [load]);
 
   if (loading && items.length === 0) {
-    return <View style={styles.center}><ActivityIndicator color={colors.text} /></View>;
+    return (
+      <View style={styles.root}>
+        <StatusBar style="light" />
+        <View style={styles.center}><ActivityIndicator color={colors.text} /></View>
+        <TabHeader title={tr('tabs.requests')} scrollY={scrollY} />
+      </View>
+    );
   }
 
   return (
-    <FlatList
-      style={styles.root}
-      data={items}
-      keyExtractor={r => String(r.id)}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.text} />}
-      renderItem={({ item }) => (
-        <RequestCard r={item} onOpen={() => router.push(`/tmdb/${item.media.mediaType}/${item.media.tmdbId}`)} />
-      )}
-      ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
-      contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }}
-      ListEmptyComponent={
-        <View style={styles.center}>
-          <Text style={styles.empty}>{tr('requests.empty')}</Text>
-        </View>
-      }
-    />
+    <View style={styles.root}>
+      <StatusBar style="light" />
+      <Animated.FlatList
+        data={items}
+        keyExtractor={(r: EnrichedRequest) => String(r.id)}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.text} progressViewOffset={headerHeight} />}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        scrollEventThrottle={16}
+        ListHeaderComponent={<View style={{ height: headerHeight }} />}
+        renderItem={({ item }: { item: EnrichedRequest }) => (
+          <RequestCard r={item} onOpen={() => router.push(`/tmdb/${item.media.mediaType}/${item.media.tmdbId}`)} />
+        )}
+        ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
+        contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 120 }}
+        ListEmptyComponent={
+          <View style={styles.center}>
+            <Text style={styles.empty}>{tr('requests.empty')}</Text>
+          </View>
+        }
+      />
+      <TabHeader title={tr('tabs.requests')} scrollY={scrollY} />
+    </View>
   );
 }
 

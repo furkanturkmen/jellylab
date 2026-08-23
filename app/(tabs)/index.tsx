@@ -4,21 +4,20 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { useAuth } from '@/hooks/useAuth';
+import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem, JellyfinView } from '@/types';
-import type { JellyfinAuth } from '@/types';
 
 type LibraryItem = { view: JellyfinView; items: JellyfinItem[] };
 
 export default function LibraryScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
+  const { headerHeight } = useTabHeaderMetrics();
   const { state } = useAuth();
   const [resume, setResume] = useState<JellyfinItem[]>([]);
   const [libs, setLibs] = useState<LibraryItem[]>([]);
@@ -61,19 +60,6 @@ export default function LibraryScreen() {
 
   const heroItem = resume[0] ?? libs[0]?.items[0];
 
-  const headerFade = scrollY.interpolate({
-    inputRange: [0, 60, 130],
-    outputRange: [1, 0.5, 0],
-    extrapolate: 'clamp',
-  });
-  const headerTranslate = scrollY.interpolate({
-    inputRange: [0, 130],
-    outputRange: [0, -24],
-    extrapolate: 'clamp',
-  });
-
-  const headerHeight = insets.top + 52;
-
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
@@ -95,37 +81,8 @@ export default function LibraryScreen() {
         renderItem={({ item }: { item: LibraryItem }) => <LibraryRow lib={item} />}
         contentContainerStyle={{ paddingBottom: 120 }}
       />
-      <Animated.View
-        style={[
-          styles.headerBar,
-          { paddingTop: insets.top, height: headerHeight, opacity: headerFade, transform: [{ translateY: headerTranslate }] },
-        ]}
-        pointerEvents="box-none"
-      >
-        <Text style={styles.headerTitle}>{t('tabs.library')}</Text>
-        <AvatarButton auth={state.auth} onPress={() => router.push('/profile')} />
-      </Animated.View>
+      <TabHeader title={t('tabs.library')} scrollY={scrollY} />
     </View>
-  );
-}
-
-function AvatarButton({ auth, onPress }: { auth: JellyfinAuth; onPress: () => void }) {
-  return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8} style={styles.avatarBtn}>
-      {auth.primaryImageTag ? (
-        <Image
-          key={auth.primaryImageTag}
-          source={{ uri: Jellyfin.userImageUrl(auth.userId, auth.primaryImageTag, 96) }}
-          style={styles.avatar}
-          contentFit="cover"
-          transition={150}
-        />
-      ) : (
-        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          <Text style={styles.avatarInitials}>{auth.userName?.[0]?.toUpperCase() ?? '?'}</Text>
-        </View>
-      )}
-    </TouchableOpacity>
   );
 }
 
@@ -290,37 +247,6 @@ const styles = StyleSheet.create({
     borderColor: colors.glassBorder,
   },
   heroPillText: { color: colors.text, ...type.caption, textTransform: 'uppercase' },
-
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
-  },
-  greetingSmall: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.xs },
-  greeting: { ...type.h1, color: colors.text },
-  avatarBtn: { width: 36, height: 36, borderRadius: 18, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.glassBorder },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surface },
-  avatarPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.glassTint },
-  avatarInitials: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  headerBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: spacing.xl,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerTitle: {
-    color: colors.text,
-    fontSize: 34,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
 
   section: { marginBottom: spacing.xxl },
   sectionHeader: {
