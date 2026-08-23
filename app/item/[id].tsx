@@ -327,7 +327,11 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
     setActiveSubIndex(streamIndex);
     // Always disable VLC's internal track when we render an external overlay
     // (or when explicitly turning off), otherwise both would be drawn.
+    // VLC ignores the textTrack prop when going from auto-selected -> -1,
+    // so force a remount so it starts fresh with no internal subs.
     setVlcTextTrackId(-1);
+    setReady(false);
+    setVlcKey(k => k + 1);
     if (streamIndex == null || !mediaSourceId) {
       setExternalCues([]);
       setActiveCue(null);
@@ -592,7 +596,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
           setSubsOpen(false);
         }}
         onOff={() => {
-          setVlcTextTrackId(-1);
+          // pickExternalSub(null) already forces remount + textTrack=-1
           pickExternalSub(null);
           setSubsOpen(false);
         }}
