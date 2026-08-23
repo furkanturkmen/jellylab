@@ -4,12 +4,15 @@ import { BlurView } from 'expo-blur';
 import { useTranslation } from 'react-i18next';
 
 import { useAuth } from '@/hooks/useAuth';
-import { CONFIG } from '@/config';
+import { useCurrentServer } from '@/hooks/useServer';
+import { useRouter } from 'expo-router';
 import { colors, radius, spacing, type } from '@/theme';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
   const { signIn } = useAuth();
+  const { server } = useCurrentServer();
+  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -31,7 +34,11 @@ export default function LoginScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.brand}>{t('login.title')}</Text>
-          <Text style={styles.hostLabel}>{CONFIG.JELLYFIN_URL.replace(/^https?:\/\//, '')}</Text>
+          <TouchableOpacity onPress={() => router.push('/servers')} activeOpacity={0.7}>
+            <Text style={styles.hostLabel}>
+              {server ? server.jellyfinUrl.replace(/^https?:\/\//, '') : t('login.tapToConfigureServer')}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <BlurView tint="dark" intensity={40} style={styles.card}>

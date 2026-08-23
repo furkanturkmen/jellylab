@@ -22,7 +22,28 @@
     "password": "Parola",
     "signIn": "Giriş yap",
     "signingIn": "Giriş yapılıyor…",
-    "failed": "Giriş başarısız"
+    "failed": "Giriş başarısız",
+    "tapToConfigureServer": "Sunucuyu ayarlamak için dokun"
+  },
+  "servers": {
+    "title": "Sunucular",
+    "active": "Etkin",
+    "noneTitle": "Henüz sunucu yok",
+    "noneBody": "Başlamak için bir Jellyfin + Jellyseerr çifti ekle.",
+    "addFirst": "Sunucu ekle",
+    "deleteTitle": "Sunucu silinsin mi?",
+    "deleteMessage": "\"{{name}}\" bu cihazdan kaldırılacak. Sunucunun kendisi etkilenmez."
+  },
+  "serverEdit": {
+    "addTitle": "Sunucu ekle",
+    "editTitle": "Sunucuyu düzenle",
+    "name": "Ad",
+    "namePlaceholder": "Ev, Arkadaşın sunucusu…",
+    "jellyfinUrl": "Jellyfin URL",
+    "jellyseerrUrl": "Jellyseerr URL",
+    "hint": "Şemayı (http:// veya https://) dahil et ve sondaki eğik çizgi olmasın. Her iki sunucu da bu cihazdan erişilebilir olmalı — LAN, VPN veya genel.",
+    "missingTitle": "Eksik alanlar",
+    "missingBody": "Bir ad ve iki URL'yi doldur."
   },
   "tabs": {
     "library": "Kitaplık",
@@ -120,7 +141,8 @@
       "subtitles": "Altyazılar",
       "playback": "Oynatma",
       "content": "İçerik",
-      "language": "Dil"
+      "language": "Dil",
+      "servers": "Sunucular"
     },
     "adminJellyfin": "Yönetici — Jellyfin",
     "adminJellyseerr": "Yönetici — Jellyseerr",

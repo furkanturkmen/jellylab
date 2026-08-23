@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { CONFIG } from '@/config';
+import { CONFIG, getJellyfinUrl } from '@/config';
 import { getDeviceId, loadJellyfinAuth, saveJellyfinAuth, clearJellyfinAuth } from '@/store/auth';
 import type { JellyfinAuth, JellyfinItem, JellyfinView } from '@/types';
 
@@ -17,7 +17,7 @@ async function authHeader(token?: string): Promise<string> {
 
 async function makeClient(token?: string): Promise<AxiosInstance> {
   return axios.create({
-    baseURL: CONFIG.JELLYFIN_URL,
+    baseURL: getJellyfinUrl(),
     timeout: 15000,
     headers: {
       'X-Emby-Authorization': await authHeader(token),
@@ -85,7 +85,7 @@ export async function uploadProfileImage(userId: string, base64: string, mimeTyp
     ].join(', ');
   })();
 
-  const url = `${CONFIG.JELLYFIN_URL}/Users/${userId}/Images/Primary`;
+  const url = `${getJellyfinUrl()}/Users/${userId}/Images/Primary`;
   const res = await fetch(url, {
     method: 'POST',
     headers: {
@@ -107,7 +107,7 @@ export async function deleteProfileImage(userId: string): Promise<void> {
 
 export function userImageUrl(userId: string, tag?: string, size = 96): string {
   const tagParam = tag ? `&tag=${tag}` : '';
-  return `${CONFIG.JELLYFIN_URL}/Users/${userId}/Images/Primary?maxWidth=${size}&maxHeight=${size}${tagParam}`;
+  return `${getJellyfinUrl()}/Users/${userId}/Images/Primary?maxWidth=${size}&maxHeight=${size}${tagParam}`;
 }
 
 export async function logout(): Promise<void> {
@@ -216,7 +216,7 @@ export async function getLatestItems(userId: string, parentId: string, limit = 1
 
 export function imageUrl(itemId: string, tag?: string, type: 'Primary' | 'Backdrop' = 'Primary', maxWidth = 400): string {
   const tagParam = tag ? `&tag=${tag}` : '';
-  return `${CONFIG.JELLYFIN_URL}/Items/${itemId}/Images/${type}?maxWidth=${maxWidth}${tagParam}`;
+  return `${getJellyfinUrl()}/Items/${itemId}/Images/${type}?maxWidth=${maxWidth}${tagParam}`;
 }
 
 export async function reportPlaybackStart(itemId: string, positionTicks = 0): Promise<void> {
@@ -269,7 +269,7 @@ export function subtitleUrl(
   token: string,
   format: 'vtt' | 'srt' = 'vtt',
 ): string {
-  return `${CONFIG.JELLYFIN_URL}/Videos/${itemId}/${mediaSourceId}/Subtitles/${streamIndex}/0/Stream.${format}?api_key=${token}`;
+  return `${getJellyfinUrl()}/Videos/${itemId}/${mediaSourceId}/Subtitles/${streamIndex}/0/Stream.${format}?api_key=${token}`;
 }
 
 export async function fetchSubtitleVtt(url: string): Promise<string> {
@@ -284,5 +284,5 @@ export function streamUrl(itemId: string, token: string, deviceId: string): stri
     api_key: token,
     DeviceId: deviceId,
   });
-  return `${CONFIG.JELLYFIN_URL}/Videos/${itemId}/stream?${params.toString()}`;
+  return `${getJellyfinUrl()}/Videos/${itemId}/stream?${params.toString()}`;
 }

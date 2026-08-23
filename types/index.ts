@@ -1,3 +1,10 @@
+export type Server = {
+  id: string;
+  name: string;
+  jellyfinUrl: string;
+  jellyseerrUrl: string;
+};
+
 export type JellyfinAuth = {
   serverId: string;
   userId: string;

@@ -22,7 +22,28 @@
     "password": "Wachtwoord",
     "signIn": "Aanmelden",
     "signingIn": "Bezig met aanmelden…",
-    "failed": "Aanmelden mislukt"
+    "failed": "Aanmelden mislukt",
+    "tapToConfigureServer": "Tik om server in te stellen"
+  },
+  "servers": {
+    "title": "Servers",
+    "active": "Actief",
+    "noneTitle": "Nog geen servers",
+    "noneBody": "Voeg een Jellyfin + Jellyseerr paar toe om te beginnen.",
+    "addFirst": "Server toevoegen",
+    "deleteTitle": "Server verwijderen?",
+    "deleteMessage": "Verwijder \"{{name}}\" van dit toestel. Dit heeft geen invloed op de server zelf."
+  },
+  "serverEdit": {
+    "addTitle": "Server toevoegen",
+    "editTitle": "Server bewerken",
+    "name": "Naam",
+    "namePlaceholder": "Thuis, Servers van vrienden…",
+    "jellyfinUrl": "Jellyfin URL",
+    "jellyseerrUrl": "Jellyseerr URL",
+    "hint": "Vul het schema in (http:// of https://) zonder afsluitende slash. Beide servers moeten bereikbaar zijn vanaf dit toestel — LAN, VPN of publiek.",
+    "missingTitle": "Ontbrekende velden",
+    "missingBody": "Vul een naam en beide URLs in."
   },
   "tabs": {
     "library": "Bibliotheek",
@@ -120,7 +141,8 @@
       "subtitles": "Ondertiteling",
       "playback": "Afspelen",
       "content": "Inhoud",
-      "language": "Taal"
+      "language": "Taal",
+      "servers": "Servers"
     },
     "adminJellyfin": "Beheer — Jellyfin",
     "adminJellyseerr": "Beheer — Jellyseerr",

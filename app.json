@@ -26,14 +26,7 @@
           "_googlecast._tcp"
         ],
         "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": false,
-          "NSExceptionDomains": {
-            "homelab.internal": {
-              "NSExceptionAllowsInsecureHTTPLoads": true,
-              "NSIncludesSubdomains": true,
-              "NSExceptionRequiresForwardSecrecy": false
-            }
-          }
+          "NSAllowsArbitraryLoads": true
         }
       }
     },
@@ -80,7 +73,7 @@
       [
         "react-native-google-cast",
         {
-          "iosReceiverAppId": "A3C83748",
+          "iosReceiverAppId": "CC1AD845",
           "iosDisableDiscoveryAutostart": false
         }
       ],

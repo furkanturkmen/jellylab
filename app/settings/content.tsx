@@ -3,7 +3,7 @@ import { ActivityIndicator, Linking, ScrollView, StyleSheet, Switch, Text, Touch
 import { Stack } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 
-import { CONFIG } from '@/config';
+import { getJellyseerrUrl } from '@/config';
 import { useAuth } from '@/hooks/useAuth';
 import { loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
@@ -51,7 +51,7 @@ export default function ContentSettings() {
             <TouchableOpacity
               style={styles.linkRow}
               activeOpacity={0.75}
-              onPress={() => WebBrowser.openBrowserAsync(`${CONFIG.JELLYSEERR_URL}/settings/main`)}
+              onPress={() => WebBrowser.openBrowserAsync(`${getJellyseerrUrl()}/settings/main`)}
             >
               <Text style={styles.linkLabel}>Global settings</Text>
               <Text style={styles.menuArrow}>›</Text>
@@ -59,7 +59,7 @@ export default function ContentSettings() {
             <TouchableOpacity
               style={styles.linkRow}
               activeOpacity={0.75}
-              onPress={() => WebBrowser.openBrowserAsync(`${CONFIG.JELLYSEERR_URL}/users`)}
+              onPress={() => WebBrowser.openBrowserAsync(`${getJellyseerrUrl()}/users`)}
             >
               <Text style={styles.linkLabel}>Per-user permissions</Text>
               <Text style={styles.menuArrow}>›</Text>

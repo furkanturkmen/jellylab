@@ -8,7 +8,7 @@ import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
-import { CONFIG } from '@/config';
+import { getJellyfinUrl, getJellyseerrUrl } from '@/config';
 import { useAuth } from '@/hooks/useAuth';
 import { loadJellyfinAuth, saveJellyfinAuth } from '@/store/auth';
 import { colors, radius, spacing, type } from '@/theme';
@@ -148,11 +148,11 @@ export default function ProfileScreen() {
   }
 
   async function openWeb(path: string) {
-    await WebBrowser.openBrowserAsync(`${CONFIG.JELLYFIN_URL}${path}`);
+    await WebBrowser.openBrowserAsync(`${getJellyfinUrl()}${path}`);
   }
 
   async function openJellyseerr(path: string) {
-    await WebBrowser.openBrowserAsync(`${CONFIG.JELLYSEERR_URL}${path}`);
+    await WebBrowser.openBrowserAsync(`${getJellyseerrUrl()}${path}`);
   }
 
   return (
@@ -175,8 +175,12 @@ export default function ProfileScreen() {
             </View>
           </TouchableOpacity>
           <Text style={styles.heroName}>{state.auth.userName}</Text>
-          <Text style={styles.heroSub}>{CONFIG.JELLYFIN_URL.replace(/^https?:\/\//, '')}</Text>
+          <Text style={styles.heroSub}>{getJellyfinUrl().replace(/^https?:\/\//, '')}</Text>
         </View>
+
+        <Section>
+          <Row icon="server.rack" label={t('profile.menu.servers')} onPress={() => router.push('/servers')} />
+        </Section>
 
         <Section>
           <Row icon="person" label={t('profile.displayName')} value={user?.Name ?? state.auth.userName} onPress={editName} />

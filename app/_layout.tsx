@@ -8,6 +8,7 @@ import '@/i18n';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAuth } from '@/hooks/useAuth';
+import { useCurrentServer } from '@/hooks/useServer';
 
 export {
   ErrorBoundary,
@@ -50,18 +51,28 @@ export default function RootLayout() {
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const { state } = useAuth();
+  const { server, ready: serverReady } = useCurrentServer();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
+    if (!serverReady) return;
     if (state.status === 'loading') return;
-    const inAuth = segments[0] === 'login';
-    if (state.status === 'signed-out' && !inAuth) {
+
+    const first = segments[0] as string | undefined;
+    const inServers = first === 'servers' || first === 'server-edit';
+    const inLogin = first === 'login';
+
+    if (!server) {
+      if (!inServers) router.replace('/servers');
+      return;
+    }
+    if (state.status === 'signed-out' && !inLogin && !inServers) {
       router.replace('/login');
-    } else if (state.status === 'signed-in' && inAuth) {
+    } else if (state.status === 'signed-in' && (inLogin || inServers)) {
       router.replace('/(tabs)');
     }
-  }, [state.status, segments]);
+  }, [state.status, segments, server, serverReady]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -71,6 +82,8 @@ function RootLayoutNav() {
         <Stack.Screen name="item/[id]" options={{ title: '' }} />
         <Stack.Screen name="tmdb/[type]/[id]" options={{ title: '' }} />
         <Stack.Screen name="profile" options={{ title: 'Profile', presentation: 'modal' }} />
+        <Stack.Screen name="servers" options={{ title: 'Servers', presentation: 'modal' }} />
+        <Stack.Screen name="server-edit" options={{ title: 'Server', presentation: 'modal' }} />
         <Stack.Screen name="settings/subtitles" options={{ title: 'Subtitles' }} />
         <Stack.Screen name="settings/playback" options={{ title: 'Playback' }} />
         <Stack.Screen name="settings/content" options={{ title: 'Content' }} />

@@ -22,7 +22,28 @@
     "password": "Password",
     "signIn": "Sign in",
     "signingIn": "Signing in…",
-    "failed": "Login failed"
+    "failed": "Login failed",
+    "tapToConfigureServer": "Tap to configure server"
+  },
+  "servers": {
+    "title": "Servers",
+    "active": "Active",
+    "noneTitle": "No servers yet",
+    "noneBody": "Add a Jellyfin + Jellyseerr pair to get started.",
+    "addFirst": "Add server",
+    "deleteTitle": "Delete server?",
+    "deleteMessage": "Remove \"{{name}}\" from this device. This does not affect the server itself."
+  },
+  "serverEdit": {
+    "addTitle": "Add server",
+    "editTitle": "Edit server",
+    "name": "Name",
+    "namePlaceholder": "Home, Friend's server…",
+    "jellyfinUrl": "Jellyfin URL",
+    "jellyseerrUrl": "Jellyseerr URL",
+    "hint": "Include the scheme (http:// or https://) and no trailing slash. Both servers must be reachable from this device — LAN, VPN mesh, or public.",
+    "missingTitle": "Missing fields",
+    "missingBody": "Fill in a name and both URLs."
   },
   "tabs": {
     "library": "Library",
@@ -120,7 +141,8 @@
       "subtitles": "Subtitles",
       "playback": "Playback",
       "content": "Content",
-      "language": "Language"
+      "language": "Language",
+      "servers": "Servers"
     },
     "adminJellyfin": "Admin — Jellyfin",
     "adminJellyseerr": "Admin — Jellyseerr",

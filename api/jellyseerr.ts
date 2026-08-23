@@ -1,11 +1,11 @@
 import axios, { AxiosInstance } from 'axios';
-import { CONFIG } from '@/config';
+import { getJellyseerrUrl } from '@/config';
 import { loadJellyseerrAuth, saveJellyseerrAuth, clearJellyseerrAuth } from '@/store/auth';
 import type { JellyseerrAuth, JellyseerrRequest, JellyseerrSearchResult } from '@/types';
 
 function makeClient(cookie?: string): AxiosInstance {
   return axios.create({
-    baseURL: `${CONFIG.JELLYSEERR_URL}/api/v1`,
+    baseURL: `${getJellyseerrUrl()}/api/v1`,
     timeout: 15000,
     headers: {
       'Content-Type': 'application/json',
