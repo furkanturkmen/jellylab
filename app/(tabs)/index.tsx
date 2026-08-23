@@ -16,14 +16,14 @@ type LibraryItem = { view: JellyfinView; items: JellyfinItem[] };
 
 const HERO_COUNT = 5;
 const HERO_INTERVAL_MS = 7000;
-/**
- * Extra backdrop height below the hero. The image stays pinned while the list
- * rubber-bands downward, so without this the container would out-run it and
- * expose bare colour at the bottom. Covers a pull well past refresh distance.
- */
-const HERO_OVERSCROLL = 280;
 /** Upper bound on requested backdrop width, so a tablet doesn't pull 4K. */
 const HERO_MAX_PX = 2560;
+/**
+ * Slight over-scale on the stretchy header. The maths for "grow to exactly
+ * fill the rubber-band" lands on the container edge precisely, so a few
+ * percent of headroom keeps rounding from showing a hairline of background.
+ */
+const HERO_STRETCH_SLOP = 1.08;
 
 /**
  * The hero taps straight through to playback, so it can only feature things
@@ -200,16 +200,32 @@ function HeroSpotlight({ item, topInset, scrollY }: { item: JellyfinItem; topIns
   // resolution anyway, so over-asking costs nothing and avoids upscaling.
   const requestPx = Math.min(HERO_MAX_PX, Math.round(width * PixelRatio.get()));
 
-  // Backdrop holds still in both directions — translateY tracks scrollY 1:1,
-  // so it neither scrolls away under the list nor rides the rubber-band down.
-  // No scale: zooming a backdrop past 1x is what made it look soft.
+  // Scrolling up: translateY tracks scrollY 1:1, so the backdrop holds still
+  // on screen and the list clips it away.
+  //
+  // Pulling down: it grows instead of moving. Scaling is centre-anchored, so
+  // half the growth would push the top edge off screen — the -height/2 leg
+  // cancels exactly that, leaving the top pinned and the extra height going
+  // downward to fill the rubber-band. Uniform scale rather than scaleY, so
+  // the image stretches without distorting.
+  //
+  // Height is not animated directly because scrollY is native-driven, and the
+  // native animated module only handles transform and opacity.
   const backdropStyle = {
     transform: [
       {
         translateY: scrollY.interpolate({
-          inputRange: [0, height],
-          outputRange: [0, height],
+          inputRange: [-height, 0, height],
+          outputRange: [-height / 2, 0, height],
           extrapolate: 'extend' as const,
+        }),
+      },
+      {
+        scale: scrollY.interpolate({
+          inputRange: [-height, 0],
+          outputRange: [2 * HERO_STRETCH_SLOP, 1],
+          extrapolateLeft: 'extend' as const,
+          extrapolateRight: 'clamp' as const,
         }),
       },
     ],
@@ -357,14 +373,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
 
   hero: { width: '100%', height: HERO_HEIGHT, backgroundColor: colors.bgElevated, overflow: 'hidden', marginBottom: spacing.xl },
-  heroBackdrop: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    // extends past the hero so a downward rubber-band cannot out-run the image
-    bottom: -HERO_OVERSCROLL,
-  },
+  heroBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   heroDots: {
     position: 'absolute',
     bottom: spacing.xl + spacing.md,
