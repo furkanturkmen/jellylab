@@ -59,6 +59,7 @@ export default function LibraryScreen() {
   const [latest, setLatest] = useState<JellyfinItem[]>([]);
   const [libs, setLibs] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [heroIndex, setHeroIndex] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
 
   async function load() {
@@ -107,12 +108,20 @@ export default function LibraryScreen() {
     ? heroPool
     : [resume[0] ?? libs[0]?.items[0]].filter(Boolean) as JellyfinItem[];
 
+  const heroHeight = HERO_HEIGHT + headerHeight;
+  const heroItem = heroItems[heroIndex] ?? heroItems[0];
+
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
+      {/* Behind the list on purpose — see HeroBackdrop. */}
+      {heroItem ? (
+        <HeroBackdrop item={heroItem} height={heroHeight} topInset={headerHeight} scrollY={scrollY} />
+      ) : null}
       <Animated.FlatList
         data={libs}
         keyExtractor={(l: LibraryItem) => l.view.Id}
+        style={styles.transparent}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.text} progressViewOffset={headerHeight} />}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -121,103 +130,66 @@ export default function LibraryScreen() {
         scrollEventThrottle={16}
         ListHeaderComponent={
           <>
-            {heroItems.length > 0 ? <HeroCarousel items={heroItems} topInset={headerHeight} scrollY={scrollY} /> : null}
-            {resume.length > 0 ? <ContinueWatchingRow items={resume} title={t('library.continueWatching')} /> : null}
+            {heroItems.length > 0 ? (
+              <HeroOverlay items={heroItems} height={heroHeight} index={heroIndex} onIndex={setHeroIndex} />
+            ) : null}
+            {/* Everything past the hero is opaque, otherwise the pinned
+                backdrop shows through the list as it scrolls over it. */}
+            {resume.length > 0 ? (
+              <View style={styles.opaque}>
+                <ContinueWatchingRow items={resume} title={t('library.continueWatching')} />
+              </View>
+            ) : null}
           </>
         }
-        renderItem={({ item }: { item: LibraryItem }) => <LibraryRow lib={item} />}
-        contentContainerStyle={{ paddingBottom: 150 }}
+        renderItem={({ item }: { item: LibraryItem }) => (
+          <View style={styles.opaque}><LibraryRow lib={item} /></View>
+        )}
+        ListFooterComponent={<View style={[styles.opaque, styles.listFooter]} />}
       />
       <TabHeader title={t('tabs.library')} scrollY={scrollY} />
     </View>
   );
 }
 
-function HeroCarousel({ items, topInset, scrollY }: { items: JellyfinItem[]; topInset: number; scrollY: Animated.Value }) {
+/**
+ * Lives OUTSIDE the FlatList, pinned to the top of the screen and behind it.
+ *
+ * That placement is the whole point: a backdrop inside the list is clipped by
+ * its own container, and one extended upward to escape that clip ends up
+ * painting over the refresh spinner, which iOS draws behind scroll-view
+ * content. Sitting behind the list, it can grow freely and the spinner still
+ * reads.
+ */
+function HeroBackdrop({ item, height, topInset, scrollY }: {
+  item: JellyfinItem;
+  height: number;
+  topInset: number;
+  scrollY: Animated.Value;
+}) {
   const { width } = useWindowDimensions();
-  const listRef = useRef<FlatList<JellyfinItem>>(null);
-  const [index, setIndex] = useState(0);
-  const dragging = useRef(false);
-
-  // Auto-advance, held while a finger is down so it never yanks mid-swipe.
-  useEffect(() => {
-    if (items.length < 2) return;
-    const id = setInterval(() => {
-      if (dragging.current) return;
-      setIndex(prev => {
-        const next = (prev + 1) % items.length;
-        listRef.current?.scrollToOffset({ offset: next * width, animated: true });
-        return next;
-      });
-    }, HERO_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [items.length, width]);
-
-  if (items.length === 1) {
-    return <HeroSpotlight item={items[0]} topInset={topInset} scrollY={scrollY} />;
-  }
-
-  return (
-    <View>
-      <FlatList
-        ref={listRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        data={items}
-        keyExtractor={i => i.Id}
-        getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
-        onScrollBeginDrag={() => { dragging.current = true; }}
-        onMomentumScrollEnd={e => {
-          dragging.current = false;
-          setIndex(Math.round(e.nativeEvent.contentOffset.x / width));
-        }}
-        renderItem={({ item }) => (
-          <View style={{ width }}>
-            <HeroSpotlight item={item} topInset={topInset} scrollY={scrollY} />
-          </View>
-        )}
-      />
-      <View style={styles.heroDots} pointerEvents="none">
-        {items.map((item, i) => (
-          <View key={item.Id} style={[styles.heroDot, i === index && styles.heroDotActive]} />
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function HeroSpotlight({ item, topInset, scrollY }: { item: JellyfinItem; topInset: number; scrollY: Animated.Value }) {
-  const router = useRouter();
-  const { t } = useTranslation();
   const backdrop = item.BackdropImageTags?.[0];
   const primary = item.ImageTags?.Primary;
   const tag = backdrop ?? primary;
   const imageType: 'Backdrop' | 'Primary' = backdrop ? 'Backdrop' : 'Primary';
-  const height = HERO_HEIGHT + topInset;
-  const { width } = useWindowDimensions();
   // Ask for the real pixel width of the device. Jellyfin caps at the source
-  // resolution anyway, so over-asking costs nothing and avoids upscaling.
+  // resolution anyway, so over-asking costs nothing when the source is smaller.
   const requestPx = Math.min(HERO_MAX_PX, Math.round(width * PixelRatio.get()));
 
-  // Scrolling up: translateY tracks scrollY 1:1, so the backdrop holds still
-  // on screen and the list clips it away.
-  //
-  // Pulling down: it grows instead of moving. Scaling is centre-anchored, so
-  // half the growth would push the top edge off screen — the -height/2 leg
-  // cancels exactly that, leaving the top pinned and the extra height going
-  // downward to fill the rubber-band. Uniform scale rather than scaleY, so
-  // the image stretches without distorting.
-  //
-  // Height is not animated directly because scrollY is native-driven, and the
-  // native animated module only handles transform and opacity.
-  const backdropStyle = {
+  // Scrolling up needs no compensation now — the layer is screen-fixed and the
+  // list simply covers it. On a downward rubber-band it grows to keep the
+  // widening gap filled. Scaling is centre-anchored, so the translate cancels
+  // the half that would push the top edge off screen, sending all the growth
+  // downward. Height itself can't be animated: scrollY is native-driven and
+  // the native animated module only handles transform and opacity.
+  const stretch = {
     transform: [
       {
         translateY: scrollY.interpolate({
-          inputRange: [-height, 0, height],
-          outputRange: [-height / 2, 0, height],
-          extrapolate: 'extend' as const,
+          inputRange: [-height, 0],
+          outputRange: [height / 2, 0],
+          extrapolateLeft: 'extend' as const,
+          extrapolateRight: 'clamp' as const,
         }),
       },
       {
@@ -232,38 +204,101 @@ function HeroSpotlight({ item, topInset, scrollY }: { item: JellyfinItem; topIns
   };
 
   return (
-    <TouchableOpacity activeOpacity={0.9} onPress={() => router.push(`/item/${item.Id}`)}>
-      <View style={[styles.hero, { height }]}>
-        <Animated.View style={[styles.heroBackdrop, backdropStyle]}>
-          <Image
-            source={{ uri: Jellyfin.imageUrl(item.Id, tag, imageType, requestPx) }}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            transition={300}
-          />
-        </Animated.View>
-        <LinearGradient
-          colors={['rgba(0,0,0,0.55)', 'transparent']}
-          locations={[0, 1]}
-          style={[StyleSheet.absoluteFill, { height: topInset + 40, bottom: undefined }]}
-        />
-        <LinearGradient
-          colors={['transparent', colors.bg]}
-          locations={[0.55, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-        <View style={styles.heroBody}>
-          <Text style={styles.heroLabel}>{t('library.featured')}</Text>
-          <Text style={styles.heroTitle} numberOfLines={2}>{item.Name}</Text>
-          <View style={styles.heroPillRow}>
-            {item.ProductionYear ? (
-              <View style={styles.heroPill}><Text style={styles.heroPillText}>{item.ProductionYear}</Text></View>
-            ) : null}
-            <View style={styles.heroPill}><Text style={styles.heroPillText}>{item.Type}</Text></View>
-          </View>
+    <Animated.View style={[styles.heroBackdrop, { height }, stretch]} pointerEvents="none">
+      {/* expo-image cross-fades on source change, which is the carousel transition */}
+      <Image
+        source={{ uri: Jellyfin.imageUrl(item.Id, tag, imageType, requestPx) }}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        transition={400}
+      />
+      <LinearGradient
+        colors={['rgba(0,0,0,0.55)', 'transparent']}
+        locations={[0, 1]}
+        style={[StyleSheet.absoluteFill, { height: topInset + 40, bottom: undefined }]}
+      />
+      <LinearGradient
+        colors={['transparent', colors.bg]}
+        locations={[0.55, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+    </Animated.View>
+  );
+}
+
+/**
+ * Transparent counterpart that rides in the list header: it owns the swipe,
+ * the title block and the dots, while HeroBackdrop paints behind it.
+ */
+function HeroOverlay({ items, height, index, onIndex }: {
+  items: JellyfinItem[];
+  height: number;
+  index: number;
+  onIndex: (i: number) => void;
+}) {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const { width } = useWindowDimensions();
+  const listRef = useRef<FlatList<JellyfinItem>>(null);
+  const dragging = useRef(false);
+
+  // Auto-advance, held while a finger is down so it never yanks mid-swipe.
+  // Depending on index restarts the timer whenever the page changes, so a
+  // manual swipe also gets a full dwell before the next auto-advance.
+  useEffect(() => {
+    if (items.length < 2) return;
+    const id = setInterval(() => {
+      if (dragging.current) return;
+      const next = (index + 1) % items.length;
+      listRef.current?.scrollToOffset({ offset: next * width, animated: true });
+      onIndex(next);
+    }, HERO_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [items.length, width, index, onIndex]);
+
+  return (
+    <View style={[styles.heroOverlay, { height }]}>
+      <FlatList
+        ref={listRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        data={items}
+        keyExtractor={i => i.Id}
+        getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+        onScrollBeginDrag={() => { dragging.current = true; }}
+        onMomentumScrollEnd={e => {
+          dragging.current = false;
+          onIndex(Math.round(e.nativeEvent.contentOffset.x / width));
+        }}
+        style={styles.transparent}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={{ width, height }}
+            onPress={() => router.push(`/item/${item.Id}`)}
+          >
+            <View style={styles.heroBody}>
+              <Text style={styles.heroLabel}>{t('library.featured')}</Text>
+              <Text style={styles.heroTitle} numberOfLines={2}>{item.Name}</Text>
+              <View style={styles.heroPillRow}>
+                {item.ProductionYear ? (
+                  <View style={styles.heroPill}><Text style={styles.heroPillText}>{item.ProductionYear}</Text></View>
+                ) : null}
+                <View style={styles.heroPill}><Text style={styles.heroPillText}>{item.Type}</Text></View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
+      {items.length > 1 ? (
+        <View style={styles.heroDots} pointerEvents="none">
+          {items.map((it, i) => (
+            <View key={it.Id} style={[styles.heroDot, i === index && styles.heroDotActive]} />
+          ))}
         </View>
-      </View>
-    </TouchableOpacity>
+      ) : null}
+    </View>
   );
 }
 
@@ -372,8 +407,13 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
 
-  hero: { width: '100%', height: HERO_HEIGHT, backgroundColor: colors.bgElevated, overflow: 'hidden', marginBottom: spacing.xl },
-  heroBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  // screen-fixed layer behind the list; height is applied inline
+  heroBackdrop: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: colors.bgElevated },
+  // transparent twin inside the list, carrying the swipe, title and dots
+  heroOverlay: { width: '100%', marginBottom: spacing.xl, backgroundColor: 'transparent' },
+  transparent: { backgroundColor: 'transparent' },
+  opaque: { backgroundColor: colors.bg },
+  listFooter: { height: 150 },
   heroDots: {
     position: 'absolute',
     bottom: spacing.xl + spacing.md,
