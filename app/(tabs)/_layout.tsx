@@ -34,17 +34,20 @@ function TabItemButton({
   onPress,
   focused,
   ios,
+  iosFill,
   android,
   label,
 }: {
   onPress: () => void;
   focused: boolean;
   ios: string;
+  iosFill: string;
   android: string;
   label: string;
 }) {
   const press = useScaleOnPress();
   const tint = focused ? colors.text : colors.textMuted;
+  const iosName = focused ? iosFill : ios;
   return (
     <AnimatedPressable
       onPress={onPress}
@@ -52,7 +55,7 @@ function TabItemButton({
       onPressOut={press.onPressOut}
       style={[styles.pillItem, focused && styles.pillItemActive, press.style]}
     >
-      <SymbolView name={{ ios: ios as any, android: android as any, web: android as any }} tintColor={tint} size={22} />
+      <SymbolView name={{ ios: iosName as any, android: android as any, web: android as any }} tintColor={tint} size={22} />
       <Text style={[styles.pillLabel, { color: tint }]} numberOfLines={1}>{label}</Text>
     </AnimatedPressable>
   );
@@ -77,24 +80,28 @@ function GlassCircle({ onPress, icon, size = 22 }: { onPress: () => void; icon: 
   );
 }
 
-const ICON_MAP: Record<string, { ios: string; android: string; label: (t: any) => string }> = {
+const ICON_MAP: Record<string, { ios: string; iosFill: string; android: string; label: (t: any) => string }> = {
   index: {
-    ios: 'play.rectangle.on.rectangle',
+    ios: 'rectangle.stack',
+    iosFill: 'rectangle.stack.fill',
     android: 'video_library',
     label: t => t('tabs.library'),
   },
   requests: {
-    ios: 'tray.and.arrow.down',
+    ios: 'paperplane',
+    iosFill: 'paperplane.fill',
     android: 'inbox',
     label: t => t('tabs.requests'),
   },
   downloads: {
     ios: 'arrow.down.circle',
+    iosFill: 'arrow.down.circle.fill',
     android: 'download',
     label: t => t('tabs.downloads'),
   },
   search: {
     ios: 'magnifyingglass',
+    iosFill: 'magnifyingglass.circle.fill',
     android: 'search',
     label: t => t('tabs.search'),
   },
@@ -173,6 +180,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                   onPress={() => nav(route.name)}
                   focused={route.name === currentRouteName}
                   ios={meta.ios}
+                  iosFill={meta.iosFill}
                   android={meta.android}
                   label={meta.label(t)}
                 />
