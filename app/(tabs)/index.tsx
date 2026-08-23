@@ -231,9 +231,9 @@ function HeroBackdrop({ item, height, topInset, scrollY }: {
           would leave unshaded edges on a downward pull. */}
       <View style={styles.heroShade} />
       <LinearGradient
-        colors={['rgba(0,0,0,0.55)', 'transparent']}
-        locations={[0, 1]}
-        style={[StyleSheet.absoluteFill, { height: topInset + 40, bottom: undefined }]}
+        colors={['rgba(0,0,0,0.92)', 'rgba(0,0,0,0.45)', 'transparent']}
+        locations={[0, 0.55, 1]}
+        style={[StyleSheet.absoluteFill, { height: topInset + 64, bottom: undefined }]}
       />
       <LinearGradient
         colors={['transparent', colors.bg]}

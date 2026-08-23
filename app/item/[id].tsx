@@ -191,6 +191,16 @@ export default function ItemScreen() {
               <View style={[styles.backdrop, { backgroundColor: colors.bgElevated }]} />
             )}
           </Animated.View>
+          {/* Flat shade so a bright backdrop does not wash out the title,
+              matching the library hero. */}
+          <View style={styles.heroShade} />
+          {/* Near-black under the status bar so the Dynamic Island cutout does
+              not sit against a bright frame. */}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.92)', 'rgba(0,0,0,0.45)', 'transparent']}
+            locations={[0, 0.55, 1]}
+            style={[StyleSheet.absoluteFill, { top: HERO_BLEED, height: 130, bottom: undefined }]}
+          />
           <LinearGradient
             colors={[colors.scrimTop, colors.bg]}
             locations={[0, 1]}
@@ -1696,6 +1706,8 @@ const HERO_BLEED = 320;
 const HERO_STRETCH_SLOP = 1.08;
 /** Upper bound on requested backdrop width. */
 const HERO_MAX_PX = 2560;
+/** Flat darkening over the backdrop, same dial as the library hero. */
+const HERO_SHADE = 0.3;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
@@ -1704,6 +1716,7 @@ const styles = StyleSheet.create({
   // sits below the bleed at rest; the stretch transform grows it into that space
   heroBackdrop: { position: 'absolute', top: HERO_BLEED, left: 0, right: 0, bottom: 0 },
   backdrop: { width: '100%', height: '100%' },
+  heroShade: { position: 'absolute', top: HERO_BLEED, left: 0, right: 0, bottom: 0, backgroundColor: `rgba(0,0,0,${HERO_SHADE})` },
   body: { paddingHorizontal: spacing.xl, marginTop: POSTER_OFFSET },
   headerRow: { flexDirection: 'row', gap: spacing.lg, alignItems: 'flex-end' },
   poster: {

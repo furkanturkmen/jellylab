@@ -10,6 +10,9 @@ import { MEDIA_STATUS } from '@/types';
 
 type MediaType = 'movie' | 'tv';
 
+/** Flat darkening over the backdrop, same dial as the library hero. */
+const HERO_SHADE = 0.3;
+
 export default function TmdbDetailScreen() {
   const router = useRouter();
   const { type, id } = useLocalSearchParams<{ type: MediaType; id: string }>();
@@ -221,6 +224,14 @@ export default function TmdbDetailScreen() {
           ) : (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bgElevated }]} />
           )}
+          {/* Same treatment as the other heroes: flat shade for legibility,
+              near-black under the status bar for the Dynamic Island. */}
+          <View style={styles.heroShade} />
+          <LinearGradient
+            colors={['rgba(0,0,0,0.92)', 'rgba(0,0,0,0.45)', 'transparent']}
+            locations={[0, 0.55, 1]}
+            style={[StyleSheet.absoluteFill, { height: 130, bottom: undefined }]}
+          />
           <LinearGradient
             colors={[colors.scrimTop, colors.bg]}
             locations={[0.35, 1]}
@@ -558,6 +569,7 @@ const HERO_HEIGHT = 320;
 const POSTER_OFFSET = -80;
 
 const styles = StyleSheet.create({
+  heroShade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: `rgba(0,0,0,${HERO_SHADE})` },
   secondaryBtn: {
     height: 48,
     borderRadius: radius.pill,
