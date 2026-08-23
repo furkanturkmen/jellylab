@@ -81,8 +81,6 @@ function RootLayoutNav() {
     if (state.status === 'signed-out' && !inLogin && !inServers) {
       router.replace('/login');
     } else if (state.status === 'signed-in' && inLogin) {
-      // Dismiss any stacked modals (login/servers/profile) so tabs render clean.
-      try { (router as any).dismissAll?.(); } catch {}
       router.replace('/(tabs)');
     }
   }, [state.status, segments, server, serverReady]);
