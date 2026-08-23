@@ -43,7 +43,8 @@
     "jellyseerrUrl": "Jellyseerr URL",
     "hint": "Include the scheme (http:// or https://) and no trailing slash. Both servers must be reachable from this device — LAN, VPN mesh, or public.",
     "missingTitle": "Missing fields",
-    "missingBody": "Fill in a name and both URLs."
+    "missingBody": "Fill in a name and both URLs.",
+    "testConnection": "Test connection"
   },
   "tabs": {
     "library": "Library",

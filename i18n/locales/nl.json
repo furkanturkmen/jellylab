@@ -43,7 +43,8 @@
     "jellyseerrUrl": "Jellyseerr URL",
     "hint": "Vul het schema in (http:// of https://) zonder afsluitende slash. Beide servers moeten bereikbaar zijn vanaf dit toestel — LAN, VPN of publiek.",
     "missingTitle": "Ontbrekende velden",
-    "missingBody": "Vul een naam en beide URLs in."
+    "missingBody": "Vul een naam en beide URLs in.",
+    "testConnection": "Verbinding testen"
   },
   "tabs": {
     "library": "Bibliotheek",

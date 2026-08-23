@@ -3,6 +3,8 @@ import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, Te
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
+import axios from 'axios';
+
 import { useCurrentServer } from '@/hooks/useServer';
 import { upsertServer } from '@/store/servers';
 import { colors, radius, spacing, type } from '@/theme';
@@ -19,6 +21,36 @@ export default function ServerEditScreen() {
   const [jellyfinUrl, setJellyfinUrl] = useState(existing?.jellyfinUrl ?? 'http://');
   const [jellyseerrUrl, setJellyseerrUrl] = useState(existing?.jellyseerrUrl ?? 'http://');
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ jf: 'ok' | 'fail' | 'idle'; js: 'ok' | 'fail' | 'idle'; error?: string }>({ jf: 'idle', js: 'idle' });
+
+  async function onTest() {
+    if (!jellyfinUrl.trim() || !jellyseerrUrl.trim()) {
+      Alert.alert(t('serverEdit.missingTitle'), t('serverEdit.missingBody'));
+      return;
+    }
+    setTesting(true);
+    setTestResult({ jf: 'idle', js: 'idle' });
+    const jf = jellyfinUrl.trim().replace(/\/+$/, '');
+    const js = jellyseerrUrl.trim().replace(/\/+$/, '');
+    let jfResult: 'ok' | 'fail' = 'fail';
+    let jsResult: 'ok' | 'fail' = 'fail';
+    let error: string | undefined;
+    try {
+      const r = await axios.get(`${jf}/System/Info/Public`, { timeout: 8000 });
+      if (r.status === 200 && r.data?.Id) jfResult = 'ok';
+    } catch (e: any) {
+      error = `Jellyfin: ${e?.message ?? 'unreachable'}`;
+    }
+    try {
+      const r = await axios.get(`${js}/api/v1/status`, { timeout: 8000 });
+      if (r.status === 200 && r.data?.version) jsResult = 'ok';
+    } catch (e: any) {
+      error = error ? `${error}\nJellyseerr: ${e?.message ?? 'unreachable'}` : `Jellyseerr: ${e?.message ?? 'unreachable'}`;
+    }
+    setTestResult({ jf: jfResult, js: jsResult, error });
+    setTesting(false);
+  }
 
   async function onSave() {
     if (!name.trim() || !jellyfinUrl.trim() || !jellyseerrUrl.trim()) {
@@ -33,7 +65,12 @@ export default function ServerEditScreen() {
         jellyfinUrl,
         jellyseerrUrl,
       });
-      router.back();
+      if (existing) {
+        router.back();
+      } else {
+        // First-time add: skip the servers list and go straight to login.
+        router.replace('/login');
+      }
     } catch (e: any) {
       Alert.alert(t('common.failed'), e?.message ?? t('common.unknownError'));
     } finally {
@@ -89,6 +126,34 @@ export default function ServerEditScreen() {
 
           <Text style={styles.hint}>{t('serverEdit.hint')}</Text>
 
+          {testResult.jf !== 'idle' || testResult.js !== 'idle' ? (
+            <View style={styles.resultCard}>
+              <View style={styles.resultRow}>
+                <Text style={styles.resultLabel}>Jellyfin</Text>
+                <View style={[styles.resultPill, testResult.jf === 'ok' ? styles.pillOk : styles.pillFail]}>
+                  <Text style={styles.resultPillText}>{testResult.jf === 'ok' ? '✓ Reachable' : '✕ Unreachable'}</Text>
+                </View>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.resultRow}>
+                <Text style={styles.resultLabel}>Jellyseerr</Text>
+                <View style={[styles.resultPill, testResult.js === 'ok' ? styles.pillOk : styles.pillFail]}>
+                  <Text style={styles.resultPillText}>{testResult.js === 'ok' ? '✓ Reachable' : '✕ Unreachable'}</Text>
+                </View>
+              </View>
+              {testResult.error ? <Text style={styles.errorText}>{testResult.error}</Text> : null}
+            </View>
+          ) : null}
+
+          <TouchableOpacity
+            style={[styles.secondaryButton, testing && { opacity: 0.5 }]}
+            onPress={onTest}
+            disabled={testing || busy}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.secondaryButtonText}>{testing ? t('common.loading') : t('serverEdit.testConnection')}</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.saveButton, busy && { opacity: 0.5 }]}
             onPress={onSave}
@@ -117,13 +182,44 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   hint: { ...type.caption, color: colors.textMuted, marginTop: spacing.md, lineHeight: 18 },
+  resultCard: {
+    marginTop: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  resultRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.sm },
+  resultLabel: { ...type.body, color: colors.text },
+  resultPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+  },
+  pillOk: { backgroundColor: 'rgba(45, 200, 120, 0.18)' },
+  pillFail: { backgroundColor: 'rgba(249, 38, 114, 0.18)' },
+  resultPillText: { ...type.caption, color: colors.text, fontWeight: '700' },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+  errorText: { ...type.caption, color: colors.pink, marginTop: spacing.sm },
+  secondaryButton: {
+    height: 48,
+    borderRadius: radius.pill,
+    backgroundColor: colors.glassTint,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.glassBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.lg,
+  },
+  secondaryButtonText: { color: colors.text, fontSize: 15, fontWeight: '600' },
   saveButton: {
     height: 52,
     borderRadius: radius.pill,
     backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: spacing.xl,
+    marginTop: spacing.md,
   },
   saveButtonText: { color: colors.accentContrast, fontSize: 16, fontWeight: '700' },
 });

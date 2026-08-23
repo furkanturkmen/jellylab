@@ -43,7 +43,8 @@
     "jellyseerrUrl": "Jellyseerr URL",
     "hint": "Mit Schema (http:// oder https://), ohne Slash am Ende. Beide Server müssen von diesem Gerät erreichbar sein — LAN, VPN oder öffentlich.",
     "missingTitle": "Fehlende Felder",
-    "missingBody": "Bitte Name und beide URLs ausfüllen."
+    "missingBody": "Bitte Name und beide URLs ausfüllen.",
+    "testConnection": "Verbindung testen"
   },
   "tabs": {
     "library": "Bibliothek",

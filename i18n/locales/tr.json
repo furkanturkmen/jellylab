@@ -43,7 +43,8 @@
     "jellyseerrUrl": "Jellyseerr URL",
     "hint": "Şemayı (http:// veya https://) dahil et ve sondaki eğik çizgi olmasın. Her iki sunucu da bu cihazdan erişilebilir olmalı — LAN, VPN veya genel.",
     "missingTitle": "Eksik alanlar",
-    "missingBody": "Bir ad ve iki URL'yi doldur."
+    "missingBody": "Bir ad ve iki URL'yi doldur.",
+    "testConnection": "Bağlantıyı test et"
   },
   "tabs": {
     "library": "Kitaplık",
