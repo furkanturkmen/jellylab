@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 
 import * as Jellyfin from '@/api/jellyfin';
+import { ButtonRow, CircleButton, PrimaryButton } from '@/components/AppleButton';
 import { decidePlayback, type Engine, type PlayMode } from '@/player/decide';
 import { parseVtt, findActiveCue, type VttCue } from '@/player/vtt';
 import { matchesLanguage } from '@/player/lang';
@@ -252,22 +253,22 @@ export default function ItemScreen() {
 
           {item.Type !== 'Series' ? (
             <>
-              <View style={styles.actionRow}>
-                <TouchableOpacity style={styles.playBtn} onPress={play} activeOpacity={0.85}>
-                  <Text style={styles.playBtnText}>▶  Play</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.castChip}
+              <ButtonRow style={styles.actionRow}>
+                {/* Apple names the button after what it will do, so a part-watched
+                    item offers Resume rather than Play. */}
+                <PrimaryButton
+                  label={(item.UserData?.PlaybackPositionTicks ?? 0) > 0 ? 'Resume' : 'Play'}
+                  icon={{ ios: 'play.fill', android: 'play_arrow', web: 'play_arrow' }}
+                  onPress={play}
+                  style={styles.playAction}
+                />
+                <CircleButton
+                  icon={{ ios: 'tv.badge.wifi', android: 'cast', web: 'cast' }}
                   onPress={() => setCastPickerOpen(true)}
-                  activeOpacity={0.75}
-                >
-                  <SymbolView
-                    name={{ ios: 'tv.badge.wifi', android: 'cast', web: 'cast' }}
-                    tintColor={castState === 'connected' ? colors.pink : colors.text}
-                    size={26}
-                  />
-                </TouchableOpacity>
-              </View>
+                  accessibilityLabel="Cast to a device"
+                  tint={castState === 'connected' ? colors.pink : undefined}
+                />
+              </ButtonRow>
               <Text style={styles.castHint}>
                 Cast: {castState ?? 'sdk-not-ready'} · AirPlay picker is inside the player
               </Text>
@@ -2006,15 +2007,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     alignItems: 'stretch',
   },
-  playBtn: {
-    flex: 1,
-    height: 52,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playBtnText: { color: colors.accentContrast, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 },
+  // the button fills the row; the cast circle beside it keeps its own width
+  playAction: { flex: 1 },
   castChip: {
     height: 52,
     width: 52,

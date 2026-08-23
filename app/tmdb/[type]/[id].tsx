@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 import * as Jellyseerr from '@/api/jellyseerr';
+import { GlassButton, PrimaryButton } from '@/components/AppleButton';
 import { colors, radius, spacing, type } from '@/theme';
 import { MEDIA_STATUS } from '@/types';
 
@@ -275,16 +276,13 @@ export default function TmdbDetailScreen() {
               something else. The picker itself reports when there is nothing
               left to ask for, rather than this having to predict it. */}
           {type === 'tv' && (available || partiallyAvailable || processing || requested) ? (
-            <TouchableOpacity
-              style={[styles.secondaryBtn, acting && styles.primaryBtnDisabled]}
+            <GlassButton
+              label={acting ? 'Checking seasons…' : 'Request more seasons'}
+              icon={{ ios: 'plus', android: 'add', web: 'add' }}
               onPress={onRequest}
               disabled={acting}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.secondaryBtnText, acting && styles.primaryBtnTextDisabled]}>
-                {acting ? 'Checking seasons…' : 'Request more seasons'}
-              </Text>
-            </TouchableOpacity>
+              style={styles.secondaryAction}
+            />
           ) : null}
 
           {processing && activeDownloads.length > 0 ? (
@@ -459,60 +457,39 @@ function PrimaryAction({
   onPlay: () => void;
   onRequest: () => void;
 }) {
-  if (available && hasJellyfinId) {
-    return (
-      <TouchableOpacity style={styles.primaryBtn} onPress={onPlay} activeOpacity={0.85}>
-        <Text style={styles.primaryBtnText}>▶  Play on Jellyfin</Text>
-      </TouchableOpacity>
-    );
-  }
-  if (available) {
-    return (
-      <View style={[styles.primaryBtn, styles.primaryBtnDisabled]}>
-        <Text style={[styles.primaryBtnText, styles.primaryBtnTextDisabled]}>Available on Jellyfin</Text>
-      </View>
-    );
-  }
-  if (processing) {
-    return (
-      <View style={[styles.primaryBtn, styles.primaryBtnDisabled]}>
-        <Text style={[styles.primaryBtnText, styles.primaryBtnTextDisabled]}>Processing…</Text>
-      </View>
-    );
-  }
+  // Every branch renders the same button, so only the label, the glyph and
+  // whether it does anything actually differ. Deciding those up front keeps
+  // six near-identical blocks of JSX from drifting apart.
+  const play = (label: string) => (
+    <PrimaryButton
+      label={label}
+      icon={{ ios: 'play.fill', android: 'play_arrow', web: 'play_arrow' }}
+      onPress={onPlay}
+      style={styles.primaryAction}
+    />
+  );
+  // A state, not an action: disabled carries that to VoiceOver as well as to
+  // the eye, which a plain styled View never did.
+  const state = (label: string) => (
+    <PrimaryButton label={label} onPress={() => {}} disabled style={styles.primaryAction} />
+  );
+
+  if (available) return hasJellyfinId ? play('Play on Jellyfin') : state('Available on Jellyfin');
+  if (processing) return state('Processing…');
   // Partially available means some seasons are there and some are not, which
   // is exactly when you want to ask for the rest. It used to render a disabled
   // "Partially Available" label, so a series like this could never be topped
   // up. Play what exists; the Request seasons button below covers the gap.
-  if (partiallyAvailable) {
-    return hasJellyfinId ? (
-      <TouchableOpacity style={styles.primaryBtn} onPress={onPlay} activeOpacity={0.85}>
-        <Text style={styles.primaryBtnText}>▶  Play what's available</Text>
-      </TouchableOpacity>
-    ) : (
-      <View style={[styles.primaryBtn, styles.primaryBtnDisabled]}>
-        <Text style={[styles.primaryBtnText, styles.primaryBtnTextDisabled]}>Partially Available</Text>
-      </View>
-    );
-  }
-  if (requested) {
-    return (
-      <View style={[styles.primaryBtn, styles.primaryBtnDisabled]}>
-        <Text style={[styles.primaryBtnText, styles.primaryBtnTextDisabled]}>Requested</Text>
-      </View>
-    );
-  }
+  if (partiallyAvailable) return hasJellyfinId ? play("Play what's available") : state('Partially Available');
+  if (requested) return state('Requested');
   return (
-    <TouchableOpacity
-      style={[styles.primaryBtn, acting && styles.primaryBtnDisabled]}
+    <PrimaryButton
+      label={acting ? 'Requesting…' : 'Request'}
+      icon={acting ? undefined : { ios: 'plus', android: 'add', web: 'add' }}
       onPress={onRequest}
       disabled={acting}
-      activeOpacity={0.85}
-    >
-      <Text style={[styles.primaryBtnText, acting && styles.primaryBtnTextDisabled]}>
-        {acting ? 'Requesting…' : 'Request'}
-      </Text>
-    </TouchableOpacity>
+      style={styles.primaryAction}
+    />
   );
 }
 
@@ -570,17 +547,7 @@ const POSTER_OFFSET = -80;
 
 const styles = StyleSheet.create({
   heroShade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: `rgba(0,0,0,${HERO_SHADE})` },
-  secondaryBtn: {
-    height: 48,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    marginTop: spacing.md,
-  },
-  secondaryBtnText: { ...type.bodyStrong, color: colors.text },
+  secondaryAction: { marginTop: spacing.md },
   sheet: { flex: 1, backgroundColor: colors.bg },
   sheetHeader: {
     flexDirection: 'row',
@@ -646,17 +613,7 @@ const styles = StyleSheet.create({
   },
   pillText: { color: colors.text, ...type.caption, textTransform: 'uppercase' },
 
-  primaryBtn: {
-    marginTop: spacing.xl,
-    height: 52,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryBtnDisabled: { backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  primaryBtnText: { color: colors.accentContrast, fontSize: 16, fontWeight: '700', letterSpacing: -0.2 },
-  primaryBtnTextDisabled: { color: colors.textMuted },
+  primaryAction: { marginTop: spacing.xl },
 
   adminRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md, flexWrap: 'wrap' },
   adminBtn: {
