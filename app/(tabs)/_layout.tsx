@@ -14,21 +14,22 @@ export default function TabLayout() {
 
   const floatingBar = {
     position: 'absolute' as const,
-    left: spacing.lg,
-    right: spacing.lg,
-    bottom: insets.bottom > 0 ? insets.bottom + 4 : spacing.md,
-    height: 60,
+    left: spacing.xl,
+    right: spacing.xl,
+    bottom: insets.bottom > 0 ? insets.bottom + 8 : spacing.lg,
+    height: 64,
+    paddingHorizontal: spacing.sm,
     borderRadius: radius.pill,
     backgroundColor: Platform.OS === 'ios' ? 'transparent' : colors.bgElevated,
     borderTopWidth: 0,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
     overflow: 'hidden' as const,
-    elevation: 8,
+    elevation: 10,
     shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.45,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 10 },
   };
 
   return (
@@ -42,9 +43,9 @@ export default function TabLayout() {
         headerTintColor: colors.text,
         tabBarStyle: floatingBar,
         tabBarBackground: Platform.OS === 'ios'
-          ? () => <BlurView tint="dark" intensity={60} style={StyleSheet.absoluteFill} />
+          ? () => <BlurView tint="dark" intensity={70} style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(20,20,20,0.35)' }]} />
           : undefined,
-        tabBarItemStyle: { paddingVertical: 6 },
+        tabBarItemStyle: { paddingVertical: 8 },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
       }}>
       <Tabs.Screen
