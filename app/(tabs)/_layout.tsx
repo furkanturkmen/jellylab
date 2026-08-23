@@ -134,67 +134,67 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
     nav('search');
   }
 
-  const transition = LinearTransition.duration(220);
+  const transition = LinearTransition.duration(260);
 
   return (
-    <Animated.View style={[styles.container, { bottom }]} pointerEvents="box-none" layout={transition}>
-      {!isSearchActive ? (
+    <Animated.View style={[styles.container, { bottom }]} pointerEvents="box-none">
+      {/* Left slot: pill (with tabs) OR home circle — same Animated node so width interpolates */}
+      <Animated.View
+        layout={transition}
+        style={[styles.leftSlot, isSearchActive ? styles.leftCollapsed : styles.leftExpanded]}
+      >
+        {Platform.OS === 'ios' ? (
+          <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, styles.blurFallback]} />
+        )}
+        {isSearchActive ? (
+          <Animated.View entering={FadeIn.duration(120)} style={styles.slotCenter}>
+            <Pressable
+              onPress={() => {
+                Keyboard.dismiss();
+                setQuery('');
+                nav('index');
+              }}
+              style={styles.slotFullTap}
+              hitSlop={4}
+            >
+              <SymbolView name={{ ios: 'house.fill', android: 'home', web: 'home' }} tintColor={colors.text} size={22} />
+            </Pressable>
+          </Animated.View>
+        ) : (
+          <Animated.View entering={FadeIn.duration(120)} style={styles.pillRow}>
+            {mainRoutes.map(route => {
+              const meta = ICON_MAP[route.name];
+              if (!meta) return null;
+              return (
+                <TabItemButton
+                  key={route.key}
+                  onPress={() => nav(route.name)}
+                  focused={route.name === currentRouteName}
+                  ios={meta.ios}
+                  android={meta.android}
+                  label={meta.label(t)}
+                />
+              );
+            })}
+          </Animated.View>
+        )}
+      </Animated.View>
+
+      {/* Right slot: search bar (expanded) OR search circle — same Animated node */}
+      {searchRoute ? (
         <Animated.View
-          style={styles.mainPill}
           layout={transition}
-          entering={FadeIn.duration(180)}
-          exiting={FadeOut.duration(120)}
+          style={[styles.rightSlot, isSearchActive ? styles.rightExpanded : styles.rightCollapsed]}
         >
           {Platform.OS === 'ios' ? (
             <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
           ) : (
             <View style={[StyleSheet.absoluteFill, styles.blurFallback]} />
           )}
-          {mainRoutes.map(route => {
-            const meta = ICON_MAP[route.name];
-            if (!meta) return null;
-            return (
-              <TabItemButton
-                key={route.key}
-                onPress={() => nav(route.name)}
-                focused={route.name === currentRouteName}
-                ios={meta.ios}
-                android={meta.android}
-                label={meta.label(t)}
-              />
-            );
-          })}
-        </Animated.View>
-      ) : (
-        <Animated.View
-          layout={transition}
-          entering={FadeIn.duration(180)}
-          exiting={FadeOut.duration(120)}
-        >
-          <GlassCircle
-            onPress={() => {
-              Keyboard.dismiss();
-              setQuery('');
-              nav('index');
-            }}
-            icon={{ ios: 'house.fill', android: 'home' }}
-          />
-        </Animated.View>
-      )}
-
-      {searchRoute ? (
-        isSearchActive ? (
-          <>
-            <Animated.View
-              style={styles.searchBar}
-              layout={transition}
-              entering={FadeIn.duration(180)}
-            >
-              {Platform.OS === 'ios' ? (
-                <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
-              ) : (
-                <View style={[StyleSheet.absoluteFill, styles.blurFallback]} />
-              )}
+          {isSearchActive ? (
+            <Animated.View entering={FadeIn.duration(160)} style={styles.searchRow}>
               <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} tintColor={colors.textMuted} size={20} />
               <TextInput
                 style={styles.searchInput}
@@ -208,34 +208,28 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                 clearButtonMode="while-editing"
               />
             </Animated.View>
-            <Animated.View
-              layout={transition}
-              entering={FadeIn.duration(180)}
-              exiting={FadeOut.duration(120)}
-            >
-              <GlassCircle
-                onPress={() => {
-                  setQuery('');
-                  Keyboard.dismiss();
-                }}
-                icon={{ ios: 'xmark', android: 'close' }}
-                size={20}
-              />
+          ) : (
+            <Animated.View entering={FadeIn.duration(120)} style={styles.slotCenter}>
+              <Pressable onPress={openSearch} style={styles.slotFullTap} hitSlop={4}>
+                <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} tintColor={colors.text} size={24} />
+              </Pressable>
             </Animated.View>
-          </>
-        ) : (
-          <Animated.View
-            layout={transition}
-            entering={FadeIn.duration(180)}
-            exiting={FadeOut.duration(120)}
-          >
-            <GlassCircle
-              onPress={openSearch}
-              icon={{ ios: 'magnifyingglass', android: 'search' }}
-              size={24}
-            />
-          </Animated.View>
-        )
+          )}
+        </Animated.View>
+      ) : null}
+
+      {/* Detached X circle — only when search is active */}
+      {isSearchActive ? (
+        <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)}>
+          <GlassCircle
+            onPress={() => {
+              setQuery('');
+              Keyboard.dismiss();
+            }}
+            icon={{ ios: 'xmark', android: 'close' }}
+            size={20}
+          />
+        </Animated.View>
       ) : null}
     </Animated.View>
   );
@@ -343,5 +337,60 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     fontWeight: '500',
+  },
+
+  // Slot system for smooth width transitions
+  leftSlot: {
+    height: PILL_HEIGHT,
+    borderRadius: radius.pill,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.glassBorder,
+    shadowColor: '#000',
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  leftExpanded: {
+    paddingHorizontal: 6,
+    alignSelf: 'flex-start',
+  },
+  leftCollapsed: {
+    width: CIRCLE,
+    alignSelf: 'flex-start',
+  },
+  rightSlot: {
+    height: PILL_HEIGHT,
+    borderRadius: radius.pill,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.glassBorder,
+    shadowColor: '#000',
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  rightCollapsed: {
+    width: CIRCLE,
+  },
+  rightExpanded: {
+    flex: 1,
+  },
+  slotCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  slotFullTap: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillRow: { flexDirection: 'row', alignItems: 'center', height: '100%' },
+  searchRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
   },
 });
