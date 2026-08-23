@@ -249,6 +249,8 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
   const [subFontSize, setSubFontSize] = useState(18);
   const [vlcKey, setVlcKey] = useState(0);
   const positionRef = useRef(0);
+  const [vlcTextTracks, setVlcTextTracks] = useState<{ id: number; name?: string }[]>([]);
+  const [vlcTextTrackId, setVlcTextTrackId] = useState<number>(-1); // -1 = off
 
   // Keep positionRef synced so background/foreground can restore.
   useEffect(() => { positionRef.current = position; }, [position]);
@@ -323,6 +325,9 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
 
   async function pickExternalSub(streamIndex: number | null, persistPref = true) {
     setActiveSubIndex(streamIndex);
+    // Always disable VLC's internal track when we render an external overlay
+    // (or when explicitly turning off), otherwise both would be drawn.
+    setVlcTextTrackId(-1);
     if (streamIndex == null || !mediaSourceId) {
       setExternalCues([]);
       setActiveCue(null);
@@ -354,6 +359,14 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
     } catch {
       setExternalCues([]);
     }
+  }
+
+  function pickInternalSub(trackId: number) {
+    // Enable VLC internal track, clear any external overlay
+    setVlcTextTrackId(trackId);
+    setActiveSubIndex(null);
+    setExternalCues([]);
+    setActiveCue(null);
   }
 
   useEffect(() => {
@@ -422,6 +435,11 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
     setReady(true);
     const durSecs = (e?.duration ?? 0) / 1000;
     if (durSecs > 0) setDuration(durSecs);
+
+    // Capture available internal text tracks from VLC.
+    const tracks = Array.isArray(e?.textTracks) ? e.textTracks : [];
+    setVlcTextTracks(tracks.filter((t: any) => t && t.id != null && t.id !== -1));
+
     const seekSecs = positionRef.current > 0 ? positionRef.current : resumeSeconds;
     if (seekSecs > 0 && durSecs > 0) {
       const ratio = Math.max(0, Math.min(1, seekSecs / durSecs));
@@ -432,8 +450,6 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
         } catch {}
       }, 200);
     }
-    // If we're supposed to be paused (e.g. user paused before backgrounding),
-    // VLC will still autoplay after remount. Force pause here to match UI state.
     if (paused) {
       setTimeout(() => {
         try { vlcRef.current?.pause?.(); } catch {}
@@ -465,6 +481,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
           autoplay
           paused={paused}
           rate={rate}
+          textTrack={vlcTextTrackId}
           resizeMode="contain"
           playInBackground={false}
           onLoad={onLoad}
@@ -560,12 +577,23 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
           </View>
         ) : null}
       </Pressable>
-      <ExternalSubsModal
+      <VlcSubsModal
         visible={subsOpen}
         externalSubs={externalSubs}
-        activeIndex={activeSubIndex}
-        onPick={(idx) => {
+        internalTracks={vlcTextTracks}
+        activeExternalIndex={activeSubIndex}
+        activeInternalId={vlcTextTrackId}
+        onPickExternal={(idx) => {
           pickExternalSub(idx);
+          setSubsOpen(false);
+        }}
+        onPickInternal={(id) => {
+          pickInternalSub(id);
+          setSubsOpen(false);
+        }}
+        onOff={() => {
+          setVlcTextTrackId(-1);
+          pickExternalSub(null);
           setSubsOpen(false);
         }}
         onClose={() => setSubsOpen(false)}
@@ -577,6 +605,59 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
         onPick={changeSpeed}
       />
     </>
+  );
+}
+
+function VlcSubsModal({
+  visible, externalSubs, internalTracks, activeExternalIndex, activeInternalId,
+  onPickExternal, onPickInternal, onOff, onClose,
+}: {
+  visible: boolean;
+  externalSubs: { index: number; label: string }[];
+  internalTracks: { id: number; name?: string }[];
+  activeExternalIndex: number | null;
+  activeInternalId: number;
+  onPickExternal: (index: number) => void;
+  onPickInternal: (id: number) => void;
+  onOff: () => void;
+  onClose: () => void;
+}) {
+  const isOff = activeExternalIndex == null && activeInternalId === -1;
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable style={styles.modalSheet} onPress={() => {}}>
+          <View style={styles.modalHandle} />
+          <Text style={styles.modalTitle}>Subtitles</Text>
+          {externalSubs.length === 0 && internalTracks.length === 0 ? (
+            <Text style={styles.modalEmpty}>No subtitle tracks available</Text>
+          ) : (
+            <>
+              <TrackRow label="Off" selected={isOff} onPress={onOff} />
+              {internalTracks.map(t => (
+                <TrackRow
+                  key={`int-${t.id}`}
+                  label={`${t.name ?? `Track ${t.id}`} (embedded)`}
+                  selected={activeInternalId === t.id}
+                  onPress={() => onPickInternal(t.id)}
+                />
+              ))}
+              {externalSubs.map(s => (
+                <TrackRow
+                  key={`ext-${s.index}`}
+                  label={`${s.label} (external)`}
+                  selected={activeExternalIndex === s.index}
+                  onPress={() => onPickExternal(s.index)}
+                />
+              ))}
+            </>
+          )}
+          <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
+            <Text style={styles.modalCloseText}>Close</Text>
+          </TouchableOpacity>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
