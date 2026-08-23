@@ -5,6 +5,14 @@ import { Stack } from 'expo-router';
 import { loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
 
+const BITRATES: { mbps: number; label: string }[] = [
+  { mbps: 0, label: 'Original quality' },
+  { mbps: 8, label: '8 Mbps' },
+  { mbps: 4, label: '4 Mbps' },
+  { mbps: 2, label: '2 Mbps' },
+  { mbps: 1, label: '1 Mbps' },
+];
+
 const AUDIO: { code: string; label: string }[] = [
   { code: 'original', label: 'Original' },
   { code: 'eng', label: 'English' },
@@ -68,6 +76,18 @@ export default function PlaybackSettings() {
         </View>
 
         <View style={styles.card}>
+          <Text style={styles.cardLabel}>Maximum streaming quality</Text>
+          {BITRATES.map(b => (
+            <OptionRow
+              key={b.mbps}
+              label={b.label}
+              selected={prefs.maxBitrateMbps === b.mbps}
+              onPress={() => update('maxBitrateMbps', b.mbps)}
+            />
+          ))}
+        </View>
+
+        <View style={styles.card}>
           <ToggleRow
             label="Autoplay next episode"
             description="Automatically play the next episode of a TV show when the current one ends."
@@ -81,6 +101,14 @@ export default function PlaybackSettings() {
           falls back to VLC otherwise. Force AVPlayer if you always want the
           native iOS player; force VLC for maximum compatibility (MKV, DTS,
           TrueHD, VP9, AV1) at the cost of slower startup.
+        </Text>
+
+        <Text style={styles.note}>
+          Original quality streams the file untouched — best picture, no work
+          for the server, but needs a connection fast enough for the source
+          bitrate. Picking a limit makes the server transcode anything above it,
+          which is what you want on cellular. Files already under the limit are
+          streamed untouched either way.
         </Text>
       </ScrollView>
     </View>

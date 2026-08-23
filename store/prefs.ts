@@ -12,6 +12,7 @@ export type Prefs = {
   autoplayNext: boolean;
   preferredEngine: PlayerEngine;
   uiLanguage: string; // 'system' or one of SUPPORTED_LANGS
+  maxBitrateMbps: number; // 0 = unlimited: always direct play the original file
 };
 
 export const DEFAULT_PREFS: Prefs = {
@@ -22,6 +23,7 @@ export const DEFAULT_PREFS: Prefs = {
   autoplayNext: true,
   preferredEngine: 'auto',
   uiLanguage: 'system',
+  maxBitrateMbps: 0,
 };
 
 export async function loadPrefs(): Promise<Prefs> {
