@@ -1,6 +1,7 @@
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import '@/i18n';
@@ -17,6 +18,14 @@ export const unstable_settings = {
 };
 
 SplashScreen.preventAutoHideAsync();
+
+// Info.plist now supports landscape (needed so the player can rotate),
+// but the rest of the app is portrait-only. Lock at app boot.
+(async () => {
+  try {
+    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+  } catch {}
+})();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({

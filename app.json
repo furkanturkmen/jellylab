@@ -13,6 +13,11 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocalNetworkUsageDescription": "jellylab uses the local network to discover Chromecast and other streaming receivers.",
+        "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ],
         "NSBonjourServices": [
           "_googlecast._tcp"
         ],
