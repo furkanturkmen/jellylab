@@ -18,9 +18,14 @@ export const colors = {
   glassLift: 'rgba(255, 255, 255, 0.08)',
   glassEdge: 'rgba(255, 255, 255, 0.30)',
   // 'available' green, shared by the search and requests badges so the same
-  // state never renders two different ways
-  successTint: 'rgba(52, 199, 89, 0.24)',
-  successBorder: 'rgba(52, 199, 89, 0.5)',
+  // state never renders two different ways.
+  //
+  // Opaque on purpose: these sit on top of poster artwork, which can be white
+  // (Toy Story) or near-black (Mutiny) in the same row. A translucent tint
+  // reads on one and disappears on the other, so the badge carries its own
+  // background rather than borrowing whatever is behind it.
+  successTint: 'rgba(26, 112, 52, 0.92)',
+  successBorder: 'rgba(52, 199, 89, 0.75)',
   overlay: 'rgba(0, 0, 0, 0.55)',
   scrimTop: 'rgba(10, 10, 10, 0)',
   scrimBottom: 'rgba(10, 10, 10, 0.95)',

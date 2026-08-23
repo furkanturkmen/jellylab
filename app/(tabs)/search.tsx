@@ -316,7 +316,17 @@ const styles = StyleSheet.create({
     borderColor: colors.glassBorder,
     backgroundColor: colors.glassTint,
   },
-  badgeOverlayText: { color: colors.text, fontSize: 10, fontWeight: '600', letterSpacing: 0.3, textTransform: 'uppercase' },
+  badgeOverlayText: {
+    color: colors.text,
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    // last line of defence over a white poster
+    textShadowColor: 'rgba(0,0,0,0.55)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
 
   row: { flexDirection: 'row', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, gap: spacing.md, alignItems: 'center' },
   thumb: { width: 60, height: 90, borderRadius: radius.sm, backgroundColor: colors.surface },
