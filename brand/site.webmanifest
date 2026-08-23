@@ -1,0 +1,31 @@
+{
+  "name": "JellyLab",
+  "short_name": "JellyLab",
+  "description": "iOS client for self-hosted Jellyfin + Jellyseerr",
+  "icons": [
+    {
+      "src": "/png/icon/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/png/icon/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/png/icon/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/svg/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ],
+  "theme_color": "#0B1220",
+  "background_color": "#0B1220",
+  "display": "standalone"
+}
