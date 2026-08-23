@@ -441,8 +441,20 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
     if (durSecs > 0) setDuration(durSecs);
 
     // Capture available internal text tracks from VLC.
-    const tracks = Array.isArray(e?.textTracks) ? e.textTracks : [];
-    setVlcTextTracks(tracks.filter((t: any) => t && t.id != null && t.id !== -1));
+    const rawTracks = Array.isArray(e?.textTracks) ? e.textTracks : [];
+    const tracks = rawTracks.filter((t: any) => t && t.id != null && t.id !== -1);
+    setVlcTextTracks(tracks);
+
+    // If we want subs off (vlcTextTrackId === -1) but VLC just autoplayed
+    // with a default embedded track selected, the -1 prop from initial
+    // render was silently ignored. Ping-pong through a real track id to
+    // force VLC to actually apply -1.
+    if (vlcTextTrackId === -1 && tracks.length > 0) {
+      setTimeout(() => {
+        setVlcTextTrackId(tracks[0].id);
+        setTimeout(() => setVlcTextTrackId(-1), 80);
+      }, 300);
+    }
 
     const seekSecs = positionRef.current > 0 ? positionRef.current : resumeSeconds;
     if (seekSecs > 0 && durSecs > 0) {
