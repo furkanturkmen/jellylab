@@ -7,6 +7,7 @@ export type PlayerEngine = 'auto' | 'native' | 'vlc';
 export type Prefs = {
   subtitleLanguage: string; // e.g. 'eng', 'nld', 'off'
   subtitleSize: 'sm' | 'md' | 'lg';
+  lastSubLabel: string; // exact label of the last-picked external sub, remembered across sessions
   audioLanguage: string;
   autoplayNext: boolean;
   preferredEngine: PlayerEngine;
@@ -17,6 +18,7 @@ export type Prefs = {
 export const DEFAULT_PREFS: Prefs = {
   subtitleLanguage: 'eng',
   subtitleSize: 'md',
+  lastSubLabel: '',
   audioLanguage: 'original',
   autoplayNext: true,
   preferredEngine: 'auto',

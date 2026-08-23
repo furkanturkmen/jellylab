@@ -435,7 +435,17 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
       const sizeMap = { sm: 14, md: 18, lg: 24 } as const;
       setSubFontSize(sizeMap[prefs.subtitleSize] ?? 18);
 
-      if (prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
+      // 1. Prefer exact match on the last-picked label (persisted across sessions).
+      if (prefs.lastSubLabel && prefs.lastSubLabel !== 'off') {
+        const exact = externalSubs.find(s => s.label === prefs.lastSubLabel);
+        if (exact) {
+          pickExternalSub(exact.index, /* persistPref */ false);
+          return;
+        }
+      }
+
+      // 2. Fall back to the language preference (alias-matched).
+      if (prefs.lastSubLabel !== 'off' && prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
         const wanted = prefs.subtitleLanguage.toLowerCase();
         const aliases: Record<string, string[]> = {
           eng: ['eng', 'english', 'en'],
@@ -452,7 +462,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
           return needles.some(n => label.includes(n));
         });
         if (match) {
-          pickExternalSub(match.index);
+          pickExternalSub(match.index, /* persistPref */ false);
         }
       }
     })();
@@ -559,11 +569,18 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
     setSpeedOpen(false);
   }
 
-  async function pickExternalSub(streamIndex: number | null) {
+  async function pickExternalSub(streamIndex: number | null, persistPref = true) {
     setActiveSubIndex(streamIndex);
     if (streamIndex == null || !mediaSourceId) {
       setExternalCues([]);
       setActiveCue(null);
+      if (persistPref) {
+        try {
+          const prefs = await loadPrefs();
+          const { savePrefs } = await import('@/store/prefs');
+          await savePrefs({ ...prefs, lastSubLabel: 'off' });
+        } catch {}
+      }
       return;
     }
     try {
@@ -573,6 +590,17 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
       const vtt = await Jellyfin.fetchSubtitleVtt(url);
       const cues = parseVtt(vtt);
       setExternalCues(cues);
+
+      if (persistPref) {
+        const picked = externalSubs.find(s => s.index === streamIndex);
+        if (picked) {
+          try {
+            const prefs = await loadPrefs();
+            const { savePrefs } = await import('@/store/prefs');
+            await savePrefs({ ...prefs, lastSubLabel: picked.label });
+          } catch {}
+        }
+      }
     } catch (e) {
       setExternalCues([]);
     }
