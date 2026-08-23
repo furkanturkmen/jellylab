@@ -1,8 +1,8 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { Tabs } from 'expo-router';
 import { BlurView } from 'expo-blur';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -36,14 +36,26 @@ const ICON_MAP: Record<string, { ios: string; android: string; label: (t: any) =
 function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const bottom = insets.bottom > 0 ? insets.bottom + 8 : spacing.lg;
   const inputRef = useRef<TextInput>(null);
   const [query, setQuery] = useSearchQuery();
+  const [kbHeight, setKbHeight] = useState(0);
 
   const mainRoutes = state.routes.filter(r => r.name !== 'search');
   const searchRoute = state.routes.find(r => r.name === 'search');
   const currentRouteName = state.routes[state.index]?.name;
   const isSearchActive = currentRouteName === 'search';
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const s1 = Keyboard.addListener(showEvt, e => setKbHeight(e.endCoordinates.height));
+    const s2 = Keyboard.addListener(hideEvt, () => setKbHeight(0));
+    return () => { s1.remove(); s2.remove(); };
+  }, []);
+
+  const bottom = kbHeight > 0
+    ? kbHeight + spacing.sm
+    : (insets.bottom > 0 ? insets.bottom + 8 : spacing.lg);
 
   function nav(name: string) {
     const route = state.routes.find(r => r.name === name);
@@ -89,29 +101,43 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
       {searchRoute ? (
         isSearchActive ? (
-          <View style={styles.searchBar}>
-            {Platform.OS === 'ios' ? (
-              <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
-            ) : (
-              <View style={[StyleSheet.absoluteFill, styles.blurFallback]} />
-            )}
-            <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} tintColor={colors.textMuted} size={20} />
-            <TextInput
-              ref={inputRef}
-              style={styles.searchInput}
-              value={query}
-              onChangeText={setQuery}
-              placeholder={t('search.placeholder')}
-              placeholderTextColor={colors.textDim}
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="search"
-              clearButtonMode="while-editing"
-            />
-            <Pressable onPress={() => nav('index')} hitSlop={12} style={styles.searchClose}>
-              <SymbolView name={{ ios: 'xmark', android: 'close', web: 'close' }} tintColor={colors.text} size={16} />
+          <>
+            <View style={styles.searchBar}>
+              {Platform.OS === 'ios' ? (
+                <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
+              ) : (
+                <View style={[StyleSheet.absoluteFill, styles.blurFallback]} />
+              )}
+              <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} tintColor={colors.textMuted} size={20} />
+              <TextInput
+                ref={inputRef}
+                style={styles.searchInput}
+                value={query}
+                onChangeText={setQuery}
+                placeholder={t('search.placeholder')}
+                placeholderTextColor={colors.textDim}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+                clearButtonMode="while-editing"
+              />
+            </View>
+            <Pressable
+              onPress={() => {
+                Keyboard.dismiss();
+                setQuery('');
+                nav('index');
+              }}
+              style={({ pressed }) => [styles.searchCircle, pressed && { opacity: 0.7 }]}
+            >
+              {Platform.OS === 'ios' ? (
+                <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
+              ) : (
+                <View style={[StyleSheet.absoluteFill, styles.blurFallback]} />
+              )}
+              <SymbolView name={{ ios: 'xmark', android: 'close', web: 'close' }} tintColor={colors.text} size={20} />
             </Pressable>
-          </View>
+          </>
         ) : (
           <Pressable
             onPress={openSearch}
@@ -232,13 +258,5 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     fontWeight: '500',
-  },
-  searchClose: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
   },
 });
