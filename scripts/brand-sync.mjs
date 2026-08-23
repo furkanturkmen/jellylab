@@ -19,8 +19,15 @@ import { PNG } from 'pngjs';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const p = (...s) => resolve(ROOT, ...s);
 
-/** Night, from BRAND.md - the icon tile and dark-UI ground. */
-const NIGHT = '#0B1220';
+/**
+ * Night, from BRAND.md. The kit specifies it as a gradient (#14121C -> #05070C)
+ * because the icon tile is one; this is its midpoint, which is what anything
+ * needing a single flat colour gets - splash ground, Android icon background,
+ * web theme-color. Sampling the shipped icon returns exactly this value at the
+ * tile's centre, so a flat splash sits flush against the icon rather than
+ * reading as a slightly different black.
+ */
+const NIGHT = '#0D0D14';
 
 function hexToRgb(hex) {
   const h = hex.replace('#', '');

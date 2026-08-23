@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "jellylab",
     "userInterfaceStyle": "automatic",
-    "primaryColor": "#00A4DC",
+    "primaryColor": "#0FB6F2",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.furkanturkmen.jellylab",
@@ -33,7 +33,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0B1220",
+        "backgroundColor": "#0D0D14",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -49,8 +49,8 @@
       "name": "JellyLab",
       "shortName": "JellyLab",
       "description": "iOS client for self-hosted Jellyfin + Jellyseerr",
-      "themeColor": "#0B1220",
-      "backgroundColor": "#0B1220",
+      "themeColor": "#0D0D14",
+      "backgroundColor": "#0D0D14",
       "display": "standalone",
       "lang": "en"
     },
@@ -61,7 +61,7 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#0B1220"
+          "backgroundColor": "#0D0D14"
         }
       ],
       "expo-secure-store",

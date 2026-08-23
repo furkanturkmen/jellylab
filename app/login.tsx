@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1, padding: spacing.xl, justifyContent: 'center' },
   header: { marginBottom: spacing.xxl, alignItems: 'center' },
-  // taller than wide (939:1024), so contain inside a square box
+  // taller than wide (364:512), so contain inside a square box
   mark: { width: 76, height: 76, marginBottom: spacing.md },
   brand: { ...type.display, color: colors.text, marginBottom: spacing.md },
   hostChip: {

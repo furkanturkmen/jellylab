@@ -1,39 +1,23 @@
-# JellyLab brand kit
+# Which file do I use?
 
-Colours: **#AA5CC3** Jelly Purple · **#00A4DC** Jelly Blue · **#C9B8F0** Iris Lavender · **#0B2545** Deep Ink · **#F4F1FB** Sclera
-Type: **Quicksand Bold (700)**, tracking -1%. "Jelly" in Deep Ink, "Lab" in the gradient (or #5FC4EC on dark).
-Clear space: one flask-neck width (1/4 of mark width) on all sides. Minimum mark 24px; minimum lockup 96px wide.
-
-## svg/ — use these wherever SVG is allowed
-| file | use |
+| I need… | file |
 |---|---|
-| jellylab-mark.svg | primary mark, light backgrounds |
-| jellylab-mark-dark.svg | primary mark, dark backgrounds (brightened gradient) |
-| jellylab-icon-64.svg / -32.svg | pre-simplified small sizes |
-| favicon.svg | `<link rel="icon" href="/favicon.svg">` |
-| jellylab-mono.svg | single colour, inherits `currentColor` — toolbar glyphs, stamps, embroidery |
-| jellylab-lockup.svg | mark + wordmark (needs Quicksand; use the PNG lockups if the font isn't available) |
-| app-icon-1024.svg | square app icon artwork |
+| App icon, iOS 26 default/dark | png/icon/icon-1024.png |
+| App icon, light appearance | png/icon-light/icon-light-1024.png |
+| App icon, tinted appearance | png/icon-tinted/icon-tinted-1024.png |
+| Home screen @3x (legacy) | png/icon/icon-180.png |
+| PWA / Android | png/icon/icon-192.png, icon-512.png, maskable-512.png |
+| Favicon | svg/favicon.svg (+ png/icon/icon-32.png fallback) |
+| macOS .icns | png/macos/* → iconutil |
+| Logo on a light page | svg/jellylab-mark.svg |
+| Logo on a dark page | svg/jellylab-mark-dark.svg |
+| One-colour / stamp / embroidery | svg/jellylab-mono.svg (inherits currentColor) |
+| Docs or README header | png/lockup/jellylab-lockup-light.png (@2x available) |
+| Dark docs header | png/lockup/jellylab-lockup-dark.png |
+| GitHub social preview | png/social/github-social-preview-1280x640.png |
+| README hero | png/social/readme-hero-1200x400.png |
+| Landing page / marketing banner | png/social/wide-banner-1920x720.png |
+| Slide deck, email signature | png/mark/jellylab-mark-512.png |
+| Docker Hub logo | png/icon/icon-256.png |
 
-## png/
-- **icon/** `icon-{16..1024}.png` square dark-tile icons + `maskable-512.png` (Android adaptive, 58% safe zone).
-  - Web: `icon-192`, `icon-512`, `maskable-512`, `icon-180` (`apple-touch-icon`), `icon-32`/`icon-16` (`.ico` fallback).
-  - iOS App Store: `icon-1024.png` (1024x1024, no alpha, no rounding — Xcode applies the mask).
-- **macos/** `icon_16x16 … icon_512x512` — drop into `JellyLab.iconset` (add @2x copies of the next size up), then `iconutil -c icns`.
-- **mark/** transparent mark PNGs, light and dark, 16–1024.
-- **lockup/** `jellylab-lockup-light/dark.png` (+@2x) — docs headers, slides, email signatures.
-- **social/** `github-social-preview-1280x640.png` (repo Settings → Social preview) · `readme-hero-1200x400.png` (top of README) · `wide-banner-1920x720.png` (landing page / App Store marketing hero).
-
-## Docker Hub / GHCR
-Repository logo: `png/icon/icon-256.png`. Org avatar: `png/icon/icon-1024.png`.
-
-## Web snippet
-```html
-<link rel="icon" href="/svg/favicon.svg">
-<link rel="apple-touch-icon" sizes="180x180" href="/png/icon/icon-180.png">
-<link rel="manifest" href="/site.webmanifest">
-<meta name="theme-color" content="#0B1220">
-```
-
-## Don't
-Stretch, rotate, recolour, add effects, or place the mark on brand blue.
+Full spec, colour tokens and code snippets: **BRAND.md**.

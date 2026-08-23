@@ -7,14 +7,19 @@
  * the icon) rather than sprayed across chrome that is meant to recede.
  */
 export const brand = {
-  purple: '#AA5CC3',   // gradient start
-  blue: '#00A4DC',     // gradient end
-  purpleBright: '#C77BDE', // gradient start, on dark
-  blueBright: '#3AB7E8',   // gradient end, on dark
-  iris: '#C9B8F0',
-  ink: '#0B2545',
-  sclera: '#F4F1FB',
-  night: '#0B1220',    // icon tile and splash ground
+  // the flask body runs as a gradient; which pair depends on what is behind it
+  glassDark: ['#C45BEA', '#0FB6F2'] as const,   // on dark
+  glassLight: ['#A63FD6', '#0094C8'] as const,  // on light
+  cap: '#9B7BE8',
+  iris: '#B79CF2',
+  ink: '#0B1B33',      // play pupil, wordmark
+  sclera: '#FFFFFF',
+  mist: '#F4F1FB',     // light surfaces
+  // The kit gives Night as a gradient because the icon tile is one. 'night' is
+  // its midpoint, for anything that can only take a single colour.
+  nightTop: '#14121C',
+  nightBottom: '#05070C',
+  night: '#0D0D14',
 } as const;
 
 export const colors = {
@@ -55,6 +60,9 @@ export const radius = {
   md: 12,
   lg: 16,
   xl: 24,
+  // Apple TV's primary action corner. Not a capsule on purpose: pill reads
+  // as a chip or filter, which is the wrong signal on the main button.
+  button: 14,
   pill: 999,
 };
 
