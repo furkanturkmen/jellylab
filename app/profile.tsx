@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as WebBrowser from 'expo-web-browser';
+import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
@@ -17,23 +18,12 @@ export default function ProfileScreen() {
   const { t } = useTranslation();
   const { state, signOut } = useAuth();
   const [user, setUser] = useState<any>(null);
-  const [name, setName] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  const [currentPw, setCurrentPw] = useState('');
-  const [newPw, setNewPw] = useState('');
-  const [confirmPw, setConfirmPw] = useState('');
-  const [changingPw, setChangingPw] = useState(false);
-
   const [avatarBust, setAvatarBust] = useState(Date.now());
   const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     if (state.status !== 'signed-in') return;
-    Jellyfin.getCurrentUser(state.auth.userId).then(u => {
-      setUser(u);
-      setName(u?.Name ?? '');
-    });
+    Jellyfin.getCurrentUser(state.auth.userId).then(setUser);
   }, [state.status]);
 
   if (state.status !== 'signed-in') {
@@ -41,44 +31,7 @@ export default function ProfileScreen() {
   }
 
   const isAdmin = state.auth.isAdmin || user?.Policy?.IsAdministrator;
-  const avatarUrl = Jellyfin.userImageUrl(state.auth.userId, state.auth.primaryImageTag, 200) + `&_=${avatarBust}`;
-
-  async function saveName() {
-    if (state.status !== 'signed-in') return;
-    if (!name.trim() || name === user?.Name) return;
-    setSaving(true);
-    try {
-      await Jellyfin.updateUserName(state.auth.userId, name.trim());
-      const updated = { ...state.auth, userName: name.trim() };
-      await saveJellyfinAuth(updated);
-      Alert.alert(t('common.save'), t('profile.nameSaved'));
-    } catch (e: any) {
-      Alert.alert(t('common.failed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function changePassword() {
-    if (state.status !== 'signed-in') return;
-    if (!currentPw || !newPw) return;
-    if (newPw !== confirmPw) {
-      Alert.alert(t('profile.passwordMismatchTitle'), t('profile.passwordMismatch'));
-      return;
-    }
-    setChangingPw(true);
-    try {
-      await Jellyfin.updatePassword(state.auth.userId, currentPw, newPw);
-      setCurrentPw('');
-      setNewPw('');
-      setConfirmPw('');
-      Alert.alert(t('profile.passwordChanged'));
-    } catch (e: any) {
-      Alert.alert(t('common.failed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
-    } finally {
-      setChangingPw(false);
-    }
-  }
+  const avatarUrl = Jellyfin.userImageUrl(state.auth.userId, state.auth.primaryImageTag, 240) + `&_=${avatarBust}`;
 
   async function pickImage(source: 'library' | 'camera') {
     if (state.status !== 'signed-in') return;
@@ -126,6 +79,29 @@ export default function ProfileScreen() {
     ]);
   }
 
+  function editName() {
+    if (state.status !== 'signed-in') return;
+    Alert.prompt(
+      t('profile.displayName'),
+      undefined,
+      async (input) => {
+        if (!input || input === user?.Name) return;
+        try {
+          await Jellyfin.updateUserName(state.auth.userId, input.trim());
+          const authNow = await loadJellyfinAuth();
+          if (authNow) await saveJellyfinAuth({ ...authNow, userName: input.trim() });
+          const refreshed = await Jellyfin.getCurrentUser(state.auth.userId);
+          setUser(refreshed);
+          Alert.alert(t('common.save'), t('profile.nameSaved'));
+        } catch (e: any) {
+          Alert.alert(t('common.failed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
+        }
+      },
+      'plain-text',
+      user?.Name ?? state.auth.userName,
+    );
+  }
+
   async function openWeb(path: string) {
     await WebBrowser.openBrowserAsync(`${CONFIG.JELLYFIN_URL}${path}`);
   }
@@ -136,9 +112,9 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.root}>
-      <Stack.Screen options={{ title: t('profile.title'), headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text } }} />
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-        <View style={styles.avatarBlock}>
+      <Stack.Screen options={{ title: t('profile.title'), headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text }, headerShadowVisible: false }} />
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+        <View style={styles.hero}>
           <TouchableOpacity onPress={chooseImageSource} disabled={uploadingImage} activeOpacity={0.85}>
             <View style={styles.avatarWrap}>
               {state.auth.primaryImageTag ? (
@@ -152,125 +128,96 @@ export default function ProfileScreen() {
                 <View style={styles.avatarOverlay}><ActivityIndicator color={colors.text} /></View>
               ) : null}
             </View>
-            <Text style={styles.avatarHint}>{t('profile.tapToChange')}</Text>
           </TouchableOpacity>
+          <Text style={styles.heroName}>{state.auth.userName}</Text>
+          <Text style={styles.heroSub}>{CONFIG.JELLYFIN_URL.replace(/^https?:\/\//, '')}</Text>
         </View>
 
-        <Card>
-          <Field label={t('profile.displayName')}>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholderTextColor={colors.textDim}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </Field>
-          <TouchableOpacity
-            style={[styles.primaryBtn, (saving || name === user?.Name) && styles.primaryBtnDisabled]}
-            onPress={saveName}
-            disabled={saving || !name.trim() || name === user?.Name}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.primaryBtnText, (saving || name === user?.Name) && styles.primaryBtnTextDisabled]}>
-              {saving ? t('profile.saving') : t('profile.saveName')}
-            </Text>
-          </TouchableOpacity>
-        </Card>
+        <Section>
+          <Row icon="person" label={t('profile.displayName')} value={user?.Name ?? state.auth.userName} onPress={editName} />
+          <Row icon="key" label={t('profile.changePassword')} onPress={() => router.push('/settings/password')} />
+        </Section>
 
-        <Card>
-          <Text style={styles.cardLabel}>{t('profile.changePassword')}</Text>
-          <Field label={t('profile.currentPassword')}>
-            <TextInput style={styles.input} value={currentPw} onChangeText={setCurrentPw} placeholderTextColor={colors.textDim} secureTextEntry autoCapitalize="none" />
-          </Field>
-          <Field label={t('profile.newPassword')}>
-            <TextInput style={styles.input} value={newPw} onChangeText={setNewPw} placeholderTextColor={colors.textDim} secureTextEntry autoCapitalize="none" />
-          </Field>
-          <Field label={t('profile.confirmNewPassword')}>
-            <TextInput style={styles.input} value={confirmPw} onChangeText={setConfirmPw} placeholderTextColor={colors.textDim} secureTextEntry autoCapitalize="none" />
-          </Field>
-          <TouchableOpacity
-            style={[styles.primaryBtn, changingPw && styles.primaryBtnDisabled]}
-            onPress={changePassword}
-            disabled={changingPw || !currentPw || !newPw || newPw !== confirmPw}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.primaryBtnText, changingPw && styles.primaryBtnTextDisabled]}>
-              {changingPw ? t('profile.updatingPassword') : t('profile.updatePassword')}
-            </Text>
-          </TouchableOpacity>
-        </Card>
-
-        <Card>
-          <Text style={styles.cardLabel}>{t('profile.preferences')}</Text>
-          <MenuRow label={t('profile.menu.subtitles')} onPress={() => router.push('/settings/subtitles')} />
-          <MenuRow label={t('profile.menu.playback')} onPress={() => router.push('/settings/playback')} />
-          <MenuRow label={t('profile.menu.content')} onPress={() => router.push('/settings/content')} />
-          <MenuRow label={t('profile.menu.language')} onPress={() => router.push('/settings/language')} />
-        </Card>
+        <SectionHeader>{t('profile.preferences')}</SectionHeader>
+        <Section>
+          <Row icon="captions.bubble" label={t('profile.menu.subtitles')} onPress={() => router.push('/settings/subtitles')} />
+          <Row icon="play.rectangle" label={t('profile.menu.playback')} onPress={() => router.push('/settings/playback')} />
+          <Row icon="eye" label={t('profile.menu.content')} onPress={() => router.push('/settings/content')} />
+          <Row icon="globe" label={t('profile.menu.language')} onPress={() => router.push('/settings/language')} />
+        </Section>
 
         {isAdmin ? (
-          <Card>
-            <Text style={styles.cardLabel}>{t('profile.adminJellyfin')}</Text>
-            <MenuRow label={t('profile.adminMenu.dashboard')} onPress={() => openWeb('/web/#/dashboard.html')} />
-            <MenuRow label={t('profile.adminMenu.metadataManager')} onPress={() => openWeb('/web/#/dashboard/libraries')} />
-            <MenuRow label={t('profile.adminMenu.users')} onPress={() => openWeb('/web/#/dashboard/users')} />
-            <MenuRow label={t('profile.adminMenu.plugins')} onPress={() => openWeb('/web/#/dashboard/plugins')} />
-            <MenuRow label={t('profile.adminMenu.serverLogs')} onPress={() => openWeb('/web/#/dashboard/logs')} />
-          </Card>
+          <>
+            <SectionHeader>{t('profile.adminJellyfin')}</SectionHeader>
+            <Section>
+              <Row icon="chart.bar" label={t('profile.adminMenu.dashboard')} onPress={() => openWeb('/web/#/dashboard.html')} />
+              <Row icon="folder" label={t('profile.adminMenu.metadataManager')} onPress={() => openWeb('/web/#/dashboard/libraries')} />
+              <Row icon="person.2" label={t('profile.adminMenu.users')} onPress={() => openWeb('/web/#/dashboard/users')} />
+              <Row icon="puzzlepiece" label={t('profile.adminMenu.plugins')} onPress={() => openWeb('/web/#/dashboard/plugins')} />
+              <Row icon="doc.text" label={t('profile.adminMenu.serverLogs')} onPress={() => openWeb('/web/#/dashboard/logs')} />
+            </Section>
+
+            <SectionHeader>{t('profile.adminJellyseerr')}</SectionHeader>
+            <Section>
+              <Row icon="tray.and.arrow.down" label={t('profile.adminMenu.requests')} onPress={() => openJellyseerr('/requests')} />
+              <Row icon="person.2" label={t('profile.adminMenu.users')} onPress={() => openJellyseerr('/users')} />
+              <Row icon="gearshape" label={t('profile.adminMenu.settings')} onPress={() => openJellyseerr('/settings')} />
+            </Section>
+          </>
         ) : null}
 
-        {isAdmin ? (
-          <Card>
-            <Text style={styles.cardLabel}>{t('profile.adminJellyseerr')}</Text>
-            <MenuRow label={t('profile.adminMenu.requests')} onPress={() => openJellyseerr('/requests')} />
-            <MenuRow label={t('profile.adminMenu.users')} onPress={() => openJellyseerr('/users')} />
-            <MenuRow label={t('profile.adminMenu.settings')} onPress={() => openJellyseerr('/settings')} />
-          </Card>
-        ) : null}
-
-        <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.85}>
-          <Text style={styles.signOutText}>{t('common.signOut')}</Text>
-        </TouchableOpacity>
+        <View style={styles.signOutWrap}>
+          <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.85}>
+            <Text style={styles.signOutText}>{t('common.signOut')}</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
 }
 
-function Card({ children }: { children: React.ReactNode }) {
-  return <View style={styles.card}>{children}</View>;
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Section({ children }: { children: React.ReactNode }) {
+  const items = Array.isArray(children) ? children.flat() : [children];
   return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      {children}
+    <View style={styles.section}>
+      {items.map((child, i) => (
+        <View key={i}>
+          {child}
+          {i < items.length - 1 ? <View style={styles.sep} /> : null}
+        </View>
+      ))}
     </View>
   );
 }
 
-function MenuRow({ label, onPress }: { label: string; onPress: () => void }) {
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return <Text style={styles.sectionHeader}>{children}</Text>;
+}
+
+function Row({ icon, label, value, onPress }: { icon: any; label: string; value?: string; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.menuRow} onPress={onPress} activeOpacity={0.7}>
-      <Text style={styles.menuLabel}>{label}</Text>
-      <Text style={styles.menuArrow}>›</Text>
+    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.rowIconWrap}>
+        <SymbolView name={icon} tintColor={colors.text} size={20} />
+      </View>
+      <Text style={styles.rowLabel}>{label}</Text>
+      {value ? <Text style={styles.rowValue} numberOfLines={1}>{value}</Text> : null}
+      <Text style={styles.rowArrow}>›</Text>
     </TouchableOpacity>
   );
 }
 
-const AVATAR_SIZE = 112;
+const AVATAR_SIZE = 120;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  avatarBlock: { alignItems: 'center', marginTop: spacing.lg, marginBottom: spacing.xl },
+  hero: { alignItems: 'center', paddingVertical: spacing.xxl, paddingHorizontal: spacing.lg },
   avatarWrap: { alignItems: 'center' },
   avatar: { width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2, backgroundColor: colors.surface },
   avatarPlaceholder: { alignItems: 'center', justifyContent: 'center' },
-  avatarInitials: { color: colors.text, fontSize: 44, fontWeight: '700' },
+  avatarInitials: { color: colors.text, fontSize: 48, fontWeight: '700' },
   avatarOverlay: {
     position: 'absolute',
     width: AVATAR_SIZE,
@@ -280,55 +227,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.overlay,
   },
-  avatarHint: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginTop: spacing.md, textAlign: 'center' },
+  heroName: { ...type.h1, color: colors.text, marginTop: spacing.md },
+  heroSub: { ...type.small, color: colors.textMuted, marginTop: spacing.xs },
 
-  card: {
-    marginBottom: spacing.md,
-    padding: spacing.lg,
+  sectionHeader: {
+    ...type.caption,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  section: {
+    marginHorizontal: spacing.lg,
     borderRadius: radius.lg,
     backgroundColor: colors.bgElevated,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
+    overflow: 'hidden',
   },
-  cardLabel: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.md },
-  field: { marginBottom: spacing.md },
-  fieldLabel: { ...type.caption, color: colors.textMuted, marginBottom: spacing.xs, textTransform: 'uppercase' },
-  input: {
-    height: 46,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    color: colors.text,
-    fontSize: 15,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
-
-  primaryBtn: {
-    height: 48,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.sm,
-  },
-  primaryBtnDisabled: { backgroundColor: colors.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  primaryBtnText: { color: colors.accentContrast, fontSize: 15, fontWeight: '600' },
-  primaryBtnTextDisabled: { color: colors.textMuted },
-
-  menuRow: {
+  row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    gap: spacing.md,
   },
-  menuLabel: { ...type.body, color: colors.text },
-  menuArrow: { color: colors.textMuted, fontSize: 20 },
+  rowIconWrap: { width: 28, alignItems: 'center' },
+  rowLabel: { ...type.body, color: colors.text, flex: 1 },
+  rowValue: { ...type.small, color: colors.textMuted, marginRight: spacing.xs, maxWidth: 140 },
+  rowArrow: { color: colors.textDim, fontSize: 22 },
+  sep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 28 + spacing.md * 2 },
 
+  signOutWrap: { paddingHorizontal: spacing.lg, marginTop: spacing.xl },
   signOutBtn: {
-    marginTop: spacing.lg,
     height: 48,
     borderRadius: radius.pill,
     alignItems: 'center',

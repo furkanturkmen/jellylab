@@ -68,14 +68,6 @@ export default function LibraryScreen() {
         ListHeaderComponent={
           <>
             {heroItem ? <HeroSpotlight item={heroItem} /> : null}
-
-            <View style={styles.headerRow}>
-              <View>
-                <Text style={styles.greetingSmall}>{t('library.welcomeBack')}</Text>
-                <Text style={styles.greeting}>{state.auth.userName}</Text>
-              </View>
-            </View>
-
             {resume.length > 0 ? <ContinueWatchingRow items={resume} title={t('library.continueWatching')} /> : null}
           </>
         }
@@ -250,7 +242,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
 
-  hero: { width: '100%', height: HERO_HEIGHT, backgroundColor: colors.bgElevated, overflow: 'hidden' },
+  hero: { width: '100%', height: HERO_HEIGHT, backgroundColor: colors.bgElevated, overflow: 'hidden', marginBottom: spacing.xl },
   heroBody: { position: 'absolute', left: spacing.xl, right: spacing.xl, bottom: spacing.xl },
   heroLabel: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.sm },
   heroTitle: { ...type.display, color: colors.text, marginBottom: spacing.md },
