@@ -1,5 +1,7 @@
 {
-  "app": { "name": "jellylab" },
+  "app": {
+    "name": "jellylab"
+  },
   "common": {
     "cancel": "İptal",
     "save": "Kaydet",
@@ -73,7 +75,9 @@
       "popularMovies": "Popüler Filmler",
       "popularTv": "Popüler Diziler",
       "anime": "Anime",
-      "upcoming": "Yakında"
+      "upcoming": "Yakında",
+      "inYourLibrary": "Kıtaplığında",
+      "requestNew": "İstek oluştur"
     }
   },
   "requests": {
@@ -179,7 +183,11 @@
       "title": "Altyazılar",
       "preferredLanguage": "Tercih edilen dil",
       "textSize": "Metin boyutu",
-      "size": { "sm": "Küçük", "md": "Orta", "lg": "Büyük" },
+      "size": {
+        "sm": "Küçük",
+        "md": "Orta",
+        "lg": "Büyük"
+      },
       "note": "Tercihler bu cihazda saklanır. Oynatıcı uygun bir altyazı bulursa otomatik seçilir."
     },
     "playback": {

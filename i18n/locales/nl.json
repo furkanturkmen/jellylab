@@ -1,5 +1,7 @@
 {
-  "app": { "name": "jellylab" },
+  "app": {
+    "name": "jellylab"
+  },
   "common": {
     "cancel": "Annuleer",
     "save": "Opslaan",
@@ -73,7 +75,9 @@
       "popularMovies": "Populaire films",
       "popularTv": "Populaire series",
       "anime": "Anime",
-      "upcoming": "Binnenkort"
+      "upcoming": "Binnenkort",
+      "inYourLibrary": "In je bibliotheek",
+      "requestNew": "Aanvragen"
     }
   },
   "requests": {
@@ -179,7 +183,11 @@
       "title": "Ondertiteling",
       "preferredLanguage": "Voorkeurstaal",
       "textSize": "Tekstgrootte",
-      "size": { "sm": "Klein", "md": "Gemiddeld", "lg": "Groot" },
+      "size": {
+        "sm": "Klein",
+        "md": "Gemiddeld",
+        "lg": "Groot"
+      },
       "note": "Voorkeuren worden op dit apparaat opgeslagen. Als de speler een passend ondertitelspoor vindt, wordt dat automatisch geselecteerd."
     },
     "playback": {

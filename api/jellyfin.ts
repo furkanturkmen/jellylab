@@ -146,6 +146,23 @@ export async function getItem(userId: string, itemId: string): Promise<JellyfinI
   return res.data;
 }
 
+/** Full-text search across the user's own libraries. */
+export async function searchLibrary(userId: string, term: string, limit = 24): Promise<JellyfinItem[]> {
+  const client = await authClient();
+  const res = await client.get(`/Users/${userId}/Items`, {
+    params: {
+      SearchTerm: term,
+      Recursive: true,
+      IncludeItemTypes: 'Movie,Series',
+      Limit: limit,
+      SortBy: 'SortName',
+      SortOrder: 'Ascending',
+      Fields: 'Overview,PrimaryImageAspectRatio,ProductionYear',
+    },
+  });
+  return res.data.Items ?? [];
+}
+
 export type MediaStream = {
   Type: 'Video' | 'Audio' | 'Subtitle';
   Codec?: string;

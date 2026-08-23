@@ -122,6 +122,8 @@ types/                  Shared TypeScript types
 Ordered by realistic priority — small wins first, bigger platform work later.
 
 **Recently shipped**
+- Search your own Jellyfin library alongside Seerr/TMDB — owned titles surface first with Play, everything else falls under Request
+- Max streaming quality setting: above the chosen ceiling the server transcodes to HLS, below it the file is direct played untouched
 - Runtime server management (add / edit / delete / switch, no baked-in URLs, connection test)
 - Custom Apple TV-style floating tab bar with search-bar transformation (Reanimated transitions)
 - Downloads tab (empty state; wiring in progress)
@@ -136,7 +138,7 @@ Ordered by realistic priority — small wins first, bigger platform work later.
 1. Watch history screen (finished items, separate from Continue Watching)
 2. Friendlier error surfaces when a server URL is unreachable (currently mostly axios raw)
 3. Per-server saved credentials (skip re-login on switch — currently signs out)
-4. Search inside your own Jellyfin library (currently search only hits Seerr/TMDB)
+4. Auto-select the quality ceiling on cellular (needs `expo-network`; today it's a manual setting)
 
 **Mid-term (medium effort, high value)**
 5. Downloads / offline playback (needs codec-aware file cache + player fallback for local file:// URLs)

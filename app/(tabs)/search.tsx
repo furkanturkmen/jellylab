@@ -5,21 +5,35 @@ import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 
+import * as Jellyfin from '@/api/jellyfin';
 import * as Jellyseerr from '@/api/jellyseerr';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
+import { useAuth } from '@/hooks/useAuth';
 import { useSearchQuery } from '@/store/search';
 import { colors, radius, spacing, type } from '@/theme';
-import type { JellyseerrSearchResult } from '@/types';
+import type { JellyfinItem, JellyseerrSearchResult } from '@/types';
 
 type Section = { title: string; items: JellyseerrSearchResult[] };
+
+/**
+ * Results are a flat list rather than a SectionList so the two sources can
+ * share one scroll container: what you already own on top, what you'd have to
+ * request below it.
+ */
+type Row =
+  | { kind: 'header'; title: string }
+  | { kind: 'library'; item: JellyfinItem }
+  | { kind: 'seerr'; item: JellyseerrSearchResult };
 
 export default function SearchScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { headerHeight } = useTabHeaderMetrics();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const { state } = useAuth();
   const [query] = useSearchQuery();
   const [results, setResults] = useState<JellyseerrSearchResult[]>([]);
+  const [library, setLibrary] = useState<JellyfinItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [discover, setDiscover] = useState<Section[]>([]);
   const [discoverLoading, setDiscoverLoading] = useState(true);
@@ -54,28 +68,44 @@ export default function SearchScreen() {
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
+      setLibrary([]);
       setBusy(false);
       return;
     }
     setBusy(true);
     const handle = setTimeout(async () => {
-      try {
-        const r = await Jellyseerr.search(query);
-        setResults(r.filter(x => x.mediaType !== 'person'));
-      } catch (e: any) {
-        Alert.alert('Search failed', e?.message ?? 'Unknown error');
-      } finally {
-        setBusy(false);
+      const userId = state.status === 'signed-in' ? state.auth.userId : null;
+      // Both sources in parallel. A failing Jellyseerr shouldn't hide results
+      // for media you already own, and vice versa.
+      const [seerr, mine] = await Promise.all([
+        Jellyseerr.search(query).catch(() => null),
+        userId ? Jellyfin.searchLibrary(userId, query).catch(() => null) : Promise.resolve([]),
+      ]);
+      setResults(seerr ? seerr.filter(x => x.mediaType !== 'person') : []);
+      setLibrary(mine ?? []);
+      setBusy(false);
+      if (seerr === null && mine === null) {
+        Alert.alert('Search failed', 'Could not reach Jellyfin or Jellyseerr.');
       }
     }, 350);
     return () => clearTimeout(handle);
-  }, [query]);
+  }, [query, state.status]);
 
   function openDetail(item: JellyseerrSearchResult) {
     router.push(`/tmdb/${item.mediaType}/${item.id}`);
   }
 
   const showingSearch = query.trim().length > 0;
+
+  const rows: Row[] = [];
+  if (library.length > 0) {
+    rows.push({ kind: 'header', title: t('search.sections.inYourLibrary') });
+    library.forEach(item => rows.push({ kind: 'library', item }));
+  }
+  if (results.length > 0) {
+    rows.push({ kind: 'header', title: t('search.sections.requestNew') });
+    results.forEach(item => rows.push({ kind: 'seerr', item }));
+  }
 
   return (
     <View style={styles.root}>
@@ -88,10 +118,24 @@ export default function SearchScreen() {
           </>
         ) : (
           <Animated.FlatList
-            data={results}
-            keyExtractor={(r: JellyseerrSearchResult) => `${r.mediaType}-${r.id}`}
-            renderItem={({ item }: { item: JellyseerrSearchResult }) => <ResultRow item={item} onOpen={() => openDetail(item)} />}
-            ItemSeparatorComponent={() => <View style={styles.sep} />}
+            data={rows}
+            keyExtractor={(r: Row) =>
+              r.kind === 'header' ? `h-${r.title}`
+                : r.kind === 'library' ? `lib-${r.item.Id}`
+                  : `seerr-${r.item.mediaType}-${r.item.id}`
+            }
+            renderItem={({ item: row }: { item: Row }) =>
+              row.kind === 'header' ? (
+                <Text style={styles.resultsHeader}>{row.title}</Text>
+              ) : row.kind === 'library' ? (
+                <LibraryRow item={row.item} onOpen={() => router.push(`/item/${row.item.Id}`)} />
+              ) : (
+                <ResultRow item={row.item} onOpen={() => openDetail(row.item)} />
+              )
+            }
+            ItemSeparatorComponent={({ leadingItem }: { leadingItem: Row }) =>
+              leadingItem?.kind === 'header' ? null : <View style={styles.sep} />
+            }
             ListHeaderComponent={<View style={{ height: headerHeight }} />}
             onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
             scrollEventThrottle={16}
@@ -171,6 +215,29 @@ function DiscoverCard({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: 
   );
 }
 
+function LibraryRow({ item, onOpen }: { item: JellyfinItem; onOpen: () => void }) {
+  const year = item.ProductionYear ? String(item.ProductionYear) : '';
+  const tag = item.ImageTags?.Primary;
+  const poster = tag ? Jellyfin.imageUrl(item.Id, tag, 'Primary', 200) : null;
+  const kind = item.Type === 'Movie' ? 'Movie' : 'TV';
+
+  return (
+    <TouchableOpacity style={styles.row} onPress={onOpen} activeOpacity={0.7}>
+      {poster ? (
+        <Image source={{ uri: poster }} style={styles.thumb} contentFit="cover" transition={150} />
+      ) : (
+        <View style={[styles.thumb, styles.posterEmpty]} />
+      )}
+      <View style={styles.rowText}>
+        <Text style={styles.rowTitle} numberOfLines={2}>{item.Name}</Text>
+        <Text style={styles.rowMeta}>{kind} {year ? `· ${year}` : ''}</Text>
+        {item.Overview ? <Text style={styles.rowOverview} numberOfLines={2}>{item.Overview}</Text> : null}
+      </View>
+      <View style={styles.badge}><Text style={styles.badgeText}>Play</Text></View>
+    </TouchableOpacity>
+  );
+}
+
 function ResultRow({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: () => void }) {
   const title = item.title ?? item.name ?? '';
   const year = (item.releaseDate ?? item.firstAirDate ?? '').slice(0, 4);
@@ -221,6 +288,15 @@ const styles = StyleSheet.create({
   section: { marginBottom: spacing.xl },
   sectionHeader: { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
   sectionTitle: { ...type.h2, color: colors.text },
+  resultsHeader: {
+    ...type.caption,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
 
   card: { width: CARD_WIDTH },
   posterWrap: { width: CARD_WIDTH, height: CARD_HEIGHT, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.surface },

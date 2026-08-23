@@ -1,5 +1,7 @@
 {
-  "app": { "name": "jellylab" },
+  "app": {
+    "name": "jellylab"
+  },
   "common": {
     "cancel": "Abbrechen",
     "save": "Speichern",
@@ -73,7 +75,9 @@
       "popularMovies": "Beliebte Filme",
       "popularTv": "Beliebte Serien",
       "anime": "Anime",
-      "upcoming": "Demnächst"
+      "upcoming": "Demnächst",
+      "inYourLibrary": "In deiner Bibliothek",
+      "requestNew": "Anfragen"
     }
   },
   "requests": {
@@ -179,7 +183,11 @@
       "title": "Untertitel",
       "preferredLanguage": "Bevorzugte Sprache",
       "textSize": "Textgröße",
-      "size": { "sm": "Klein", "md": "Mittel", "lg": "Groß" },
+      "size": {
+        "sm": "Klein",
+        "md": "Mittel",
+        "lg": "Groß"
+      },
       "note": "Einstellungen werden auf diesem Gerät gespeichert. Findet der Player eine passende Untertitel-Spur, wird sie automatisch gewählt."
     },
     "playback": {

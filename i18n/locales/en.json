@@ -1,5 +1,7 @@
 {
-  "app": { "name": "jellylab" },
+  "app": {
+    "name": "jellylab"
+  },
   "common": {
     "cancel": "Cancel",
     "save": "Save",
@@ -73,7 +75,9 @@
       "popularMovies": "Popular Movies",
       "popularTv": "Popular TV",
       "anime": "Anime",
-      "upcoming": "Upcoming"
+      "upcoming": "Upcoming",
+      "inYourLibrary": "In your library",
+      "requestNew": "Request"
     }
   },
   "requests": {
@@ -179,7 +183,11 @@
       "title": "Subtitles",
       "preferredLanguage": "Preferred language",
       "textSize": "Text size",
-      "size": { "sm": "Small", "md": "Medium", "lg": "Large" },
+      "size": {
+        "sm": "Small",
+        "md": "Medium",
+        "lg": "Large"
+      },
       "note": "Preferences are stored on this device. When the player finds a matching subtitle track for the media, it will be selected automatically."
     },
     "playback": {
