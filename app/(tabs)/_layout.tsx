@@ -21,7 +21,7 @@ function TabButton({
   ios: SFName;
   android: MDName;
 }) {
-  const color = focused ? colors.pink : colors.textMuted;
+  const color = focused ? colors.text : colors.textMuted;
   return (
     <View style={[styles.tabInner, focused && styles.tabInnerActive]}>
       <SymbolView name={{ ios, android, web: android }} tintColor={color} size={22} />
@@ -60,7 +60,7 @@ export default function TabLayout() {
         tabBarShowLabel: false,
         tabBarStyle: floatingBar,
         tabBarBackground: Platform.OS === 'ios'
-          ? () => <BlurView tint="dark" intensity={70} style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(20,20,20,0.55)' }]} />
+          ? () => <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(15,15,15,0.4)' }]} />
           : undefined,
         tabBarItemStyle: { height: 72, paddingHorizontal: 6 },
       }}>
@@ -103,9 +103,9 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   tabInnerActive: {
-    backgroundColor: 'rgba(249, 38, 114, 0.14)',
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(249, 38, 114, 0.35)',
+    borderColor: 'rgba(255, 255, 255, 0.28)',
   },
   tabLabel: {
     fontSize: 10,
