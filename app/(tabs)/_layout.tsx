@@ -245,7 +245,7 @@ export default function TabLayout() {
   return (
     <Tabs
       tabBar={props => <CustomTabBar {...props} />}
-      screenOptions={{ headerShown: false }}
+      screenOptions={{ headerShown: false, animation: 'fade' as any }}
     >
       <Tabs.Screen name="index" />
       <Tabs.Screen name="search" />
