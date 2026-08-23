@@ -43,6 +43,7 @@ export default function TabLayout() {
         name="search"
         options={{
           title: t('tabs.search'),
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} tintColor={color} size={26} />
           ),
@@ -52,6 +53,7 @@ export default function TabLayout() {
         name="requests"
         options={{
           title: t('tabs.requests'),
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <SymbolView name={{ ios: 'tray.and.arrow.down', android: 'inbox', web: 'inbox' }} tintColor={color} size={26} />
           ),
