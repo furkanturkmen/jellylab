@@ -36,8 +36,9 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.text,
-        tabBarInactiveTintColor: colors.textDim,
+        tabBarActiveTintColor: colors.pink,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarActiveBackgroundColor: 'rgba(249, 38, 114, 0.12)',
         headerShown: useClientOnlyValue(false, true),
         headerStyle: { backgroundColor: colors.bg },
         headerTitleStyle: { color: colors.text, fontWeight: '600' },
@@ -46,8 +47,15 @@ export default function TabLayout() {
         tabBarBackground: Platform.OS === 'ios'
           ? () => <BlurView tint="dark" intensity={70} style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(20,20,20,0.55)' }]} />
           : undefined,
-        tabBarItemStyle: { height: 72, paddingTop: 12, paddingBottom: 12 },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600', letterSpacing: 0.3, marginTop: 2 },
+        tabBarItemStyle: {
+          height: 56,
+          marginVertical: 8,
+          marginHorizontal: 4,
+          borderRadius: radius.pill,
+          paddingTop: 8,
+          paddingBottom: 8,
+        },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3, marginTop: 2 },
       }}>
       <Tabs.Screen
         name="index"
