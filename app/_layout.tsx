@@ -80,7 +80,7 @@ function RootLayoutNav() {
     }
     if (state.status === 'signed-out' && !inLogin && !inServers) {
       router.replace('/login');
-    } else if (state.status === 'signed-in' && (inLogin || inServers)) {
+    } else if (state.status === 'signed-in' && inLogin) {
       router.replace('/(tabs)');
     }
   }, [state.status, segments, server, serverReady]);
