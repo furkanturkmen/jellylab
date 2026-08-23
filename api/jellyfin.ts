@@ -72,11 +72,32 @@ export async function updatePassword(userId: string, currentPw: string, newPw: s
 }
 
 export async function uploadProfileImage(userId: string, base64: string, mimeType: string): Promise<void> {
-  const client = await authClient();
-  await client.post(`/Users/${userId}/Images/Primary`, base64, {
-    headers: { 'Content-Type': mimeType },
-    transformRequest: [(data) => data],
+  const auth = await loadJellyfinAuth();
+  if (!auth) throw new Error('Not authenticated');
+  const authHeader = await (async () => {
+    const deviceId = await getDeviceId();
+    return [
+      `MediaBrowser Client="${CONFIG.CLIENT_NAME}"`,
+      `Device="${CONFIG.DEVICE_NAME}"`,
+      `DeviceId="${deviceId}"`,
+      `Version="${CONFIG.CLIENT_VERSION}"`,
+      `Token="${auth.accessToken}"`,
+    ].join(', ');
+  })();
+
+  const url = `${CONFIG.JELLYFIN_URL}/Users/${userId}/Images/Primary`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': mimeType,
+      'X-Emby-Authorization': authHeader,
+    },
+    body: base64,
   });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Upload failed: ${res.status} ${text || res.statusText}`);
+  }
 }
 
 export function userImageUrl(userId: string, tag?: string, size = 96): string {

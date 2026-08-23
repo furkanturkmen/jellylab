@@ -74,14 +74,19 @@ export default function ProfileScreen() {
     try {
       const asset = result.assets[0];
       const mime = asset.mimeType ?? 'image/jpeg';
+      console.log('[profile] uploading', mime, 'base64 length', asset.base64?.length);
       await Jellyfin.uploadProfileImage(state.auth.userId, asset.base64!, mime);
+      console.log('[profile] upload ok, refetching user');
       const refreshed = await Jellyfin.getCurrentUser(state.auth.userId);
+      console.log('[profile] new PrimaryImageTag', refreshed?.PrimaryImageTag);
       const authNow = await loadJellyfinAuth();
       if (authNow) {
         await saveJellyfinAuth({ ...authNow, primaryImageTag: refreshed?.PrimaryImageTag });
       }
+      setUser(refreshed);
       setAvatarBust(Date.now());
     } catch (e: any) {
+      console.log('[profile] upload failed', e?.message);
       Alert.alert(t('profile.uploadFailed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
     } finally {
       setUploadingImage(false);
