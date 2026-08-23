@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { CONFIG, getJellyfinUrl } from '@/config';
+import { CONFIG, getJellyfinUrl, requireJellyfinUrl } from '@/config';
 import { getDeviceId, loadJellyfinAuth, saveJellyfinAuth, clearJellyfinAuth } from '@/store/auth';
 import type { JellyfinAuth, JellyfinItem, JellyfinView } from '@/types';
 
@@ -17,7 +17,8 @@ async function authHeader(token?: string): Promise<string> {
 
 async function makeClient(token?: string): Promise<AxiosInstance> {
   return axios.create({
-    baseURL: getJellyfinUrl(),
+    // awaited, not read synchronously: the store may still be hydrating
+    baseURL: await requireJellyfinUrl(),
     timeout: 15000,
     headers: {
       'X-Emby-Authorization': await authHeader(token),

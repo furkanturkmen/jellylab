@@ -1,11 +1,12 @@
 import axios, { AxiosInstance } from 'axios';
-import { getJellyfinUrl, getJellyseerrUrl } from '@/config';
+import { getJellyfinUrl, getJellyseerrUrl, requireJellyseerrUrl } from '@/config';
 import { loadJellyseerrAuth, saveJellyseerrAuth, clearJellyseerrAuth } from '@/store/auth';
 import type { JellyseerrAuth, JellyseerrRequest, JellyseerrSearchResult } from '@/types';
 
-function makeClient(cookie?: string): AxiosInstance {
+async function makeClient(cookie?: string): Promise<AxiosInstance> {
   return axios.create({
-    baseURL: `${getJellyseerrUrl()}/api/v1`,
+    // awaited, not read synchronously: the store may still be hydrating
+    baseURL: `${await requireJellyseerrUrl()}/api/v1`,
     timeout: 15000,
     headers: {
       'Content-Type': 'application/json',
@@ -23,7 +24,7 @@ export async function authClient(): Promise<AxiosInstance> {
 export async function loginJellyfin(username: string, password: string): Promise<JellyseerrAuth> {
   // Seerr/Jellyseerr auth passthrough. Seerr v3+ requires the Jellyfin hostname
   // in the body so it can bind the session to the right media server.
-  const client = makeClient();
+  const client = await makeClient();
   const res = await client.post(
     '/auth/jellyfin',
     { username, password, hostname: getJellyfinUrl() },

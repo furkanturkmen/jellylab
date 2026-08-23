@@ -43,6 +43,28 @@ export async function loadServers(): Promise<{ servers: Server[]; current: Serve
   return _cache;
 }
 
+let _loading: Promise<{ servers: Server[]; current: Server | null }> | null = null;
+
+/**
+ * Resolves once the store has been read from SecureStore, loading it if that
+ * has not happened yet. Concurrent callers share one read rather than racing
+ * several.
+ *
+ * Anything building a request URL must await this. The sync getters return an
+ * empty cache until hydration completes, and an empty baseURL surfaces from
+ * axios as a bare "Network Error" — which looks like the server is down rather
+ * than like the app asking too early.
+ */
+export function ensureServersLoaded(): Promise<{ servers: Server[]; current: Server | null }> {
+  if (_loaded) return Promise.resolve(_cache);
+  if (!_loading) {
+    _loading = loadServers().finally(() => {
+      _loading = null;
+    });
+  }
+  return _loading;
+}
+
 export function getCurrentServerSync(): Server | null {
   return _cache.current;
 }
