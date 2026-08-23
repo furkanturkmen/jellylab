@@ -9,6 +9,7 @@ import '@/i18n';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentServer } from '@/hooks/useServer';
+import { clearJellyfinAuth, clearJellyseerrAuth } from '@/store/auth';
 
 export {
   ErrorBoundary,
@@ -55,6 +56,16 @@ function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
 
+  // Migration: existing auth from the old hardcoded-URL build with no current server
+  // would fire API calls at an empty baseURL. Clear it so login flow restarts cleanly.
+  useEffect(() => {
+    if (!serverReady) return;
+    if (!server && state.status === 'signed-in') {
+      clearJellyfinAuth();
+      clearJellyseerrAuth();
+    }
+  }, [serverReady, server, state.status]);
+
   useEffect(() => {
     if (!serverReady) return;
     if (state.status === 'loading') return;
@@ -73,6 +84,8 @@ function RootLayoutNav() {
       router.replace('/(tabs)');
     }
   }, [state.status, segments, server, serverReady]);
+
+  if (!serverReady) return null;
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
