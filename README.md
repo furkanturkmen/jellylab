@@ -99,11 +99,13 @@ app/                    Expo Router routes (file-based)
   login.tsx             Auth (Jellyfin credentials, via Seerr for session)
   _layout.tsx           Root layout with auth + server guard (dismisses modals on nav)
 api/                    Jellyfin + Seerr/Jellyseerr HTTP clients (read base URL from server store)
+                        push.ts talks to the jellylab-push bridge on the homelab
 components/             Themed UI primitives (TabHeader for scroll-fade page titles)
 config.ts               Client identity only — server URLs come from the store
 hooks/                  useAuth, useServer (both pub/sub for cross-screen refresh)
 i18n/                   4 languages (en, nl, tr, de) + init
 player/                 Codec-based engine selection + VTT parser
+plugins/                Local Expo config plugins (strips the push entitlement)
 store/                  auth.ts, servers.ts, prefs.ts, search.ts (expo-secure-store + in-memory pub/sub)
 theme/                  Abyss design tokens (colors, spacing, type)
 types/                  Shared TypeScript types
@@ -116,12 +118,19 @@ types/                  Shared TypeScript types
 - **Plain HTTP allowed by default.** `NSAllowsArbitraryLoads` is enabled in `app.json` because most homelabs run HTTP behind a reverse proxy on the LAN. If you only connect to HTTPS servers, tighten it.
 - **iPhone-only layout.** iPad renders as a stretched iPhone.
 - **No live TV / no music library** (Jellyfin has them, jellylab doesn't surface them).
+- **Push notifications need a paid Apple Developer account.** Apple only issues
+  the `aps-environment` entitlement to Developer Program members, and all iOS
+  background push goes through APNS. On a free personal team `xcodebuild`
+  refuses to build with it at all, so `plugins/withoutPushEntitlement.js`
+  strips it. The app and its server-side bridge are finished — see below.
 
 ## Roadmap
 
 Ordered by realistic priority — small wins first, bigger platform work later.
 
 **Recently shipped**
+- Library hero is a 5-item carousel drawn from what you're part-way through and what arrived recently, cross-fading, with a pinned backdrop that stretches on pull instead of leaving a gap
+- Notifications screen wired to a self-hosted push bridge — complete but gated on the Apple entitlement above; the same events reach you through the ntfy app meanwhile
 - Search your own Jellyfin library alongside Seerr/TMDB — owned titles surface first with Play, everything else falls under Request
 - Max streaming quality setting: above the chosen ceiling the server transcodes to HLS, below it the file is direct played untouched
 - Runtime server management (add / edit / delete / switch, no baked-in URLs, connection test)
@@ -139,6 +148,7 @@ Ordered by realistic priority — small wins first, bigger platform work later.
 2. Friendlier error surfaces when a server URL is unreachable (currently mostly axios raw)
 3. Per-server saved credentials (skip re-login on switch — currently signs out)
 4. Auto-select the quality ceiling on cellular (needs `expo-network`; today it's a manual setting)
+5. Turn on push once there's a paid Apple account — delete `plugins/withoutPushEntitlement.js` from `app.json`, `prebuild --clean`, rebuild. No code changes
 
 **Mid-term (medium effort, high value)**
 5. Downloads / offline playback (needs codec-aware file cache + player fallback for local file:// URLs)
