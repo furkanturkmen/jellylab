@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, AppState, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, Stack } from 'expo-router';
@@ -235,6 +235,25 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
   const [externalCues, setExternalCues] = useState<VttCue[]>([]);
   const [activeCue, setActiveCue] = useState<VttCue | null>(null);
   const [subFontSize, setSubFontSize] = useState(18);
+  const [vlcKey, setVlcKey] = useState(0);
+  const positionRef = useRef(0);
+
+  // Keep positionRef synced so background/foreground can restore.
+  useEffect(() => { positionRef.current = position; }, [position]);
+
+  // Handle app background/foreground: remount VLC on foreground so the
+  // video surface reattaches (VLC on iOS drops the surface in background,
+  // audio keeps playing, and video stays black on return).
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        // Force remount to reattach video surface
+        setVlcKey(k => k + 1);
+        setReady(false);
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   // Report progress to Jellyfin
   useEffect(() => {
@@ -386,16 +405,19 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
     } catch {}
   }
 
-  // Resume once loaded
+  // Resume once loaded (initial resumeSeconds, or last position after remount)
   const onLoad = (e: any) => {
     setReady(true);
     const durSecs = (e?.duration ?? 0) / 1000;
     if (durSecs > 0) setDuration(durSecs);
-    if (resumeSeconds > 0 && durSecs > 0) {
-      const ratio = Math.max(0, Math.min(1, resumeSeconds / durSecs));
-      // Small delay so VLC is ready to accept seek
+    const seekSecs = positionRef.current > 0 ? positionRef.current : resumeSeconds;
+    if (seekSecs > 0 && durSecs > 0) {
+      const ratio = Math.max(0, Math.min(1, seekSecs / durSecs));
       setTimeout(() => {
-        try { vlcRef.current?.seek?.(ratio); } catch {}
+        try {
+          lastSeekAt.current = Date.now();
+          vlcRef.current?.seek?.(ratio);
+        } catch {}
       }, 200);
     }
   };
@@ -417,6 +439,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
     <>
       <Pressable style={{ flex: 1 }} onPress={() => setControlsVisible(v => !v)}>
         <VLCPlayer
+          key={vlcKey}
           ref={vlcRef}
           style={{ flex: 1 }}
           source={{ uri: url }}
@@ -424,6 +447,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
           paused={paused}
           rate={rate}
           resizeMode="contain"
+          playInBackground={false}
           onLoad={onLoad}
           onProgress={onProgress}
           onEnd={onExit}
