@@ -59,8 +59,8 @@
     "downloads": "İndirilenler"
   },
   "downloads": {
-    "emptyTitle": "Henüz indirme yok",
-    "emptyBody": "Çevrimdışı oynatma yol haritasında. İndirilen içerikler burada görünecek."
+    "emptyTitle": "İndirilen bir şey yok",
+    "emptyBody": "Sunucun bir şey indirdiğinde, canlı ilerlemesiyle burada görünür."
   },
   "library": {
     "welcomeBack": "Tekrar hoş geldin",

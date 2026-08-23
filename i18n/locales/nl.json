@@ -59,8 +59,8 @@
     "downloads": "Downloads"
   },
   "downloads": {
-    "emptyTitle": "Nog geen downloads",
-    "emptyBody": "Offline afspelen staat op de roadmap. Gedownloade titels verschijnen hier."
+    "emptyTitle": "Niets aan het downloaden",
+    "emptyBody": "Zodra je server iets ophaalt, verschijnt het hier met live voortgang."
   },
   "library": {
     "welcomeBack": "Welkom terug",
