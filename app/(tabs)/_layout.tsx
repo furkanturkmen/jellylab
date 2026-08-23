@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { Tabs } from 'expo-router';
 import { BlurView } from 'expo-blur';
@@ -103,7 +103,6 @@ const ICON_MAP: Record<string, { ios: string; android: string; label: (t: any) =
 function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const inputRef = useRef<TextInput>(null);
   const [query, setQuery] = useSearchQuery();
   const [kbHeight, setKbHeight] = useState(0);
 
@@ -133,10 +132,9 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 
   function openSearch() {
     nav('search');
-    setTimeout(() => inputRef.current?.focus(), 120);
   }
 
-  const transition = LinearTransition.duration(160);
+  const transition = LinearTransition.duration(220);
 
   return (
     <Animated.View style={[styles.container, { bottom }]} pointerEvents="box-none" layout={transition}>
@@ -144,8 +142,8 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         <Animated.View
           style={styles.mainPill}
           layout={transition}
-          entering={FadeIn.duration(120)}
-          exiting={FadeOut.duration(80)}
+          entering={FadeIn.duration(180)}
+          exiting={FadeOut.duration(120)}
         >
           {Platform.OS === 'ios' ? (
             <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
@@ -170,8 +168,8 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       ) : (
         <Animated.View
           layout={transition}
-          entering={FadeIn.duration(120)}
-          exiting={FadeOut.duration(80)}
+          entering={FadeIn.duration(180)}
+          exiting={FadeOut.duration(120)}
         >
           <GlassCircle
             onPress={() => {
@@ -190,7 +188,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             <Animated.View
               style={styles.searchBar}
               layout={transition}
-              entering={FadeIn.duration(120)}
+              entering={FadeIn.duration(180)}
             >
               {Platform.OS === 'ios' ? (
                 <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
@@ -199,7 +197,6 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               )}
               <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} tintColor={colors.textMuted} size={20} />
               <TextInput
-                ref={inputRef}
                 style={styles.searchInput}
                 value={query}
                 onChangeText={setQuery}
@@ -213,8 +210,8 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             </Animated.View>
             <Animated.View
               layout={transition}
-              entering={FadeIn.duration(120)}
-              exiting={FadeOut.duration(80)}
+              entering={FadeIn.duration(180)}
+              exiting={FadeOut.duration(120)}
             >
               <GlassCircle
                 onPress={() => {
@@ -229,8 +226,8 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         ) : (
           <Animated.View
             layout={transition}
-            entering={FadeIn.duration(120)}
-            exiting={FadeOut.duration(80)}
+            entering={FadeIn.duration(180)}
+            exiting={FadeOut.duration(120)}
           >
             <GlassCircle
               onPress={openSearch}
