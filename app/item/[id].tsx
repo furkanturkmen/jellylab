@@ -109,6 +109,7 @@ export default function ItemScreen() {
           itemId={item.Id}
           title={item.Name}
           resumeSeconds={Jellyfin.ticksToSeconds(item.UserData?.PlaybackPositionTicks ?? 0)}
+          initialDuration={Jellyfin.ticksToSeconds(item.RunTimeTicks ?? 0)}
           onExit={() => setPlayback(null)}
           onNativeError={() => setPlayback(p => (p ? { ...p, engine: 'vlc' } : p))}
         />
@@ -218,20 +219,21 @@ export default function ItemScreen() {
   );
 }
 
-function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeSeconds, onExit }: {
+function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeSeconds, initialDuration, onExit }: {
   url: string;
   itemId: string;
   mediaSourceId?: string;
   externalSubs: { index: number; label: string }[];
   title: string;
   resumeSeconds: number;
+  initialDuration: number;
   onExit: () => void;
 }) {
   const vlcRef = useRef<any>(null);
   const lastSeekAt = useRef(0);
   const [paused, setPaused] = useState(false);
   const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [duration, setDuration] = useState(initialDuration);
   const [seekTarget, setSeekTarget] = useState<number | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [scrubbing, setScrubbing] = useState(false);
@@ -845,6 +847,7 @@ function Player({
   itemId,
   title,
   resumeSeconds,
+  initialDuration,
   onExit,
   onNativeError,
 }: {
@@ -852,6 +855,7 @@ function Player({
   itemId: string;
   title: string;
   resumeSeconds: number;
+  initialDuration: number;
   onExit: () => void;
   onNativeError: () => void;
 }) {
@@ -892,6 +896,7 @@ function Player({
           externalSubs={config.externalSubs}
           title={title}
           resumeSeconds={resumeSeconds}
+          initialDuration={initialDuration}
           onExit={onExit}
         />
       )}
