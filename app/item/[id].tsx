@@ -509,6 +509,13 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
             <ActivityIndicator color={colors.text} size="large" />
           </View>
         ) : null}
+        {activeCue ? (
+          <View style={[styles.subOverlay, { bottom: controlsVisible ? 130 : 40 }]} pointerEvents="none">
+            <Text style={[styles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
+              {activeCue.text}
+            </Text>
+          </View>
+        ) : null}
         {controlsVisible ? (
           <View style={styles.overlay} pointerEvents="box-none">
             <LinearGradient
@@ -526,14 +533,6 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resu
                 <Text style={styles.engineBadgeText}>VLC</Text>
               </View>
             </View>
-
-            {activeCue ? (
-              <View style={[styles.subOverlay, { bottom: controlsVisible ? 130 : 40 }]} pointerEvents="none">
-                <Text style={[styles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
-                  {activeCue.text}
-                </Text>
-              </View>
-            ) : null}
 
             <View style={styles.overlayCenter} pointerEvents="box-none">
               <TouchableOpacity style={styles.skipBtn} onPress={() => skip(-10)} activeOpacity={0.7}>
@@ -654,7 +653,13 @@ function VlcSubsModal({
 }) {
   const isOff = activeExternalIndex == null && activeInternalId === -1;
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
+    >
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
         <Pressable style={[styles.modalSheet, styles.modalSheetTall]} onPress={() => {}}>
           <View style={styles.modalHandle} />
@@ -709,7 +714,13 @@ function ExternalSubsModal({
   onClose: () => void;
 }) {
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
+    >
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
         <Pressable style={styles.modalSheet} onPress={() => {}}>
           <View style={styles.modalHandle} />
@@ -792,7 +803,13 @@ function CastPickerModal({ visible, onClose }: { visible: boolean; onClose: () =
   }
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
+    >
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
         <Pressable style={styles.modalSheet} onPress={() => {}}>
           <View style={styles.modalHandle} />
@@ -1433,7 +1450,13 @@ function TrackPickerModal({
   const hasAnySub = subtitles.length > 0 || externalSubs.length > 0;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
+    >
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
         <Pressable style={styles.modalSheet} onPress={() => {}}>
           <View style={styles.modalHandle} />
@@ -1564,7 +1587,13 @@ function SpeedPickerModal({
   visible: boolean; current: number; onClose: () => void; onPick: (r: number) => void;
 }) {
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
+    >
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
         <Pressable style={styles.modalSheet} onPress={() => {}}>
           <View style={styles.modalHandle} />
