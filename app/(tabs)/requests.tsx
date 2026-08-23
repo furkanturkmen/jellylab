@@ -11,7 +11,19 @@ import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { type JellyseerrRequest } from '@/types';
 import { colors, radius, spacing, type as t } from '@/theme';
 
-type EnrichedRequest = JellyseerrRequest & { details: Jellyseerr.MediaDetails | null };
+type EnrichedRequest = JellyseerrRequest & {
+  details: Jellyseerr.MediaDetails | null;
+  /** still from the lowest requested season; null for movies and on failure */
+  seasonArt: string | null;
+};
+
+/** Requested seasons, specials dropped, lowest first. */
+function requestedSeasons(r: JellyseerrRequest): number[] {
+  return (r.seasons ?? [])
+    .map(s => s.seasonNumber)
+    .filter(n => n > 0)
+    .sort((a, b) => a - b);
+}
 
 export default function RequestsScreen() {
   const router = useRouter();
@@ -31,10 +43,17 @@ export default function RequestsScreen() {
     try {
       const raw = await Jellyseerr.listRequests('all');
       const enriched = await Promise.all(
-        raw.map(async r => ({
-          ...r,
-          details: await Jellyseerr.getMediaDetails(r.media.mediaType, r.media.tmdbId),
-        }))
+        raw.map(async r => {
+          // Lowest season, so a [1] card and a [2][3] card of the same series
+          // never land on the same image. Cached in the api layer, so the
+          // 5-second poll does not refetch it.
+          const seasons = requestedSeasons(r);
+          const [details, seasonArt] = await Promise.all([
+            Jellyseerr.getMediaDetails(r.media.mediaType, r.media.tmdbId),
+            seasons.length > 0 ? Jellyseerr.getSeasonArt(r.media.tmdbId, seasons[0]) : null,
+          ]);
+          return { ...r, details, seasonArt };
+        })
       );
       setItems(enriched);
     } finally {
@@ -118,11 +137,13 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
   // Seerr files one request per season selection, so a series can appear
   // several times. Without showing which seasons each covers the rows look
   // like duplicates of each other.
-  const seasonNumbers = (r.seasons ?? []).map(x => x.seasonNumber).sort((a, b) => a - b);
+  const seasonNumbers = requestedSeasons(r);
 
   const title = r.details?.title ?? `TMDB ${r.media.tmdbId}`;
   const year = r.details?.year;
-  const backdrop = Jellyseerr.backdropUrl(r.details?.backdropPath);
+  // Season art first so repeat requests of one series read as different rows;
+  // the series backdrop covers movies and anything with no still.
+  const backdrop = r.seasonArt ?? Jellyseerr.backdropUrl(r.details?.backdropPath);
   const poster = Jellyseerr.posterUrl(r.details?.posterPath, 'w300');
 
   return (
@@ -132,8 +153,11 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
       ) : (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bgElevated }]} />
       )}
+      {/* Episode stills are far brighter and busier than a backdrop - some are
+          lit daylight exteriors - so the middle stop sits darker than it needs
+          to for backdrops alone. The title and pills sit in that band. */}
       <LinearGradient
-        colors={['rgba(10,10,10,0.85)', 'rgba(10,10,10,0.55)', 'rgba(10,10,10,0.85)']}
+        colors={['rgba(10,10,10,0.88)', 'rgba(10,10,10,0.68)', 'rgba(10,10,10,0.88)']}
         locations={[0, 0.5, 1]}
         style={StyleSheet.absoluteFill}
       />

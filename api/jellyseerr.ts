@@ -175,6 +175,45 @@ export function seasonStatusLabel(s: SeerrSeason): string {
   }
 }
 
+/**
+ * Cached for the life of the process: season artwork does not change, and the
+ * requests screen re-polls every few seconds while a download is running.
+ * Only successful lookups are stored, so a dropped connection retries rather
+ * than leaving a card permanently art-less.
+ */
+const seasonArtCache = new Map<string, string | null>();
+
+/**
+ * A still from one season, used to tell one season's request card apart from
+ * another's when the same series is requested more than once.
+ *
+ * Seasons have no artwork of their own anywhere in the chain: Seerr returns an
+ * empty posterPath on /tv/{id}, omits the field entirely on the season
+ * endpoint, and Sonarr carries images at series level only. Episode stills are
+ * the only per-season art that exists — and being 16:9 they suit a card
+ * background better than a poster would anyway.
+ */
+export async function getSeasonArt(tmdbId: number, seasonNumber: number): Promise<string | null> {
+  const key = `${tmdbId}:${seasonNumber}`;
+  const cached = seasonArtCache.get(key);
+  if (cached !== undefined) return cached;
+
+  try {
+    const client = await authClient();
+    const res = await client.get(`/tv/${tmdbId}/season/${seasonNumber}`);
+    const still = ((res.data?.episodes ?? []) as any[])
+      .map(e => e?.stillPath ?? e?.still_path)
+      .find(p => typeof p === 'string' && p.length > 0);
+    // Seerr hands back an absolute URL when the metadata came from TVDB, and a
+    // bare TMDB path when it came from TMDB.
+    const art = still ? (still.startsWith('http') ? still : `https://image.tmdb.org/t/p/w780${still}`) : null;
+    seasonArtCache.set(key, art);
+    return art;
+  } catch {
+    return null;
+  }
+}
+
 export async function listRequests(filter: 'all' | 'pending' | 'approved' | 'available' = 'all'): Promise<JellyseerrRequest[]> {
   const client = await authClient();
   const res = await client.get('/request', { params: { filter, take: 50 } });
