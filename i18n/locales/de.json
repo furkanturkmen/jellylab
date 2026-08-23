@@ -59,8 +59,8 @@
     "downloads": "Downloads"
   },
   "downloads": {
-    "emptyTitle": "Keine Downloads",
-    "emptyBody": "Sobald dein Server etwas lädt, erscheint es hier mit Live-Fortschritt."
+    "emptyTitle": "Noch keine Downloads",
+    "emptyBody": "Offline-Wiedergabe steht auf der Roadmap. Heruntergeladene Titel erscheinen hier."
   },
   "library": {
     "welcomeBack": "Willkommen zurück",

@@ -196,49 +196,6 @@ export async function removeMediaFile(mediaId: number): Promise<void> {
   await client.delete(`/media/${mediaId}/file`);
 }
 
-
-export type ActiveDownload = DownloadStatus & {
-  /** the media this download belongs to, so the row can show a title and art */
-  mediaTitle: string;
-  posterPath?: string;
-  tmdbId: number;
-  mediaType: 'movie' | 'tv';
-};
-
-/**
- * Everything the server is currently fetching, flattened across requests.
- *
- * Seerr already carries downloadStatus on each request's media, so this needs
- * no extra endpoint and no qBittorrent credentials — and it only ever shows
- * downloads that belong to something someone actually asked for, rather than
- * whatever else happens to be in the torrent client.
- */
-export async function getActiveDownloads(): Promise<ActiveDownload[]> {
-  const client = await authClient();
-  const res = await client.get('/request', { params: { filter: 'all', take: 50 } });
-  const requests: any[] = res.data?.results ?? [];
-
-  const out: ActiveDownload[] = [];
-  const seen = new Set<string>();
-  for (const r of requests) {
-    const media = r?.media ?? {};
-    for (const d of (media.downloadStatus ?? []) as DownloadStatus[]) {
-      // the same download appears under every request touching that media
-      const key = d.downloadId ?? `${media.tmdbId}-${d.title}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push({
-        ...d,
-        mediaTitle: media.title ?? media.originalTitle ?? d.title ?? 'Unknown',
-        posterPath: media.posterPath,
-        tmdbId: media.tmdbId,
-        mediaType: media.mediaType === 'tv' ? 'tv' : 'movie',
-      });
-    }
-  }
-  return out;
-}
-
 export type MediaDetails = {
   title: string;
   posterPath?: string;

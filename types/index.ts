@@ -66,6 +66,14 @@ export type JellyseerrRequest = {
     tmdbId: number;
     mediaType: 'movie' | 'tv';
     status: number;
+    /** live queue entries from Sonarr/Radarr, which read them from qBittorrent */
+    downloadStatus?: {
+      size?: number;
+      sizeLeft?: number;
+      timeLeft?: string;
+      status?: string;
+      episode?: { seasonNumber: number; episodeNumber: number };
+    }[];
   };
   requestedBy: { id: number; displayName: string };
 };

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Animated, AppState, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -38,6 +38,21 @@ export default function RequestsScreen() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  /**
+   * Refresh while anything is actually in the download queue, so the bars move
+   * rather than showing whatever was true when the tab opened. Gated on there
+   * being something to watch: with nothing downloading this costs nothing, and
+   * it stops on its own once the last one finishes.
+   */
+  const anyDownloading = items.some(r => (r.media.downloadStatus ?? []).length > 0);
+  useEffect(() => {
+    if (!anyDownloading) return;
+    const id = setInterval(() => {
+      if (AppState.currentState === 'active') load();
+    }, 5000);
+    return () => clearInterval(id);
+  }, [anyDownloading, load]);
 
   if (loading && items.length === 0) {
     return (
@@ -83,6 +98,18 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
   // Deduplicated and order-preserving: request state first, media state second,
   // and nothing shown twice when they agree.
   const pills = [...new Set([available ? mediaStatus : requestStatus, mediaStatus])];
+
+  // Seerr carries the Sonarr/Radarr queue on each request, and those read their
+  // figures straight from qBittorrent - so this is the same percentage the
+  // torrent client shows, without the app needing to talk to it.
+  const queue = r.media.downloadStatus ?? [];
+  const totals = queue.reduce<{ size: number; left: number }>(
+    (acc, d) => ({ size: acc.size + (d.size ?? 0), left: acc.left + (d.sizeLeft ?? 0) }),
+    { size: 0, left: 0 }
+  );
+  const pct = totals.size > 0 ? Math.round(((totals.size - totals.left) / totals.size) * 100) : null;
+  // one entry has a real ETA; a season pack split over many does not
+  const timeLeft = queue.length === 1 ? queue[0].timeLeft : undefined;
   const title = r.details?.title ?? `TMDB ${r.media.tmdbId}`;
   const year = r.details?.year;
   const backdrop = Jellyseerr.backdropUrl(r.details?.backdropPath);
@@ -120,9 +147,20 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
               </View>
             ))}
           </View>
-          <Text style={styles.by}>
-            {r.requestedBy.displayName} · {new Date(r.createdAt).toLocaleDateString()}
-          </Text>
+          {pct !== null ? (
+            <View style={styles.progressWrap}>
+              <View style={styles.barTrack}>
+                <View style={[styles.barFill, { width: `${pct}%` }]} />
+              </View>
+              <Text style={styles.progressText}>
+                {pct}%{timeLeft && timeLeft !== '00:00:00' ? ` · ${timeLeft}` : ''}
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.by}>
+              {r.requestedBy.displayName} · {new Date(r.createdAt).toLocaleDateString()}
+            </Text>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -166,4 +204,8 @@ const styles = StyleSheet.create({
   pillAvailable: { backgroundColor: colors.successTint, borderColor: colors.successBorder },
   pillText: { color: colors.text, ...t.caption, textTransform: 'uppercase' },
   by: { ...t.small, color: colors.textDim, marginTop: spacing.xs },
+  progressWrap: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
+  barTrack: { flex: 1, height: 5, borderRadius: 3, backgroundColor: colors.surface, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 3, backgroundColor: colors.successBorder },
+  progressText: { ...t.caption, color: colors.textMuted, minWidth: 34, textAlign: 'right' },
 });

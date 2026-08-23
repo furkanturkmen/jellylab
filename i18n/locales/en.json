@@ -59,8 +59,8 @@
     "downloads": "Downloads"
   },
   "downloads": {
-    "emptyTitle": "Nothing downloading",
-    "emptyBody": "When your server is fetching something, it shows up here with live progress."
+    "emptyTitle": "No downloads yet",
+    "emptyBody": "Offline playback is on the roadmap. Downloaded titles will appear here."
   },
   "library": {
     "welcomeBack": "Welcome back",
