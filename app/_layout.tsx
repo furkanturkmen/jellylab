@@ -1,4 +1,3 @@
-import * as Notifications from 'expo-notifications';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -24,11 +23,13 @@ SplashScreen.preventAutoHideAsync();
 
 // Without this a notification arriving while the app is open is swallowed
 // silently, which reads as "notifications are broken".
-// Wrapped because this runs at module scope: in Expo Go, or a dev client
-// built before expo-notifications was added, the native module is absent and
-// an uncaught throw here would take down the whole app rather than just
-// notifications.
+//
+// Required lazily, not imported at the top of the file. On a binary without
+// the native module the import itself throws, and a throw while this module is
+// evaluating leaves the root layout undefined — which surfaces as expo-router
+// failing to destructure a route, nowhere near the real cause.
 try {
+  const Notifications = require('expo-notifications');
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: true,

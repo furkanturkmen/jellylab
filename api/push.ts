@@ -1,5 +1,3 @@
-import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
@@ -31,6 +29,24 @@ function isMissingNativeModule(e: unknown): boolean {
   return msg.includes('Cannot find native module') || msg.includes('ExpoPushTokenManager');
 }
 
+/**
+ * Loaded on demand rather than imported at the top of the file. On a binary
+ * without the native module the import itself can throw, and a throw while a
+ * module is evaluating leaves that module undefined — which surfaces far from
+ * here as expo-router failing to destructure a route. Keeping it inside a
+ * function contains the failure to the one screen that needs it.
+ */
+function nativeModules() {
+  try {
+    return {
+      Notifications: require('expo-notifications') as typeof import('expo-notifications'),
+      Device: require('expo-device') as typeof import('expo-device'),
+    };
+  } catch (e) {
+    throw new PushModuleMissingError();
+  }
+}
+
 function base(url: string): string {
   return url.replace(/\/+$/, '');
 }
@@ -41,6 +57,7 @@ function base(url: string): string {
  * capability, and a previous denial cannot be re-prompted from inside the app.
  */
 export async function getPushToken(): Promise<string | null> {
+  const { Notifications, Device } = nativeModules();
   try {
     if (!Device.isDevice) return null;
 
