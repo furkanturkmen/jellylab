@@ -178,6 +178,22 @@ export default function TmdbDetailScreen() {
   const jellyfinId = details.mediaInfo?.jellyfinMediaId;
   const activeDownloads = details.mediaInfo?.downloadStatus ?? [];
 
+  /**
+   * Why an approved request has nothing downloading. Radarr with the default
+   * "Released" minimum availability will not search until a film is out
+   * digitally, so a cinema-only release sits approved and idle for months —
+   * which reads as a failure unless it says otherwise.
+   */
+  const waitingReason = (() => {
+    if (!processing || activeDownloads.length > 0) return null;
+    const digital = type === 'movie' ? Jellyseerr.digitalReleaseDate(details) : null;
+    if (digital && digital.getTime() > Date.now()) {
+      const when = digital.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+      return `Still in cinemas. Nothing to download until the digital release on ${when} — your server will pick it up automatically then.`;
+    }
+    return 'Approved and waiting for a match. Your server keeps searching, so this can take a while if nothing good is available yet.';
+  })();
+
   return (
     <View style={styles.root}>
       <Stack.Screen options={{ title: '', headerTransparent: true, headerBackTitle: 'Back', headerTintColor: colors.text }} />
@@ -231,6 +247,13 @@ export default function TmdbDetailScreen() {
               {activeDownloads.map((d, i) => (
                 <DownloadRow key={`${d.downloadId ?? 'dl'}-${i}`} d={d} />
               ))}
+            </View>
+          ) : waitingReason ? (
+            /* Approved with nothing downloading looks identical to broken.
+               Say why rather than showing an empty card. */
+            <View style={styles.card}>
+              <Text style={styles.sectionLabel}>Not downloading yet</Text>
+              <Text style={styles.waitingText}>{waitingReason}</Text>
             </View>
           ) : null}
 
@@ -524,6 +547,7 @@ const styles = StyleSheet.create({
   },
   checkOn: { backgroundColor: colors.text, borderColor: colors.text },
   checkMark: { color: colors.bg, fontSize: 14, fontWeight: '700' },
+  waitingText: { ...type.body, color: colors.textMuted, lineHeight: 20 },
   seasonNote: { ...type.small, color: colors.textDim, marginTop: spacing.lg, lineHeight: 18 },
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },

@@ -147,6 +147,23 @@ export function isSeasonRequestable(s: SeerrSeason): boolean {
   return s.episodeCount > 0 && (s.status === SEERR_STATUS.UNKNOWN || s.status === SEERR_STATUS.PARTIALLY_AVAILABLE);
 }
 
+/**
+ * Earliest digital release across all countries, or null if TMDB has none.
+ *
+ * This is the date Radarr waits for when Minimum Availability is "Released" —
+ * a film can be months into its cinema run with nothing to find, which looks
+ * from the app like an approved request that silently does nothing.
+ */
+export function digitalReleaseDate(d: TmdbFullDetails): Date | null {
+  const dates = (d.releases?.results ?? [])
+    .flatMap(r => r.release_dates ?? [])
+    .filter(r => r.type === 4 && r.release_date)
+    .map(r => new Date(r.release_date as string))
+    .filter(dt => !Number.isNaN(dt.getTime()));
+  if (dates.length === 0) return null;
+  return new Date(Math.min(...dates.map(dt => dt.getTime())));
+}
+
 export function seasonStatusLabel(s: SeerrSeason): string {
   if (s.episodeCount === 0) return 'Not aired';
   switch (s.status) {
@@ -226,6 +243,13 @@ export type TmdbFullDetails = {
   numberOfSeasons?: number;
   numberOfEpisodes?: number;
   seasons?: { seasonNumber: number; episodeCount: number; name?: string }[];
+  /** TMDB per-country release dates; type 4 is the digital release */
+  releases?: {
+    results?: {
+      iso_3166_1?: string;
+      release_dates?: { release_date?: string; type?: number }[];
+    }[];
+  };
   mediaInfo?: {
     id?: number;
     status?: number;
