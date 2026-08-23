@@ -50,7 +50,7 @@ export default function LibraryScreen() {
     load();
   }, [state.status]);
 
-  if (state.status !== 'signed-in' || loading) {
+  if (state.status !== 'signed-in' || (loading && libs.length === 0 && resume.length === 0)) {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={colors.text} />
