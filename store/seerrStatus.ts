@@ -44,7 +44,10 @@ export function describeSeerrError(e: any, url?: string): string {
   const status = e?.response?.status;
   if (status === 401 || status === 403) return 'Jellyseerr rejected those credentials';
   if (status) {
-    const body = e?.response?.data?.message;
+    // Seerr uses `message` for auth failures and `error` for setup ones, and
+    // the latter is where the useful text lives - "Jellyfin hostname already
+    // configured" says far more than "returned 500".
+    const body = e?.response?.data?.message ?? e?.response?.data?.error;
     return body ? `Jellyseerr: ${body}` : `Jellyseerr returned ${status}`;
   }
   if (e?.message === 'Network Error' || e?.code === 'ECONNABORTED') {

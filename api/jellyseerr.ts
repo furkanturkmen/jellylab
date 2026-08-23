@@ -38,19 +38,34 @@ export async function authClient(): Promise<AxiosInstance> {
   return makeClient(auth.cookie);
 }
 
+/**
+ * Sign in to Jellyseerr with Jellyfin credentials.
+ *
+ * The `hostname` field is the awkward part. Seerr only accepts one while its
+ * Jellyfin server is still unconfigured, to bind itself to a media server
+ * during first-run setup. Once configured - which is every install after the
+ * first login - sending one is an error:
+ *
+ *   hostname: "http://jellyfin.homelab.internal"  -> 500 Jellyfin hostname already configured
+ *   hostname omitted                              -> authenticates normally
+ *
+ * So it is tried without first, and only retried with a hostname if that fails
+ * for a reason other than the credentials being wrong. A 401 means Seerr got as
+ * far as checking them, and no hostname would change that.
+ */
 export async function loginJellyfin(username: string, password: string): Promise<JellyseerrAuth> {
-  // Seerr/Jellyseerr auth passthrough. Seerr v3+ requires the Jellyfin hostname
-  // in the body so it can bind the session to the right media server.
   const client = await makeClient();
-  // awaited, not the sync getter: this runs during sign-in, which is exactly
-  // when the server store may still be hydrating. An empty hostname here makes
-  // Seerr reject the login for a reason that looks nothing like the cause.
-  const hostname = await requireJellyfinUrl();
-  const res = await client.post(
-    '/auth/jellyfin',
-    { username, password, hostname },
-    { withCredentials: true },
-  );
+  const post = (body: Record<string, unknown>) =>
+    client.post('/auth/jellyfin', body, { withCredentials: true });
+
+  let res;
+  try {
+    res = await post({ username, password });
+  } catch (e: any) {
+    if (e?.response?.status === 401) throw e;
+    // Unconfigured Seerr: it wants to be told which server to bind to.
+    res = await post({ username, password, hostname: await requireJellyfinUrl() });
+  }
   const setCookie = res.headers['set-cookie'];
   const cookie = Array.isArray(setCookie) ? setCookie.map(c => c.split(';')[0]).join('; ') : '';
   const auth: JellyseerrAuth = {
