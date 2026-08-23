@@ -25,8 +25,8 @@ function useScaleOnPress() {
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return {
     style,
-    onPressIn: () => { scale.value = withSpring(0.94, { damping: 12, stiffness: 220 }); },
-    onPressOut: () => { scale.value = withSpring(1, { damping: 10, stiffness: 200 }); },
+    onPressIn: () => { scale.value = withSpring(0.97, { damping: 18, stiffness: 400, mass: 0.5 }); },
+    onPressOut: () => { scale.value = withSpring(1, { damping: 15, stiffness: 350, mass: 0.5 }); },
   };
 }
 
@@ -136,7 +136,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
     setTimeout(() => inputRef.current?.focus(), 120);
   }
 
-  const transition = LinearTransition.springify().damping(18).stiffness(180);
+  const transition = LinearTransition.duration(160);
 
   return (
     <Animated.View style={[styles.container, { bottom }]} pointerEvents="box-none" layout={transition}>
@@ -144,8 +144,8 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         <Animated.View
           style={styles.mainPill}
           layout={transition}
-          entering={FadeIn.duration(180)}
-          exiting={FadeOut.duration(120)}
+          entering={FadeIn.duration(120)}
+          exiting={FadeOut.duration(80)}
         >
           {Platform.OS === 'ios' ? (
             <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
@@ -170,8 +170,8 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       ) : (
         <Animated.View
           layout={transition}
-          entering={FadeIn.duration(220)}
-          exiting={FadeOut.duration(120)}
+          entering={FadeIn.duration(120)}
+          exiting={FadeOut.duration(80)}
         >
           <GlassCircle
             onPress={() => {
@@ -190,7 +190,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             <Animated.View
               style={styles.searchBar}
               layout={transition}
-              entering={FadeIn.duration(220)}
+              entering={FadeIn.duration(120)}
             >
               {Platform.OS === 'ios' ? (
                 <BlurView tint="dark" intensity={80} style={[StyleSheet.absoluteFill, styles.blur]} />
@@ -213,8 +213,8 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
             </Animated.View>
             <Animated.View
               layout={transition}
-              entering={FadeIn.duration(220)}
-              exiting={FadeOut.duration(120)}
+              entering={FadeIn.duration(120)}
+              exiting={FadeOut.duration(80)}
             >
               <GlassCircle
                 onPress={() => {
@@ -229,8 +229,8 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
         ) : (
           <Animated.View
             layout={transition}
-            entering={FadeIn.duration(180)}
-            exiting={FadeOut.duration(120)}
+            entering={FadeIn.duration(120)}
+            exiting={FadeOut.duration(80)}
           >
             <GlassCircle
               onPress={openSearch}
