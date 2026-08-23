@@ -12,7 +12,7 @@ Built with Expo Router (SDK 57), React Native 0.86, and TypeScript. iOS-first; A
   - Scrubbing, ±10s skip, speed control, PiP, fullscreen with rotation lock
   - Embedded + external subtitle picker with size and language preferences
   - Watch progress reported to Jellyfin (start/progress/stopped)
-  - AirPlay button (native) + Chromecast (Google Cast SDK — default receiver `CC1AD845`; register your own if you want a branded/custom-features receiver)
+  - AirPlay button (native) + Chromecast (Google Cast SDK — uses the public default media receiver; register your own for custom branding)
 - **Search** — Jellyseerr TMDB search + Discover categories (Trending / Popular Movies / Popular TV / Anime / Upcoming). Tap a card for TMDB detail. Admins can delete requests or remove media from Jellyfin (Radarr/Sonarr file wipe).
 - **Requests** — pull-to-refresh with human-readable status + admin actions.
 - **Profile** — Apple TV-style grouped list. Change display name, password, avatar (camera / library / remove). Preferences: subtitles, playback, content (adult toggle), language. Admin shortcuts to Jellyfin/Jellyseerr dashboards when signed in as admin.
@@ -26,18 +26,27 @@ Built with Expo Router (SDK 57), React Native 0.86, and TypeScript. iOS-first; A
 - Apple Developer account ($99/yr) for TestFlight distribution or long-lived on-device installs.
 - A running Jellyfin server and a running Jellyseerr server with your Jellyfin account imported (Jellyseerr → Settings → Users → Import from Jellyfin).
 - The device must resolve and reach the Jellyfin/Jellyseerr hostnames — LAN or mesh VPN (NetBird / Tailscale) with DNS routing pointing your internal domain at a local resolver.
-- Chromecast (optional): register your own receiver in the [Cast Developer Console](https://cast.google.com/publish/) and swap `iosReceiverAppId` in `app.json` if you want per-app receiver features. The default `CC1AD845` is Google's public media receiver and works out of the box.
+- Chromecast (optional): the app ships with Google's public default media receiver so casting works out of the box. If you want a branded receiver or Cast-side custom features, register one in the [Cast Developer Console](https://cast.google.com/publish/) and set `iosReceiverAppId` in `app.json` locally (do not commit your ID).
 
 ## Configuration
 
-No server URLs are compiled in. On first launch the app prompts you to add a server (name + Jellyfin URL + Jellyseerr URL). Server data lives in `expo-secure-store`; you can manage multiple servers and switch between them from Profile → Servers.
+Nothing server-specific is compiled into the app. On first launch you're prompted to add a server (name + Jellyfin URL + Jellyseerr URL). All server data is user-provided at runtime.
 
 `config.ts` only holds client identity (name, version, device name string used in Jellyfin's session list).
+
+## Security & storage
+
+- **Server URLs** — entered by the user, stored in `expo-secure-store` (`servers_list`, `current_server_id`). Not embedded in the app or committed to the repo.
+- **Passwords** — never stored. Sent once to Jellyfin's `/Users/AuthenticateByName` in exchange for an access token.
+- **Access token** (Jellyfin) and **session cookie** (Jellyseerr) — stored in `expo-secure-store`. Cleared on sign-out, server switch, or server delete.
+- **No API keys, secrets, or tokens are committed** anywhere in this repo. Grep it if you like.
+- **Cast receiver** — `app.json` ships with Google's public default media receiver. Register your own in the [Cast Developer Console](https://cast.google.com/publish/) and override `iosReceiverAppId` locally if you want a branded receiver; don't commit your ID.
+- **iOS ATS** — `NSAllowsArbitraryLoads` is on so the app works with plain-HTTP homelab servers. If you only ever connect to HTTPS servers with valid certs, tighten it in `app.json` before shipping.
 
 ## Setup
 
 ```bash
-git clone git@github.com:furkanturkmen/jellylab.git
+git clone <this-repo-url>
 cd jellylab
 npm install
 ```
@@ -109,22 +118,32 @@ types/                  Shared TypeScript types
 
 Ordered by realistic priority — small wins first, bigger platform work later.
 
+**Recently shipped**
+- Runtime server management (add / edit / delete / switch, no baked-in URLs)
+- Custom player overlay in Abyss style with per-engine glass controls
+- Watch progress sync to Jellyfin
+- Season / episode picker for TV
+- Chromecast + AirPlay
+- 4-language i18n (en / nl / tr / de)
+- Apple TV-style Library header with scroll-fade + status-bar overlay
+
 **Next up (small, ships soon)**
 1. Watch history screen (finished items, separate from Continue Watching)
-2. In-app "Sign out from all servers" quick action
-3. Better error surfaces when a server URL is unreachable (currently opaque)
+2. Friendlier error surfaces when a server URL is unreachable (currently mostly axios raw)
+3. Per-server saved credentials (skip re-login on switch — currently signs out)
+4. Search inside your own Jellyfin library (currently search only hits Jellyseerr/TMDB)
 
 **Mid-term (medium effort, high value)**
-4. Downloads / offline playback (needs codec-aware file cache + player fallback for local file:// URLs)
-5. iPad-friendly split layout (sidebar + detail pane; adaptive from 768pt)
-6. Home Screen Widget (Continue Watching)
-7. Push notifications for request approval / media available (needs APNS + Jellyseerr webhook bridge)
+5. Downloads / offline playback (needs codec-aware file cache + player fallback for local file:// URLs)
+6. iPad-friendly split layout (sidebar + detail pane; adaptive from 768pt)
+7. Home Screen Widget (Continue Watching)
+8. Push notifications for request approval / media available (needs APNS + Jellyseerr webhook bridge)
 
 **Platform expansion (larger scope)**
-8. Music library browsing + playback
-9. Live TV (guide + tuner)
-10. Android polish pass (tabs, navigation, Cast native integration)
-11. tvOS build (Apple TV target — same Jellyfin API, different UI conventions)
+9. Music library browsing + playback
+10. Live TV (guide + tuner)
+11. Android polish pass (tabs, navigation, Cast native integration, VLC parity)
+12. tvOS build (Apple TV target — same Jellyfin API, different UI conventions)
 
 ## License
 
