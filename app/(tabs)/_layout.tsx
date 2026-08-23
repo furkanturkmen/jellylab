@@ -33,6 +33,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: t('tabs.library'),
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <SymbolView name={{ ios: 'play.rectangle.on.rectangle', android: 'video_library', web: 'video_library' }} tintColor={color} size={26} />
           ),

@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, Touchabl
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
@@ -58,29 +59,33 @@ export default function LibraryScreen() {
   const heroItem = resume[0] ?? libs[0]?.items[0];
 
   return (
-    <FlatList
-      style={styles.root}
-      data={libs}
-      keyExtractor={l => l.view.Id}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.text} />}
-      ListHeaderComponent={
-        <>
-          {heroItem ? <HeroSpotlight item={heroItem} /> : null}
+    <View style={styles.root}>
+      <StatusBar hidden />
+      <FlatList
+        data={libs}
+        keyExtractor={l => l.view.Id}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.text} />}
+        ListHeaderComponent={
+          <>
+            {heroItem ? <HeroSpotlight item={heroItem} /> : null}
 
-          <View style={styles.headerRow}>
-            <View>
-              <Text style={styles.greetingSmall}>{t('library.welcomeBack')}</Text>
-              <Text style={styles.greeting}>{state.auth.userName}</Text>
+            <View style={styles.headerRow}>
+              <View>
+                <Text style={styles.greetingSmall}>{t('library.welcomeBack')}</Text>
+                <Text style={styles.greeting}>{state.auth.userName}</Text>
+              </View>
             </View>
-            <AvatarButton auth={state.auth} onPress={() => router.push('/profile')} />
-          </View>
 
-          {resume.length > 0 ? <ContinueWatchingRow items={resume} title={t('library.continueWatching')} /> : null}
-        </>
-      }
-      renderItem={({ item }) => <LibraryRow lib={item} />}
-      contentContainerStyle={{ paddingBottom: 120 }}
-    />
+            {resume.length > 0 ? <ContinueWatchingRow items={resume} title={t('library.continueWatching')} /> : null}
+          </>
+        }
+        renderItem={({ item }) => <LibraryRow lib={item} />}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      />
+      <View style={styles.avatarFloating} pointerEvents="box-none">
+        <AvatarButton auth={state.auth} onPress={() => router.push('/profile')} />
+      </View>
+    </View>
   );
 }
 
@@ -270,10 +275,15 @@ const styles = StyleSheet.create({
   },
   greetingSmall: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.xs },
   greeting: { ...type.h1, color: colors.text },
-  avatarBtn: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
+  avatarBtn: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.glassBorder },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface },
-  avatarPlaceholder: { alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  avatarPlaceholder: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.glassTint },
   avatarInitials: { color: colors.text, fontSize: 17, fontWeight: '700' },
+  avatarFloating: {
+    position: 'absolute',
+    top: spacing.lg,
+    right: spacing.lg,
+  },
 
   section: { marginBottom: spacing.xxl },
   sectionHeader: {
