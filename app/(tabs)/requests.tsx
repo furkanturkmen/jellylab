@@ -80,6 +80,9 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
   const requestStatus = t(`requests.status.${r.status}`, { defaultValue: '?' });
   const mediaStatus = t(`requests.mediaStatus.${r.media.status}`, { defaultValue: '?' });
   const available = r.media.status === 5;
+  // Deduplicated and order-preserving: request state first, media state second,
+  // and nothing shown twice when they agree.
+  const pills = [...new Set([available ? mediaStatus : requestStatus, mediaStatus])];
   const title = r.details?.title ?? `TMDB ${r.media.tmdbId}`;
   const year = r.details?.year;
   const backdrop = Jellyseerr.backdropUrl(r.details?.backdropPath);
@@ -107,13 +110,15 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
         <View style={styles.info}>
           {year ? <Text style={styles.year}>{year}</Text> : null}
           <Text style={styles.title} numberOfLines={2}>{title}</Text>
+          {/* Two pills: how the request went, and where the media is now.
+              Once something is available both said "Available", which is one
+              badge doing the work of two — so identical labels collapse. */}
           <View style={styles.pillRow}>
-            <View style={[styles.pill, available && styles.pillAvailable]}>
-              <Text style={styles.pillText}>{available ? t('requests.mediaStatus.5') : requestStatus}</Text>
-            </View>
-            <View style={styles.pill}>
-              <Text style={styles.pillText}>{mediaStatus}</Text>
-            </View>
+            {pills.map((label, i) => (
+              <View key={label} style={[styles.pill, available && i === 0 && styles.pillAvailable]}>
+                <Text style={styles.pillText}>{label}</Text>
+              </View>
+            ))}
           </View>
           <Text style={styles.by}>
             {r.requestedBy.displayName} · {new Date(r.createdAt).toLocaleDateString()}

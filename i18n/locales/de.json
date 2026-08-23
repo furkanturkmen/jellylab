@@ -85,14 +85,18 @@
     "status": {
       "1": "Ausstehend",
       "2": "Genehmigt",
-      "3": "Abgelehnt"
+      "3": "Abgelehnt",
+      "4": "Fehlgeschlagen",
+      "5": "Abgeschlossen"
     },
     "mediaStatus": {
       "1": "Unbekannt",
       "2": "Ausstehend",
       "3": "In Bearbeitung",
       "4": "Teilweise verfügbar",
-      "5": "Verfügbar"
+      "5": "Verfügbar",
+      "6": "Blockiert",
+      "7": "Entfernt"
     }
   },
   "detail": {

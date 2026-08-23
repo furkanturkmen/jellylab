@@ -85,14 +85,18 @@
     "status": {
       "1": "In behandeling",
       "2": "Goedgekeurd",
-      "3": "Afgewezen"
+      "3": "Afgewezen",
+      "4": "Mislukt",
+      "5": "Voltooid"
     },
     "mediaStatus": {
       "1": "Onbekend",
       "2": "In behandeling",
       "3": "Bezig",
       "4": "Deels beschikbaar",
-      "5": "Beschikbaar"
+      "5": "Beschikbaar",
+      "6": "Geblokkeerd",
+      "7": "Verwijderd"
     }
   },
   "detail": {

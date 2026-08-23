@@ -85,14 +85,18 @@
     "status": {
       "1": "Beklemede",
       "2": "Onaylandı",
-      "3": "Reddedildi"
+      "3": "Reddedildi",
+      "4": "Başarısız",
+      "5": "Tamamlandı"
     },
     "mediaStatus": {
       "1": "Bilinmiyor",
       "2": "Beklemede",
       "3": "İşleniyor",
       "4": "Kısmen mevcut",
-      "5": "Mevcut"
+      "5": "Mevcut",
+      "6": "Engellendi",
+      "7": "Kaldırıldı"
     }
   },
   "detail": {

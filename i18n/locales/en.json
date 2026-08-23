@@ -85,14 +85,18 @@
     "status": {
       "1": "Pending",
       "2": "Approved",
-      "3": "Declined"
+      "3": "Declined",
+      "4": "Failed",
+      "5": "Completed"
     },
     "mediaStatus": {
       "1": "Unknown",
       "2": "Pending",
       "3": "Processing",
       "4": "Partially Available",
-      "5": "Available"
+      "5": "Available",
+      "6": "Blocked",
+      "7": "Removed"
     }
   },
   "detail": {
