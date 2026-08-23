@@ -35,22 +35,39 @@ export default function ProfileScreen() {
 
   async function pickImage(source: 'library' | 'camera') {
     if (state.status !== 'signed-in') return;
-    const perm =
-      source === 'camera'
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    console.log('[profile] pickImage', source);
+    let perm;
+    try {
+      perm =
+        source === 'camera'
+          ? await ImagePicker.requestCameraPermissionsAsync()
+          : await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('[profile] permission result', perm);
+    } catch (e: any) {
+      console.log('[profile] permission request failed', e?.message);
+      Alert.alert('Permission error', e?.message ?? 'Unknown');
+      return;
+    }
     if (!perm.granted) {
       Alert.alert(t('profile.permissionDenied'));
       return;
     }
     const picker = source === 'camera' ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
-    const result = await picker({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-      base64: true,
-    });
+    let result;
+    try {
+      result = await picker({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        base64: true,
+      });
+      console.log('[profile] picker result canceled=', result.canceled);
+    } catch (e: any) {
+      console.log('[profile] picker crashed', e?.message);
+      Alert.alert('Picker error', e?.message ?? 'Unknown');
+      return;
+    }
     if (result.canceled || !result.assets[0]?.base64) return;
 
     setUploadingImage(true);

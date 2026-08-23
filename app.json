@@ -14,6 +14,7 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocalNetworkUsageDescription": "jellylab uses the local network to discover Chromecast and other streaming receivers.",
         "NSPhotoLibraryUsageDescription": "jellylab needs photo library access to update your profile picture.",
+        "NSPhotoLibraryAddUsageDescription": "jellylab needs permission to save photos to your library.",
         "NSCameraUsageDescription": "jellylab needs camera access to take a new profile picture.",
         "NSMicrophoneUsageDescription": "jellylab needs microphone access if you record a video with the camera.",
         "UISupportedInterfaceOrientations": [
