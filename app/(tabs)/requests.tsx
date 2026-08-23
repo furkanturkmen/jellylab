@@ -115,6 +115,11 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
   const pct = totals.size > 0 ? Math.round(((totals.size - totals.left) / totals.size) * 100) : null;
   // one entry has a real ETA; a season pack split over many does not
   const timeLeft = queue.length === 1 ? queue[0].timeLeft : undefined;
+  // Seerr files one request per season selection, so a series can appear
+  // several times. Without showing which seasons each covers the rows look
+  // like duplicates of each other.
+  const seasonNumbers = (r.seasons ?? []).map(x => x.seasonNumber).sort((a, b) => a - b);
+
   const title = r.details?.title ?? `TMDB ${r.media.tmdbId}`;
   const year = r.details?.year;
   const backdrop = Jellyseerr.backdropUrl(r.details?.backdropPath);
@@ -141,7 +146,21 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
         )}
         <View style={styles.info}>
           {year ? <Text style={styles.year}>{year}</Text> : null}
-          <Text style={styles.title} numberOfLines={2}>{title}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title} numberOfLines={1}>{title}</Text>
+            {seasonNumbers.length > 0 ? (
+              <View style={styles.seasonRow}>
+                {seasonNumbers.slice(0, 4).map(n => (
+                  <View key={n} style={styles.seasonChip}>
+                    <Text style={styles.seasonChipText}>{n}</Text>
+                  </View>
+                ))}
+                {seasonNumbers.length > 4 ? (
+                  <Text style={styles.seasonMore}>+{seasonNumbers.length - 4}</Text>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
           {/* Two pills: how the request went, and where the media is now.
               Once something is available both said "Available", which is one
               badge doing the work of two — so identical labels collapse. */}
@@ -196,7 +215,21 @@ const styles = StyleSheet.create({
   },
   info: { flex: 1, gap: spacing.xs },
   year: { ...t.caption, color: colors.textMuted, textTransform: 'uppercase' },
-  title: { ...t.bodyStrong, color: colors.text },
+  title: { ...t.bodyStrong, color: colors.text, flexShrink: 1 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  seasonRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  seasonChip: {
+    minWidth: 20,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: radius.pill,
+    backgroundColor: colors.glassTint,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.glassBorder,
+    alignItems: 'center',
+  },
+  seasonChipText: { color: colors.text, fontSize: 11, fontWeight: '700' },
+  seasonMore: { color: colors.textMuted, fontSize: 11, fontWeight: '600' },
   pillRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   pill: {
     paddingHorizontal: spacing.md,

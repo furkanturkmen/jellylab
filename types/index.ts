@@ -76,6 +76,8 @@ export type JellyseerrRequest = {
     }[];
   };
   requestedBy: { id: number; displayName: string };
+  /** which seasons this request covers; absent or empty for movies */
+  seasons?: { seasonNumber: number }[];
 };
 
 export const REQUEST_STATUS: Record<number, string> = {
