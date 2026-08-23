@@ -407,6 +407,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
   const [activeSubIndex, setActiveSubIndex] = useState<number | null>(null);
   const [externalCues, setExternalCues] = useState<VttCue[]>([]);
   const [activeCue, setActiveCue] = useState<VttCue | null>(null);
+  const [subFontSize, setSubFontSize] = useState(18);
 
   useEffect(() => {
     const sub = player.addListener('statusChange', ({ status }) => {
@@ -425,6 +426,37 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
     });
     return () => sub.remove();
   }, [player, itemId]);
+
+  // Apply pref-based subtitle size + auto-select preferred language sub on mount.
+  useEffect(() => {
+    (async () => {
+      const prefs = await loadPrefs();
+      const sizeMap = { sm: 14, md: 18, lg: 24 } as const;
+      setSubFontSize(sizeMap[prefs.subtitleSize] ?? 18);
+
+      if (prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
+        const wanted = prefs.subtitleLanguage.toLowerCase();
+        const aliases: Record<string, string[]> = {
+          eng: ['eng', 'english', 'en'],
+          nld: ['nld', 'nl', 'dutch', 'nederlands'],
+          tur: ['tur', 'tr', 'turkish', 'türk'],
+          ger: ['ger', 'deu', 'de', 'german', 'deutsch'],
+          fre: ['fre', 'fra', 'fr', 'french', 'français'],
+          spa: ['spa', 'es', 'spanish', 'español'],
+          jpn: ['jpn', 'ja', 'japanese'],
+        };
+        const needles = aliases[wanted] ?? [wanted];
+        const match = externalSubs.find(s => {
+          const label = s.label.toLowerCase();
+          return needles.some(n => label.includes(n));
+        });
+        if (match) {
+          pickExternalSub(match.index);
+        }
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Report start on mount, stop on unmount.
   useEffect(() => {
@@ -637,8 +669,13 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
         ) : null}
       </Pressable>
       {activeCue ? (
-        <View style={styles.subOverlay} pointerEvents="none">
-          <Text style={styles.subText}>{activeCue.text}</Text>
+        <View
+          style={[styles.subOverlay, { bottom: controlsVisible ? 130 : 40 }]}
+          pointerEvents="none"
+        >
+          <Text style={[styles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
+            {activeCue.text}
+          </Text>
         </View>
       ) : null}
       <TrackPickerModal
