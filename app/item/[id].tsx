@@ -208,8 +208,14 @@ export default function ItemScreen() {
   );
 }
 
-function VLCEnginePlayer({ url, itemId, title, resumeSeconds, onExit }: {
-  url: string; itemId: string; title: string; resumeSeconds: number; onExit: () => void;
+function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeSeconds, onExit }: {
+  url: string;
+  itemId: string;
+  mediaSourceId?: string;
+  externalSubs: { index: number; label: string }[];
+  title: string;
+  resumeSeconds: number;
+  onExit: () => void;
 }) {
   const vlcRef = useRef<any>(null);
   const [paused, setPaused] = useState(false);
@@ -221,6 +227,13 @@ function VLCEnginePlayer({ url, itemId, title, resumeSeconds, onExit }: {
   const [scrubValue, setScrubValue] = useState(0);
   const [isLandscape, setIsLandscape] = useState(false);
   const [ready, setReady] = useState(false);
+  const [subsOpen, setSubsOpen] = useState(false);
+  const [speedOpen, setSpeedOpen] = useState(false);
+  const [rate, setRate] = useState(1);
+  const [activeSubIndex, setActiveSubIndex] = useState<number | null>(null);
+  const [externalCues, setExternalCues] = useState<VttCue[]>([]);
+  const [activeCue, setActiveCue] = useState<VttCue | null>(null);
+  const [subFontSize, setSubFontSize] = useState(18);
 
   // Report progress to Jellyfin
   useEffect(() => {
@@ -232,6 +245,84 @@ function VLCEnginePlayer({ url, itemId, title, resumeSeconds, onExit }: {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Apply subtitle prefs + auto-select last-used or preferred language sub.
+  useEffect(() => {
+    (async () => {
+      const prefs = await loadPrefs();
+      const sizeMap = { sm: 14, md: 18, lg: 24 } as const;
+      setSubFontSize(sizeMap[prefs.subtitleSize] ?? 18);
+
+      if (prefs.lastSubLabel && prefs.lastSubLabel !== 'off') {
+        const exact = externalSubs.find(s => s.label === prefs.lastSubLabel);
+        if (exact) {
+          pickExternalSub(exact.index, false);
+          return;
+        }
+      }
+      if (prefs.lastSubLabel !== 'off' && prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
+        const wanted = prefs.subtitleLanguage.toLowerCase();
+        const aliases: Record<string, string[]> = {
+          eng: ['eng', 'english', 'en'],
+          nld: ['nld', 'nl', 'dutch', 'nederlands'],
+          tur: ['tur', 'tr', 'turkish', 'türk'],
+          ger: ['ger', 'deu', 'de', 'german', 'deutsch'],
+          fre: ['fre', 'fra', 'fr', 'french', 'français'],
+          spa: ['spa', 'es', 'spanish', 'español'],
+          jpn: ['jpn', 'ja', 'japanese'],
+        };
+        const needles = aliases[wanted] ?? [wanted];
+        const match = externalSubs.find(s => needles.some(n => s.label.toLowerCase().includes(n)));
+        if (match) pickExternalSub(match.index, false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Track active cue for external subs
+  useEffect(() => {
+    if (externalCues.length === 0) {
+      if (activeCue) setActiveCue(null);
+      return;
+    }
+    const cue = findActiveCue(externalCues, position);
+    if (cue !== activeCue) setActiveCue(cue);
+  }, [position, externalCues, activeCue]);
+
+  async function pickExternalSub(streamIndex: number | null, persistPref = true) {
+    setActiveSubIndex(streamIndex);
+    if (streamIndex == null || !mediaSourceId) {
+      setExternalCues([]);
+      setActiveCue(null);
+      if (persistPref) {
+        try {
+          const prefs = await loadPrefs();
+          const { savePrefs } = await import('@/store/prefs');
+          await savePrefs({ ...prefs, lastSubLabel: 'off' });
+        } catch {}
+      }
+      return;
+    }
+    try {
+      const auth = await import('@/store/auth').then(m => m.loadJellyfinAuth());
+      if (!auth) return;
+      const url = Jellyfin.subtitleUrl(itemId, mediaSourceId, streamIndex, auth.accessToken, 'vtt');
+      const vtt = await Jellyfin.fetchSubtitleVtt(url);
+      setExternalCues(parseVtt(vtt));
+      if (persistPref) {
+        const picked = externalSubs.find(s => s.index === streamIndex);
+        if (picked) {
+          try {
+            const prefs = await loadPrefs();
+            const { savePrefs } = await import('@/store/prefs');
+            await savePrefs({ ...prefs, lastSubLabel: picked.label });
+          } catch {}
+        }
+      }
+    } catch {
+      setExternalCues([]);
+    }
+  }
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -254,16 +345,30 @@ function VLCEnginePlayer({ url, itemId, title, resumeSeconds, onExit }: {
     setControlsVisible(true);
   }
 
+  function vlcSeek(seconds: number) {
+    if (duration <= 0) return;
+    const ratio = Math.max(0, Math.min(1, seconds / duration));
+    try {
+      // react-native-vlc-media-player ref.seek takes a 0..1 percentage
+      vlcRef.current?.seek?.(ratio);
+    } catch {}
+  }
+
   function skip(seconds: number) {
     const next = Math.max(0, Math.min(duration, position + seconds));
-    setSeekTarget(next);
+    vlcSeek(next);
     setPosition(next);
     setControlsVisible(true);
   }
 
   function seekTo(t: number) {
-    setSeekTarget(t);
+    vlcSeek(t);
     setPosition(t);
+  }
+
+  function changeSpeed(nextRate: number) {
+    setRate(nextRate);
+    setSpeedOpen(false);
   }
 
   async function toggleFullscreen() {
@@ -282,8 +387,14 @@ function VLCEnginePlayer({ url, itemId, title, resumeSeconds, onExit }: {
   // Resume once loaded
   const onLoad = (e: any) => {
     setReady(true);
-    if (resumeSeconds > 0 && e?.duration) {
-      setSeekTarget(resumeSeconds);
+    const durSecs = (e?.duration ?? 0) / 1000;
+    if (durSecs > 0) setDuration(durSecs);
+    if (resumeSeconds > 0 && durSecs > 0) {
+      const ratio = Math.max(0, Math.min(1, resumeSeconds / durSecs));
+      // Small delay so VLC is ready to accept seek
+      setTimeout(() => {
+        try { vlcRef.current?.seek?.(ratio); } catch {}
+      }, 200);
     }
   };
 
@@ -305,7 +416,7 @@ function VLCEnginePlayer({ url, itemId, title, resumeSeconds, onExit }: {
           source={{ uri: url }}
           autoplay
           paused={paused}
-          seek={seekTarget != null ? seekTarget : undefined}
+          rate={rate}
           resizeMode="contain"
           onLoad={onLoad}
           onProgress={onProgress}
@@ -333,6 +444,14 @@ function VLCEnginePlayer({ url, itemId, title, resumeSeconds, onExit }: {
                 <Text style={styles.engineBadgeText}>VLC</Text>
               </View>
             </View>
+
+            {activeCue ? (
+              <View style={[styles.subOverlay, { bottom: controlsVisible ? 130 : 40 }]} pointerEvents="none">
+                <Text style={[styles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
+                  {activeCue.text}
+                </Text>
+              </View>
+            ) : null}
 
             <View style={styles.overlayCenter} pointerEvents="box-none">
               <TouchableOpacity style={styles.skipBtn} onPress={() => skip(-10)} activeOpacity={0.7}>
@@ -370,6 +489,12 @@ function VLCEnginePlayer({ url, itemId, title, resumeSeconds, onExit }: {
               </View>
               <View style={styles.actionsRow} pointerEvents="box-none">
                 <View style={{ flex: 1 }} />
+                <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setSubsOpen(true)} activeOpacity={0.7}>
+                  <SymbolView name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }} tintColor={colors.text} size={22} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setSpeedOpen(true)} activeOpacity={0.7}>
+                  <SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} tintColor={colors.text} size={22} />
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
                   <SymbolView
                     name={{
@@ -386,7 +511,62 @@ function VLCEnginePlayer({ url, itemId, title, resumeSeconds, onExit }: {
           </View>
         ) : null}
       </Pressable>
+      <ExternalSubsModal
+        visible={subsOpen}
+        externalSubs={externalSubs}
+        activeIndex={activeSubIndex}
+        onPick={(idx) => {
+          pickExternalSub(idx);
+          setSubsOpen(false);
+        }}
+        onClose={() => setSubsOpen(false)}
+      />
+      <SpeedPickerModal
+        visible={speedOpen}
+        current={rate}
+        onClose={() => setSpeedOpen(false)}
+        onPick={changeSpeed}
+      />
     </>
+  );
+}
+
+function ExternalSubsModal({
+  visible, externalSubs, activeIndex, onPick, onClose,
+}: {
+  visible: boolean;
+  externalSubs: { index: number; label: string }[];
+  activeIndex: number | null;
+  onPick: (index: number | null) => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable style={styles.modalSheet} onPress={() => {}}>
+          <View style={styles.modalHandle} />
+          <Text style={styles.modalTitle}>Subtitles</Text>
+          {externalSubs.length === 0 ? (
+            <Text style={styles.modalEmpty}>No external subtitle tracks available</Text>
+          ) : (
+            <>
+              <TrackRow label="Off" selected={activeIndex == null} onPress={() => onPick(null)} />
+              {externalSubs.map(s => (
+                <TrackRow
+                  key={`ext-vlc-${s.index}`}
+                  label={s.label}
+                  selected={activeIndex === s.index}
+                  onPress={() => onPick(s.index)}
+                />
+              ))}
+            </>
+          )}
+          <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
+            <Text style={styles.modalCloseText}>Close</Text>
+          </TouchableOpacity>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -543,6 +723,8 @@ function Player({
         <VLCEnginePlayer
           url={config.url}
           itemId={itemId}
+          mediaSourceId={config.mediaSourceId}
+          externalSubs={config.externalSubs}
           title={title}
           resumeSeconds={resumeSeconds}
           onExit={onExit}
