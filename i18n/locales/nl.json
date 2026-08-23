@@ -23,7 +23,8 @@
     "signIn": "Aanmelden",
     "signingIn": "Bezig met aanmelden…",
     "failed": "Aanmelden mislukt",
-    "tapToConfigureServer": "Tik om server in te stellen"
+    "tapToConfigureServer": "Tik om server in te stellen",
+    "manageServers": "Servers beheren"
   },
   "servers": {
     "title": "Servers",

@@ -23,7 +23,8 @@
     "signIn": "Sign in",
     "signingIn": "Signing in…",
     "failed": "Login failed",
-    "tapToConfigureServer": "Tap to configure server"
+    "tapToConfigureServer": "Tap to configure server",
+    "manageServers": "Manage servers"
   },
   "servers": {
     "title": "Servers",

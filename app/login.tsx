@@ -34,10 +34,11 @@ export default function LoginScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.brand}>{t('login.title')}</Text>
-          <TouchableOpacity onPress={() => router.push('/servers')} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => router.push('/servers')} activeOpacity={0.7} style={styles.hostChip}>
             <Text style={styles.hostLabel}>
               {server ? server.jellyfinUrl.replace(/^https?:\/\//, '') : t('login.tapToConfigureServer')}
             </Text>
+            <Text style={styles.hostChev}>›</Text>
           </TouchableOpacity>
         </View>
 
@@ -72,6 +73,15 @@ export default function LoginScreen() {
             >
               <Text style={styles.buttonText}>{busy ? t('login.signingIn') : t('login.signIn')}</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.push('/servers')}
+              activeOpacity={0.7}
+              style={styles.manageLink}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.manageLinkText}>{t('login.manageServers')}</Text>
+            </TouchableOpacity>
           </View>
         </BlurView>
       </KeyboardAvoidingView>
@@ -83,8 +93,22 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1, padding: spacing.xl, justifyContent: 'center' },
   header: { marginBottom: spacing.xxl, alignItems: 'center' },
-  brand: { ...type.display, color: colors.text, marginBottom: spacing.xs },
-  hostLabel: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase' },
+  brand: { ...type.display, color: colors.text, marginBottom: spacing.md },
+  hostChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.glassTint,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.glassBorder,
+  },
+  hostLabel: { ...type.caption, color: colors.text, textTransform: 'uppercase' },
+  hostChev: { color: colors.textMuted, fontSize: 16, marginTop: -2 },
+  manageLink: { alignItems: 'center', marginTop: spacing.lg, paddingVertical: spacing.sm },
+  manageLinkText: { color: colors.textMuted, fontSize: 14, fontWeight: '500' },
   card: {
     borderRadius: radius.xl,
     overflow: 'hidden',

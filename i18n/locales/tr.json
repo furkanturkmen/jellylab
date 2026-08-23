@@ -23,7 +23,8 @@
     "signIn": "Giriş yap",
     "signingIn": "Giriş yapılıyor…",
     "failed": "Giriş başarısız",
-    "tapToConfigureServer": "Sunucuyu ayarlamak için dokun"
+    "tapToConfigureServer": "Sunucuyu ayarlamak için dokun",
+    "manageServers": "Sunucuları yönet"
   },
   "servers": {
     "title": "Sunucular",

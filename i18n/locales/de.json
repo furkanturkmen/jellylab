@@ -23,7 +23,8 @@
     "signIn": "Anmelden",
     "signingIn": "Anmeldung läuft…",
     "failed": "Anmeldung fehlgeschlagen",
-    "tapToConfigureServer": "Tippen, um Server einzurichten"
+    "tapToConfigureServer": "Tippen, um Server einzurichten",
+    "manageServers": "Server verwalten"
   },
   "servers": {
     "title": "Server",
