@@ -32,7 +32,10 @@
     "noneBody": "Başlamak için bir Jellyfin + Jellyseerr çifti ekle.",
     "addFirst": "Sunucu ekle",
     "deleteTitle": "Sunucu silinsin mi?",
-    "deleteMessage": "\"{{name}}\" bu cihazdan kaldırılacak. Sunucunun kendisi etkilenmez."
+    "deleteMessage": "\"{{name}}\" bu cihazdan kaldırılacak. Sunucunun kendisi etkilenmez.",
+    "switchTitle": "Sunucu değiştirilsin mi?",
+    "switchMessage": "Mevcut sunucudan çıkış yapılıp \"{{name}}\" sunucusuna bağlanılacak.",
+    "switchConfirm": "Değiştir"
   },
   "serverEdit": {
     "addTitle": "Sunucu ekle",
@@ -145,6 +148,8 @@
       "language": "Dil",
       "servers": "Sunucular"
     },
+    "app": "Uygulama",
+    "signOutOfServer": "{{name}} sunucusundan çıkış yap",
     "adminJellyfin": "Yönetici — Jellyfin",
     "adminJellyseerr": "Yönetici — Jellyseerr",
     "adminMenu": {

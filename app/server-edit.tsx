@@ -58,6 +58,7 @@ export default function ServerEditScreen() {
       return;
     }
     setBusy(true);
+    const wasFirst = servers.length === 0;
     try {
       await upsertServer({
         id: existing?.id,
@@ -65,11 +66,12 @@ export default function ServerEditScreen() {
         jellyfinUrl,
         jellyseerrUrl,
       });
-      if (existing) {
-        router.back();
-      } else {
-        // First-time add: skip the servers list and go straight to login.
+      if (wasFirst) {
+        // First server: it's auto-current, go straight to login.
         router.replace('/login');
+      } else {
+        // Editing or adding an additional server: back to the servers list.
+        router.back();
       }
     } catch (e: any) {
       Alert.alert(t('common.failed'), e?.message ?? t('common.unknownError'));

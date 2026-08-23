@@ -32,7 +32,10 @@
     "noneBody": "Add a Jellyfin + Jellyseerr pair to get started.",
     "addFirst": "Add server",
     "deleteTitle": "Delete server?",
-    "deleteMessage": "Remove \"{{name}}\" from this device. This does not affect the server itself."
+    "deleteMessage": "Remove \"{{name}}\" from this device. This does not affect the server itself.",
+    "switchTitle": "Switch server?",
+    "switchMessage": "Sign out of the current server and connect to \"{{name}}\".",
+    "switchConfirm": "Switch"
   },
   "serverEdit": {
     "addTitle": "Add server",
@@ -145,6 +148,8 @@
       "language": "Language",
       "servers": "Servers"
     },
+    "app": "App",
+    "signOutOfServer": "Sign out of {{name}}",
     "adminJellyfin": "Admin — Jellyfin",
     "adminJellyseerr": "Admin — Jellyseerr",
     "adminMenu": {

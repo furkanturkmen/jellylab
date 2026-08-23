@@ -32,7 +32,10 @@
     "noneBody": "Voeg een Jellyfin + Jellyseerr paar toe om te beginnen.",
     "addFirst": "Server toevoegen",
     "deleteTitle": "Server verwijderen?",
-    "deleteMessage": "Verwijder \"{{name}}\" van dit toestel. Dit heeft geen invloed op de server zelf."
+    "deleteMessage": "Verwijder \"{{name}}\" van dit toestel. Dit heeft geen invloed op de server zelf.",
+    "switchTitle": "Server wisselen?",
+    "switchMessage": "Meld je af van de huidige server en verbind met \"{{name}}\".",
+    "switchConfirm": "Wisselen"
   },
   "serverEdit": {
     "addTitle": "Server toevoegen",
@@ -145,6 +148,8 @@
       "language": "Taal",
       "servers": "Servers"
     },
+    "app": "App",
+    "signOutOfServer": "Afmelden van {{name}}",
     "adminJellyfin": "Beheer — Jellyfin",
     "adminJellyseerr": "Beheer — Jellyseerr",
     "adminMenu": {

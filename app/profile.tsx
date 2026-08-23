@@ -179,10 +179,6 @@ export default function ProfileScreen() {
         </View>
 
         <Section>
-          <Row icon="server.rack" label={t('profile.menu.servers')} onPress={() => router.push('/servers')} />
-        </Section>
-
-        <Section>
           <Row icon="person" label={t('profile.displayName')} value={user?.Name ?? state.auth.userName} onPress={editName} />
           <Row icon="key" label={t('profile.changePassword')} onPress={() => router.push('/settings/password')} />
         </Section>
@@ -215,9 +211,14 @@ export default function ProfileScreen() {
           </>
         ) : null}
 
+        <SectionHeader>{t('profile.app')}</SectionHeader>
+        <Section>
+          <Row icon="server.rack" label={t('profile.menu.servers')} onPress={() => router.push('/servers')} />
+        </Section>
+
         <View style={styles.signOutWrap}>
           <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.85}>
-            <Text style={styles.signOutText}>{t('common.signOut')}</Text>
+            <Text style={styles.signOutText}>{t('profile.signOutOfServer', { name: getJellyfinUrl().replace(/^https?:\/\//, '') })}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

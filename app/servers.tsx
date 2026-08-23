@@ -16,10 +16,22 @@ export default function ServersScreen() {
 
   async function switchTo(s: Server) {
     if (s.id === server?.id) return;
-    await clearJellyfinAuth();
-    await clearJellyseerrAuth();
-    await setCurrentServer(s.id);
-    router.replace('/login');
+    Alert.alert(
+      t('servers.switchTitle'),
+      t('servers.switchMessage', { name: s.name }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('servers.switchConfirm'),
+          onPress: async () => {
+            await clearJellyfinAuth();
+            await clearJellyseerrAuth();
+            await setCurrentServer(s.id);
+            router.replace('/login');
+          },
+        },
+      ],
+    );
   }
 
   async function confirmDelete(s: Server) {
