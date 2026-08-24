@@ -72,6 +72,19 @@ function describeError(e: any): string {
   return e?.message || String(e);
 }
 
+/**
+ * Let a long address break at its own separators.
+ *
+ * A URL is one unbroken word as far as text layout is concerned, so it either
+ * overflows its container or breaks at an arbitrary character. Zero-width
+ * spaces after the separators give the line breaker somewhere sensible to stop:
+ * the break lands after a slash or a dot, and nothing is added to what the text
+ * actually says - a copied line still pastes as the original address.
+ */
+function breakable(text: string): string {
+  return text.replace(/([/.:?&=-])/g, '$1\u200B');
+}
+
 export default function LibraryScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -161,7 +174,7 @@ export default function LibraryScreen() {
           <Text style={styles.errorBody}>
             {error === 'auth' ? t('library.unavailableAuth') : t('library.unavailableBody')}
           </Text>
-          {error === 'auth' ? null : <Text style={styles.errorDetail}>{error}</Text>}
+          {error === 'auth' ? null : <Text style={styles.errorDetail}>{breakable(error)}</Text>}
           <TouchableOpacity style={styles.retry} onPress={load} activeOpacity={0.7} disabled={loading}>
             {/* The button is the only moving part on this screen, so it has to
                 carry the wait itself - otherwise a retry against a server that
