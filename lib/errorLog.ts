@@ -55,9 +55,13 @@ export function describeError(e: any): string {
     const url = `${config?.baseURL ?? ''}${config?.url ?? ''}`;
     const status = e?.response?.status;
     const body = describeBody(e?.response?.data);
+    const message = e?.message ?? 'Request failed';
+    // The Jellyfin client appends the address it could not reach to the
+    // message itself, so printing it again here says the same URL twice.
+    const where = url && !message.includes(url) ? `${method} ${url}` : '';
     return [
-      e?.message ?? 'Request failed',
-      `${method} ${url}`,
+      message,
+      where,
       status ? `HTTP ${status}` : 'no response',
       body,
     ].filter(Boolean).join(' — ');
