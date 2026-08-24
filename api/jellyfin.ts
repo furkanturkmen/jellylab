@@ -260,16 +260,39 @@ export async function getEpisodes(userId: string, seriesId: string, seasonId: st
   return res.data.Items ?? [];
 }
 
+/**
+ * What you were part-way through, one card per series.
+ *
+ * Jellyfin resumes per episode, so leaving three episodes of the same show
+ * unfinished puts three of them in the row - the same artwork three times,
+ * pushing everything else off the end. Only the most recent per series earns a
+ * card; the rest are reachable from the series itself.
+ *
+ * Films have no SeriesId and key on their own id, so they are untouched. The
+ * server is asked for more than the caller wants, because the collapse happens
+ * after its limit has already been applied.
+ */
 export async function getResumeItems(userId: string, limit = 12): Promise<JellyfinItem[]> {
   const client = await authClient();
   const res = await client.get(`/Users/${userId}/Items/Resume`, {
     params: {
-      Limit: limit,
+      Limit: limit * 3,
       MediaTypes: 'Video',
       Fields: 'PrimaryImageAspectRatio,Overview,BackdropImageTags',
     },
   });
-  return res.data.Items ?? [];
+  const items: JellyfinItem[] = res.data.Items ?? [];
+  const seen = new Set<string>();
+  const collapsed: JellyfinItem[] = [];
+  // Most recently played first, so the one kept for a series is the episode you
+  // actually left off on.
+  for (const item of items) {
+    const key = item.SeriesId ?? item.Id;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    collapsed.push(item);
+  }
+  return collapsed.slice(0, limit);
 }
 
 export async function getLatestItems(userId: string, parentId: string, limit = 12): Promise<JellyfinItem[]> {
