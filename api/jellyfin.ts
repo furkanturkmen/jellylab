@@ -16,15 +16,36 @@ async function authHeader(token?: string): Promise<string> {
 }
 
 async function makeClient(token?: string): Promise<AxiosInstance> {
-  return axios.create({
+  const baseURL = await requireJellyfinUrl();
+  const client = axios.create({
     // awaited, not read synchronously: the store may still be hydrating
-    baseURL: await requireJellyfinUrl(),
+    baseURL,
     timeout: 15000,
     headers: {
       'X-Emby-Authorization': await authHeader(token),
       'Content-Type': 'application/json',
     },
   });
+
+  /**
+   * Say which address failed.
+   *
+   * A request that never reaches a server surfaces as the bare string "Network
+   * Error", with no indication of what it tried to reach - which is useless
+   * when the likely causes are a wrong server URL, DNS, and the server being
+   * down, and they are told apart entirely by the address.
+   */
+  client.interceptors.response.use(
+    r => r,
+    (e: any) => {
+      if (!e?.response) {
+        const path = e?.config?.url ?? '';
+        e.message = `${e.message || 'Request failed'} — could not reach ${baseURL}${path}`;
+      }
+      throw e;
+    }
+  );
+  return client;
 }
 
 export async function authClient(): Promise<AxiosInstance> {

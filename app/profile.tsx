@@ -26,7 +26,11 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     if (state.status !== 'signed-in') return;
-    Jellyfin.getCurrentUser(state.auth.userId).then(setUser);
+    // Caught, not left to reject: an unreachable server should leave the name
+    // field empty, not put a red screen over the whole app.
+    Jellyfin.getCurrentUser(state.auth.userId)
+      .then(setUser)
+      .catch(err => console.warn('profile: could not load user —', err?.message ?? err));
   }, [state.status]);
 
   // Above the signed-out guard below, not after it. Hooks must run in the same
