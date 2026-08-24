@@ -203,7 +203,15 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
   const poster = Jellyseerr.posterUrl(r.details?.posterPath, 'w300');
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onOpen} activeOpacity={0.85}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={onOpen}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      // The pills carry the state - approved, available, downloading - and a
+      // screen reader would otherwise announce the title and nothing else.
+      accessibilityLabel={[title, year, ...pills].filter(Boolean).join(', ')}
+    >
       {backdrop ? (
         <Image source={{ uri: backdrop }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
       ) : (

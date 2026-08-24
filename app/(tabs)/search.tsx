@@ -196,7 +196,18 @@ function DiscoverCard({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: 
   const requested = (item.mediaInfo?.requests?.length ?? 0) > 0;
 
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.85} onPress={onOpen}>
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.85}
+      onPress={onOpen}
+      accessibilityRole="button"
+      // Availability is a badge drawn over the poster, so it has to be said.
+      accessibilityLabel={[
+        title,
+        item.mediaType === 'movie' ? 'Movie' : 'TV',
+        available ? 'Available' : requested ? 'Requested' : '',
+      ].filter(Boolean).join(', ')}
+    >
       <View style={styles.posterWrap}>
         {poster ? (
           <Image source={{ uri: poster }} style={styles.poster} contentFit="cover" transition={200} />
@@ -222,7 +233,15 @@ function LibraryRow({ item, onOpen }: { item: JellyfinItem; onOpen: () => void }
   const kind = item.Type === 'Movie' ? 'Movie' : 'TV';
 
   return (
-    <TouchableOpacity style={styles.row} onPress={onOpen} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.row}
+      onPress={onOpen}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      // This row is the one that plays rather than requests, which is the whole
+      // difference between it and the row below - so the label says so.
+      accessibilityLabel={[item.Name, kind, year, 'Play'].filter(Boolean).join(', ')}
+    >
       {poster ? (
         <Image source={{ uri: poster }} style={styles.thumb} contentFit="cover" transition={150} />
       ) : (
@@ -246,7 +265,18 @@ function ResultRow({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: () 
   const requested = (item.mediaInfo?.requests?.length ?? 0) > 0;
 
   return (
-    <TouchableOpacity style={styles.row} onPress={onOpen} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.row}
+      onPress={onOpen}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={[
+        title,
+        item.mediaType === 'movie' ? 'Movie' : 'TV',
+        year,
+        available ? 'Available' : requested ? 'Requested' : '',
+      ].filter(Boolean).join(', ')}
+    >
       {poster ? (
         <Image source={{ uri: poster }} style={styles.thumb} contentFit="cover" transition={150} />
       ) : (
