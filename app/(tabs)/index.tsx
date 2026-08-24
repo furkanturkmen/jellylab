@@ -328,15 +328,37 @@ function HeroBackdrop({ item, height, topInset, scrollY }: {
   // the half that would push the top edge off screen, sending all the growth
   // downward. Height itself can't be animated: scrollY is native-driven and
   // the native animated module only handles transform and opacity.
+  // Two translations, added: the rubber-band growth above, and a slower drift
+  // upward once the list starts moving.
+  //
+  // Pinned, it stayed put while the content scrolled over it, so a washed-out
+  // copy of the artwork sat above the first row with a hard black edge between
+  // them - visible the moment Continue Watching cleared the hero. Drifting at a
+  // third of the scroll speed keeps the parallax the hero is there for, and the
+  // fade below finishes it off before the seam can appear.
+  const rubberBand = scrollY.interpolate({
+    inputRange: [-height, 0],
+    outputRange: [height / 2, 0],
+    extrapolateLeft: 'extend' as const,
+    extrapolateRight: 'clamp' as const,
+  });
+  const drift = scrollY.interpolate({
+    inputRange: [0, height],
+    outputRange: [0, -height / 3],
+    extrapolate: 'clamp' as const,
+  });
+
   const stretch = {
+    // Gone by the time the content has covered where it was, so nothing shows
+    // above the list but the background colour.
+    opacity: scrollY.interpolate({
+      inputRange: [0, height * 0.55, height * 0.85],
+      outputRange: [1, 1, 0],
+      extrapolate: 'clamp' as const,
+    }),
     transform: [
       {
-        translateY: scrollY.interpolate({
-          inputRange: [-height, 0],
-          outputRange: [height / 2, 0],
-          extrapolateLeft: 'extend' as const,
-          extrapolateRight: 'clamp' as const,
-        }),
+        translateY: Animated.add(rubberBand, drift),
       },
       {
         scale: scrollY.interpolate({
