@@ -86,6 +86,21 @@ export async function authClient(): Promise<AxiosInstance> {
       if (isStaleSession(e) && auth.cookie) {
         await saveJellyseerrAuth({ ...auth, cookie: '' });
       }
+      // 401 is Seerr saying there is no session here at all - the request
+      // carried no usable cookie, from our store or from the native jar. That
+      // is the state a half-finished sign-in leaves behind: signing in is
+      // allowed to fail on the Seerr side without failing the whole login, so
+      // the app can sit signed into Jellyfin with a Seerr record that no longer
+      // opens anything.
+      //
+      // Dropping the record turns every later call into NotAuthenticatedError,
+      // which the Requests screen already knows how to say out loud - "sign in
+      // again" rather than a generic failure the user cannot act on. Nothing is
+      // lost: the record was already useless.
+      if (e?.response?.status === 401) {
+        await clearJellyseerrAuth();
+        throw new NotAuthenticatedError();
+      }
       throw e;
     }
   );
