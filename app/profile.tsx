@@ -205,7 +205,6 @@ export default function ProfileScreen() {
           <Row icon="play.rectangle" label={t('profile.menu.playback')} onPress={() => router.push('/settings/playback')} />
           <Row icon="eye" label={t('profile.menu.content')} onPress={() => router.push('/settings/content')} />
           <Row icon="globe" label={t('profile.menu.language')} onPress={() => router.push('/settings/language')} />
-          <Row icon="bell" label="Notifications" onPress={() => router.push('/settings/notifications')} />
         </Section>
 
         {isAdmin ? (

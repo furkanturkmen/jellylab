@@ -26,9 +26,8 @@ export type Prefs = {
   preferredEngine: PlayerEngine;
   uiLanguage: string; // 'system' or one of SUPPORTED_LANGS
   maxBitrateMbps: number; // 0 = unlimited: always direct play the original file
-  pushUrl: string;        // jellylab-push base URL, e.g. http://192.168.1.10:8099
-  pushSecret: string;     // PUSH_REGISTER_SECRET from the server's .env
-  pushToken: string;      // last registered Expo token, kept so we can unregister
+  /** jellylab-push base URL, e.g. http://192.168.1.10:8099 - used for the storage readout */
+  pushUrl: string;
 };
 
 export const DEFAULT_PREFS: Prefs = {
@@ -43,8 +42,6 @@ export const DEFAULT_PREFS: Prefs = {
   uiLanguage: 'system',
   maxBitrateMbps: 0,
   pushUrl: '',
-  pushSecret: '',
-  pushToken: '',
 };
 
 export async function loadPrefs(): Promise<Prefs> {
