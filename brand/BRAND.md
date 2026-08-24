@@ -40,7 +40,7 @@ Mark height = 1.8× cap height. Gap between mark and wordmark = ½ mark width.
 ## Files
 
 ```
-assets/
+brand/
 ├── BRAND.md · USAGE.md · site.webmanifest
 ├── svg/
 │   ├── jellylab-mark.svg            primary, light backgrounds
@@ -105,5 +105,5 @@ iconutil -c icns JellyLab.iconset
 
 ### GitHub / Docker
 - Repo → Settings → Social preview: `png/social/github-social-preview-1280x640.png`
-- README: `<p align="center"><img src="assets/png/social/readme-hero-1200x400.png" width="640" alt="JellyLab"></p>`
+- README: `<p align="center"><img src="brand/png/social/readme-hero-1200x400.png" width="640" alt="JellyLab"></p>`
 - Org avatar: `png/icon/icon-1024.png` · Docker Hub repo logo: `png/icon/icon-256.png`
