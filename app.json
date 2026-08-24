@@ -2,7 +2,7 @@
   "expo": {
     "name": "JellyLab",
     "slug": "jellylab",
-    "version": "1.0.0",
+    "version": "0.10.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "jellylab",
@@ -29,7 +29,8 @@
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         }
-      }
+      },
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {

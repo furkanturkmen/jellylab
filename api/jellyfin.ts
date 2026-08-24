@@ -77,6 +77,19 @@ export async function login(username: string, password: string): Promise<Jellyfi
   return auth;
 }
 
+/**
+ * The server's own name and version.
+ *
+ * The one endpoint that answers without a token, which is why the About screen
+ * uses it: it still says something useful when authentication is the thing that
+ * is broken. Built by hand rather than through authClient for the same reason.
+ */
+export async function getPublicSystemInfo(): Promise<{ ServerName?: string; Version?: string } | null> {
+  const baseURL = await requireJellyfinUrl();
+  const res = await axios.get(`${baseURL}/System/Info/Public`, { timeout: 8000 });
+  return res.data ?? null;
+}
+
 export async function getCurrentUser(userId: string): Promise<any> {
   const client = await authClient();
   const res = await client.get(`/Users/${userId}`);

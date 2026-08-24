@@ -170,7 +170,8 @@
       "playback": "Afspelen",
       "content": "Inhoud",
       "language": "Taal",
-      "servers": "Servers"
+      "servers": "Servers",
+      "about": "Over"
     },
     "app": "App",
     "signOutOfServer": "Afmelden van {{name}}",
@@ -231,6 +232,16 @@
       "title": "Taal",
       "systemDefault": "Volg apparaat",
       "note": "Herstart de app om menutitels en systeemdialogen volledig bij te werken."
+    },
+    "about": {
+      "title": "Over",
+      "connectedTo": "Verbonden met",
+      "server": "Server",
+      "serverVersion": "Serverversie",
+      "address": "Adres",
+      "source": "Broncode",
+      "changes": "Wat is er veranderd",
+      "tmdbCredit": "Beeldmateriaal en metadata van TMDB. Deze app gebruikt de TMDB API maar is niet goedgekeurd of gecertificeerd door TMDB."
     }
   },
   "languages": {

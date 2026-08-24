@@ -170,7 +170,8 @@
       "playback": "Wiedergabe",
       "content": "Inhalte",
       "language": "Sprache",
-      "servers": "Server"
+      "servers": "Server",
+      "about": "Über"
     },
     "app": "App",
     "signOutOfServer": "Von {{name}} abmelden",
@@ -231,6 +232,16 @@
       "title": "Sprache",
       "systemDefault": "Gerät folgen",
       "note": "Starte die App neu, damit Menütitel und Systemdialoge vollständig übernommen werden."
+    },
+    "about": {
+      "title": "Über",
+      "connectedTo": "Verbunden mit",
+      "server": "Server",
+      "serverVersion": "Serverversion",
+      "address": "Adresse",
+      "source": "Quellcode",
+      "changes": "Was sich geändert hat",
+      "tmdbCredit": "Bilder und Metadaten von TMDB. Diese App nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert."
     }
   },
   "languages": {

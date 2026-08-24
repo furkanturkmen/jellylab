@@ -170,7 +170,8 @@
       "playback": "Playback",
       "content": "Content",
       "language": "Language",
-      "servers": "Servers"
+      "servers": "Servers",
+      "about": "About"
     },
     "app": "App",
     "signOutOfServer": "Sign out of {{name}}",
@@ -231,6 +232,16 @@
       "title": "Language",
       "systemDefault": "Match device",
       "note": "Restart the app for menu titles and system dialogs to fully update."
+    },
+    "about": {
+      "title": "About",
+      "connectedTo": "Connected to",
+      "server": "Server",
+      "serverVersion": "Server version",
+      "address": "Address",
+      "source": "Source code",
+      "changes": "What's changed",
+      "tmdbCredit": "Artwork and metadata from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB."
     }
   },
   "languages": {

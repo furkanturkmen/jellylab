@@ -1,8 +1,27 @@
+import Constants from 'expo-constants';
+
 import { ensureServersLoaded, getCurrentServerSync } from '@/store/servers';
+
+/**
+ * The version is read, not written.
+ *
+ * It used to be a third copy of the string in app.json and package.json, kept
+ * in sync by hand and therefore not: the app told Jellyfin it was 1.0.0 for two
+ * hundred commits, and every install showed up identically in the server's
+ * device list. app.json is the source now.
+ */
+const VERSION = Constants.expoConfig?.version ?? '0.0.0';
+const BUILD = Constants.expoConfig?.ios?.buildNumber ?? '';
+
+export const APP_VERSION = VERSION;
+/** "0.10.0 (1)" - what to show a person, and what to quote in a bug report. */
+export const APP_BUILD_LABEL = BUILD ? `${VERSION} (${BUILD})` : VERSION;
 
 export const CONFIG = {
   CLIENT_NAME: 'jellylab',
-  CLIENT_VERSION: '1.0.0',
+  // Sent in X-Emby-Authorization, so this is the string Jellyfin lists under
+  // Devices. Worth being true.
+  CLIENT_VERSION: VERSION,
   DEVICE_NAME: 'iPhone',
 };
 

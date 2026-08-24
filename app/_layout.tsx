@@ -153,6 +153,7 @@ function RootLayoutNav() {
         <Stack.Screen name="settings/content" options={{ title: 'Content' }} />
         <Stack.Screen name="settings/language" options={{ title: 'Language' }} />
         <Stack.Screen name="settings/password" options={{ title: 'Password' }} />
+        <Stack.Screen name="settings/about" options={{ title: 'About' }} />
       </Stack>
     </ThemeProvider>
   );

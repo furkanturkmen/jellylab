@@ -170,7 +170,8 @@
       "playback": "Oynatma",
       "content": "İçerik",
       "language": "Dil",
-      "servers": "Sunucular"
+      "servers": "Sunucular",
+      "about": "Hakkında"
     },
     "app": "Uygulama",
     "signOutOfServer": "{{name}} sunucusundan çıkış yap",
@@ -231,6 +232,16 @@
       "title": "Dil",
       "systemDefault": "Cihazı takip et",
       "note": "Menü başlıkları ve sistem iletişimlerinin tamamen güncellenmesi için uygulamayı yeniden başlat."
+    },
+    "about": {
+      "title": "Hakkında",
+      "connectedTo": "Bağlı olduğu sunucu",
+      "server": "Sunucu",
+      "serverVersion": "Sunucu sürümü",
+      "address": "Adres",
+      "source": "Kaynak kodu",
+      "changes": "Neler değişti",
+      "tmdbCredit": "Görseller ve meta veriler TMDB’den. Bu uygulama TMDB API’sini kullanır ancak TMDB tarafından onaylanmamıştır."
     }
   },
   "languages": {
