@@ -1,5 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 
+import { parseStored } from './json';
+
 const KEY = 'user_prefs';
 
 export type PlayerEngine = 'auto' | 'native' | 'vlc';
@@ -46,12 +48,9 @@ export const DEFAULT_PREFS: Prefs = {
 
 export async function loadPrefs(): Promise<Prefs> {
   const raw = await SecureStore.getItemAsync(KEY);
-  if (!raw) return DEFAULT_PREFS;
-  try {
-    return { ...DEFAULT_PREFS, ...JSON.parse(raw) };
-  } catch {
-    return DEFAULT_PREFS;
-  }
+  // Spread over the defaults, so a blob written by an older version is missing
+  // keys rather than breaking on them.
+  return { ...DEFAULT_PREFS, ...parseStored<Partial<Prefs>>(raw, {}, 'preferences') };
 }
 
 export async function savePrefs(prefs: Prefs): Promise<void> {

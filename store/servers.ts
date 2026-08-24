@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import type { Server } from '@/types';
+import { parseStored } from './json';
 
 const KEY_SERVERS = 'servers_list';
 const KEY_CURRENT = 'current_server_id';
@@ -36,7 +37,7 @@ async function persist(servers: Server[], currentId: string | null): Promise<voi
 export async function loadServers(): Promise<{ servers: Server[]; current: Server | null }> {
   const raw = await SecureStore.getItemAsync(KEY_SERVERS);
   const currentId = await SecureStore.getItemAsync(KEY_CURRENT);
-  const servers: Server[] = raw ? JSON.parse(raw) : [];
+  const servers = parseStored<Server[]>(raw, [], 'server list');
   const current = currentId ? servers.find(s => s.id === currentId) ?? null : null;
   _cache = { servers, current };
   _loaded = true;

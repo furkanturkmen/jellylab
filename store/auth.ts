@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import type { JellyfinAuth, JellyseerrAuth } from '@/types';
+import { parseStored } from './json';
 
 const KEY_JELLYFIN = 'jellyfin_auth';
 const KEY_JELLYSEERR = 'jellyseerr_auth';
@@ -25,7 +26,7 @@ export async function saveJellyfinAuth(auth: JellyfinAuth): Promise<void> {
 
 export async function loadJellyfinAuth(): Promise<JellyfinAuth | null> {
   const raw = await SecureStore.getItemAsync(KEY_JELLYFIN);
-  return raw ? (JSON.parse(raw) as JellyfinAuth) : null;
+  return parseStored<JellyfinAuth | null>(raw, null, 'Jellyfin session');
 }
 
 export async function clearJellyfinAuth(): Promise<void> {
@@ -39,7 +40,7 @@ export async function saveJellyseerrAuth(auth: JellyseerrAuth): Promise<void> {
 
 export async function loadJellyseerrAuth(): Promise<JellyseerrAuth | null> {
   const raw = await SecureStore.getItemAsync(KEY_JELLYSEERR);
-  return raw ? (JSON.parse(raw) as JellyseerrAuth) : null;
+  return parseStored<JellyseerrAuth | null>(raw, null, 'Jellyseerr session');
 }
 
 export async function clearJellyseerrAuth(): Promise<void> {
