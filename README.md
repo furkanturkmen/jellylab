@@ -84,6 +84,32 @@ npm start
 
 Open the app on the phone — it connects to Metro over the same wifi.
 
+### Browser preview
+
+The app can also be bundled for a desktop browser, which is enough to look at
+screens and states without a Mac or a phone in the loop. It needs three
+gitignored files, because none of it should shape what ships:
+
+| File | Why |
+|------|-----|
+| `metro.config.js` | Resolves the native-only modules to stand-ins on web: `expo-secure-store`, VLC, Cast |
+| `web-shims/` | Those stand-ins. SecureStore becomes `localStorage`; the player and Cast render nothing |
+| `app.config.js` | Sets `web.output` to `single`. The shipped `static` prerenders every route in node, which dies reading SecureStore before a screen exists |
+
+```bash
+npx expo start --web
+```
+
+Two things behave differently from the phone:
+
+- **Jellyfin** is fine — it sends `Access-Control-Allow-Origin: *`.
+- **Jellyseerr** sends no CORS headers and answers preflights with `405`, so a
+  browser refuses every response even though the same URL loads in a tab. The
+  headers have to be added at the reverse proxy; the setup this was built
+  against does it in nginx-proxy-manager. Signing in also relies on
+  `withCredentials` (`api/jellyseerr.ts`), since browsers drop the `Cookie`
+  header the native path sets by hand.
+
 ## Project structure
 
 ```
