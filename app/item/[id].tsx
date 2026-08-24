@@ -19,6 +19,7 @@ import { matchesLanguage } from '@/player/lang';
 import { useAuth } from '@/hooks/useAuth';
 import { getDeviceId } from '@/store/auth';
 import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/prefs';
+import { plainText, oneLine } from '@/lib/text';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem } from '@/types';
 
@@ -311,7 +312,7 @@ export default function ItemScreen() {
           {item.Overview ? (
             <View style={styles.overviewCard}>
               <Text style={styles.sectionLabel}>Overview</Text>
-              <Text style={styles.overview}>{item.Overview}</Text>
+              <Text style={styles.overview}>{plainText(item.Overview)}</Text>
             </View>
           ) : null}
 
@@ -1355,7 +1356,7 @@ function SeriesEpisodes({ seriesId, userId }: { seriesId: string; userId: string
                     {runtimeMin ? `${runtimeMin}m` : ''}
                     {ep.PremiereDate ? ` · ${ep.PremiereDate.slice(0, 10)}` : ''}
                   </Text>
-                  {ep.Overview ? <Text style={styles.epOverview} numberOfLines={2}>{ep.Overview}</Text> : null}
+                  {ep.Overview ? <Text style={styles.epOverview} numberOfLines={2}>{oneLine(ep.Overview)}</Text> : null}
                 </View>
               </TouchableOpacity>
             );

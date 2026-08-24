@@ -6,6 +6,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 import * as Jellyseerr from '@/api/jellyseerr';
 import { GlassButton, PrimaryButton } from '@/components/AppleButton';
+import { plainText } from '@/lib/text';
 import { colors, radius, spacing, type } from '@/theme';
 import { MEDIA_STATUS } from '@/types';
 
@@ -330,7 +331,7 @@ export default function TmdbDetailScreen() {
           {details.overview ? (
             <View style={styles.card}>
               <Text style={styles.sectionLabel}>Overview</Text>
-              <Text style={styles.overview}>{stripHtml(details.overview)}</Text>
+              <Text style={styles.overview}>{plainText(details.overview)}</Text>
             </View>
           ) : null}
 
@@ -494,14 +495,6 @@ function PrimaryAction({
       style={styles.primaryAction}
     />
   );
-}
-
-function stripHtml(s: string): string {
-  return s
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/?[^>]+>/g, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
 }
 
 function DownloadRow({ d }: { d: Jellyseerr.DownloadStatus }) {

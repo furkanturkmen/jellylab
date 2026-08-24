@@ -10,6 +10,7 @@ import * as Jellyseerr from '@/api/jellyseerr';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { useSearchQuery } from '@/store/search';
+import { oneLine } from '@/lib/text';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem, JellyseerrSearchResult } from '@/types';
 
@@ -250,7 +251,7 @@ function LibraryRow({ item, onOpen }: { item: JellyfinItem; onOpen: () => void }
       <View style={styles.rowText}>
         <Text style={styles.rowTitle} numberOfLines={2}>{item.Name}</Text>
         <Text style={styles.rowMeta}>{kind} {year ? `· ${year}` : ''}</Text>
-        {item.Overview ? <Text style={styles.rowOverview} numberOfLines={2}>{item.Overview}</Text> : null}
+        {item.Overview ? <Text style={styles.rowOverview} numberOfLines={2}>{oneLine(item.Overview)}</Text> : null}
       </View>
       <View style={[styles.badge, styles.badgeAvailable]}><Text style={styles.badgeText}>Play</Text></View>
     </TouchableOpacity>
@@ -285,7 +286,7 @@ function ResultRow({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: () 
       <View style={styles.rowText}>
         <Text style={styles.rowTitle} numberOfLines={2}>{title}</Text>
         <Text style={styles.rowMeta}>{item.mediaType === 'movie' ? 'Movie' : 'TV'} {year ? `· ${year}` : ''}</Text>
-        {item.overview ? <Text style={styles.rowOverview} numberOfLines={2}>{item.overview}</Text> : null}
+        {item.overview ? <Text style={styles.rowOverview} numberOfLines={2}>{oneLine(item.overview)}</Text> : null}
       </View>
       {available ? (
         <View style={[styles.badge, styles.badgeAvailable]}><Text style={styles.badgeText}>Available</Text></View>
