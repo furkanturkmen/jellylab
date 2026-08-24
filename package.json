@@ -38,9 +38,12 @@
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.2.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.1",
+    "jest": "^29.7.0",
+    "jest-expo": "^57.0.4",
     "pngjs": "^7.0.0",
     "typescript": "~6.0.3"
   },
@@ -50,7 +53,11 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "brand": "node scripts/brand-sync.mjs",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "jest"
   },
-  "private": true
+  "private": true,
+  "jest": {
+    "preset": "jest-expo"
+  }
 }
