@@ -217,7 +217,7 @@ export default function TmdbDetailScreen() {
 
   return (
     <View style={styles.root}>
-      <Stack.Screen options={{ title: '', headerTransparent: true, headerBackTitle: 'Back', headerTintColor: colors.text }} />
+      <Stack.Screen options={{ title: '', headerTransparent: true, headerTintColor: colors.text }} />
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           {backdrop ? (

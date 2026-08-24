@@ -180,7 +180,6 @@ export default function ItemScreen() {
           title: '',
           headerShown: true,
           headerTransparent: true,
-          headerBackTitle: 'Back',
           headerTintColor: colors.text,
           gestureEnabled: true,
         }}

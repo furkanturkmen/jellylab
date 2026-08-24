@@ -3,6 +3,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments }
 import * as SplashScreen from 'expo-splash-screen';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import 'react-native-reanimated';
 import '@/i18n';
 
@@ -11,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCurrentServer } from '@/hooks/useServer';
 import { clearJellyfinAuth, clearJellyseerrAuth } from '@/store/auth';
 import { installErrorLogging } from '@/lib/errorLog';
+import { colors } from '@/theme';
 
 export {
   ErrorBoundary,
@@ -76,6 +78,7 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+  const { t } = useTranslation();
   const { state } = useAuth();
   const { server, ready: serverReady } = useCurrentServer();
   const segments = useSegments();
@@ -123,7 +126,19 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+      {/* One back control for the whole app, the one the request detail screen
+          already had: the native chevron with the word beside it, in the app's
+          own tint. Without headerBackTitle each screen labelled its back button
+          with the previous route's name, which is why no two of them matched. */}
+      <Stack
+        screenOptions={{
+          headerBackTitle: t('common.back'),
+          headerTintColor: colors.text,
+          headerStyle: { backgroundColor: colors.bg },
+          headerTitleStyle: { color: colors.text },
+          headerShadowVisible: false,
+        }}
+      >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="item/[id]" options={{ title: '' }} />
