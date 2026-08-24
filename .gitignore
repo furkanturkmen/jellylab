@@ -39,3 +39,13 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+# local web preview
+#
+# The app is an iOS client; these exist only so it can be bundled for a desktop
+# browser to look at screens. metro.config.js swaps the native-only modules
+# (SecureStore, VLC, Cast) for web-shims/ stand-ins, and app.config.js turns off
+# the static prerender that those shims cannot survive. None of it is used by
+# the iOS build, and none of it should shape what ships.
+metro.config.js
+app.config.js
+web-shims/
