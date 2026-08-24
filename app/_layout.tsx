@@ -127,6 +127,8 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="item/[id]" options={{ title: '' }} />
+        {/* Title comes from the screen itself - it is the library's own name. */}
+        <Stack.Screen name="library/[id]" options={{ title: '' }} />
         <Stack.Screen name="tmdb/[type]/[id]" options={{ title: '' }} />
         <Stack.Screen name="profile" options={{ title: 'Profile', presentation: 'modal' }} />
         <Stack.Screen name="servers" options={{ title: 'Servers', presentation: 'modal' }} />

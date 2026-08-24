@@ -513,12 +513,31 @@ function ResumeCard({ item }: { item: JellyfinItem }) {
 }
 
 function LibraryRow({ lib }: { lib: LibraryItem }) {
+  const { t } = useTranslation();
+  const count = lib.total || lib.items.length;
   return (
     <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{lib.view.Name}</Text>
-        <Text style={styles.sectionCount}>{lib.total || lib.items.length}</Text>
-      </View>
+      {/* The whole header is the affordance: the row is a sample of the newest
+          titles, and this is how the rest of the library is reached. */}
+      <Link
+        href={{ pathname: '/library/[id]', params: { id: lib.view.Id, name: lib.view.Name } }}
+        asChild
+      >
+        <TouchableOpacity
+          style={styles.sectionHeader}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`${lib.view.Name}, ${t('library.seeAll')}`}
+        >
+          <Text style={styles.sectionTitle}>{lib.view.Name}</Text>
+          <Text style={styles.sectionCount}>{count}</Text>
+          <SymbolView
+            name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+            tintColor={colors.textDim}
+            size={13}
+          />
+        </TouchableOpacity>
+      </Link>
       <FlatList
         horizontal
         data={lib.items}

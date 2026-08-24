@@ -69,7 +69,10 @@
     "continueWatching": "Weiter schauen",
     "unavailableTitle": "Bibliothek wurde nicht geladen",
     "unavailableBody": "Keine Antwort vom Server. Prüfe, ob der Server läuft, und versuche es erneut.",
-    "unavailableAuth": "Deine Sitzung ist abgelaufen. Melde dich ab und wieder an, um neu zu verbinden."
+    "unavailableAuth": "Deine Sitzung ist abgelaufen. Melde dich ab und wieder an, um neu zu verbinden.",
+    "seeAll": "alle ansehen",
+    "itemCount": "{{count}} Titel",
+    "emptyLibrary": "Noch nichts in dieser Bibliothek."
   },
   "search": {
     "placeholder": "Filme und Serien suchen",

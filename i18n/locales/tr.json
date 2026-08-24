@@ -69,7 +69,10 @@
     "continueWatching": "Devam Et",
     "unavailableTitle": "Kitaplık yüklenmedi",
     "unavailableBody": "Sunucudan yanıt gelmedi. Sunucunun çalıştığını doğrula ve yeniden dene.",
-    "unavailableAuth": "Oturumun sona erdi. Yeniden bağlanmak için çıkış yapıp tekrar giriş yap."
+    "unavailableAuth": "Oturumun sona erdi. Yeniden bağlanmak için çıkış yapıp tekrar giriş yap.",
+    "seeAll": "tümünü gör",
+    "itemCount": "{{count}} başlık",
+    "emptyLibrary": "Bu kitaplıkta henüz bir şey yok."
   },
   "search": {
     "placeholder": "Film ve dizi ara",

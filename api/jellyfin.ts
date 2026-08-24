@@ -165,13 +165,17 @@ export async function getItems(
   userId: string,
   parentId?: string,
   limit = 100,
-  sort: ItemSort = 'name'
+  sort: ItemSort = 'name',
+  startIndex = 0
 ): Promise<ItemPage> {
   const client = await authClient();
   const res = await client.get(`/Users/${userId}/Items`, {
     params: {
       ParentId: parentId,
       Limit: limit,
+      // Omitted rather than sent as 0, so the query string of a first page is
+      // identical to what it was before paging existed and stays cacheable.
+      StartIndex: startIndex || undefined,
       Recursive: parentId ? true : undefined,
       // 'recent' is DateCreated, which is when the file arrived on the server -
       // not the release date, and not when it was last played.

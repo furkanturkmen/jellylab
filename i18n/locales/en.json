@@ -69,7 +69,10 @@
     "continueWatching": "Continue Watching",
     "unavailableTitle": "Library didn't load",
     "unavailableBody": "Nothing answered. Check that the server is running, then try again.",
-    "unavailableAuth": "Your session has expired. Sign out and back in to reconnect."
+    "unavailableAuth": "Your session has expired. Sign out and back in to reconnect.",
+    "seeAll": "see all",
+    "itemCount": "{{count}} titles",
+    "emptyLibrary": "Nothing in this library yet."
   },
   "search": {
     "placeholder": "Search movies and TV",
