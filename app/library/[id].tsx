@@ -66,10 +66,11 @@ export default function LibraryScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Transparent, like the request screen: no bar behind the control, the
-          grid runs under it. The padding below is what keeps the first row
-          clear of the back button rather than the bar's own height. */}
-      <Stack.Screen options={{ title: name ?? '', headerTransparent: true }} />
+      {/* Only the back control is pinned. The header carries no title, because
+          a pinned title is a bar by another name: it sits over the grid for the
+          whole scroll and posters pass underneath it. The name lives in the
+          list instead, where it scrolls away like everything else. */}
+      <Stack.Screen options={{ title: '', headerTransparent: true }} />
       <StatusBar style="light" />
       {loading && items.length === 0 ? (
         <View style={[styles.center, { paddingTop: insets.top + 52 }]}>
@@ -88,7 +89,10 @@ export default function LibraryScreen() {
           onEndReachedThreshold={0.5}
           onEndReached={() => { if (more) loadPage(items.length); }}
           ListHeaderComponent={
-            <Text style={styles.count}>{t('library.itemCount', { count: total })}</Text>
+            <View style={styles.listHeader}>
+              <Text style={styles.name}>{name}</Text>
+              <Text style={styles.count}>{t('library.itemCount', { count: total })}</Text>
+            </View>
           }
           ListFooterComponent={
             more ? <View style={styles.footer}><ActivityIndicator color={colors.textMuted} /></View> : <View style={styles.footer} />
@@ -130,7 +134,11 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   grid: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl },
   row: { gap: spacing.md, marginBottom: spacing.xl },
-  count: { ...type.small, color: colors.textDim, marginBottom: spacing.lg },
+  listHeader: { marginBottom: spacing.lg },
+  // The tab titles' size and weight, so opening a library reads as arriving
+  // somewhere rather than as a sheet over the tab.
+  name: { color: colors.text, fontSize: 34, fontWeight: '800', letterSpacing: -0.5 },
+  count: { ...type.small, color: colors.textDim, marginTop: spacing.xs },
   poster: { borderRadius: radius.md, backgroundColor: colors.surface },
   title: { marginTop: spacing.sm, ...type.small, color: colors.text },
   year: { ...type.caption, color: colors.textMuted, marginTop: 2 },
