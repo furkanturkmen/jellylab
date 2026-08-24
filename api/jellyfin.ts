@@ -412,6 +412,21 @@ export async function fetchSubtitleVtt(url: string): Promise<string> {
   return res.text();
 }
 
+/**
+ * The original file, addressed for storing rather than streaming.
+ *
+ * Same URL the player uses for direct play - `static=true`, so the server reads
+ * the file off disk untouched - but this one loads the token and device id
+ * itself, because a download starts from a list row rather than from the player
+ * where both are already in hand.
+ */
+export async function downloadUrl(itemId: string): Promise<string> {
+  const auth = await loadJellyfinAuth();
+  if (!auth) throw new Error('Not authenticated');
+  const deviceId = await getDeviceId();
+  return streamUrl(itemId, auth.accessToken, deviceId);
+}
+
 export function streamUrl(itemId: string, token: string, deviceId: string): string {
   const params = new URLSearchParams({
     static: 'true',

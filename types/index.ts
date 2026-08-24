@@ -34,6 +34,7 @@ export type JellyfinItem = {
   ProviderIds?: Record<string, string>;
   SeriesId?: string;
   IndexNumber?: number;
+  SeriesName?: string;
   ParentIndexNumber?: number;
 };
 
