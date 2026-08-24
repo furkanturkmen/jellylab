@@ -182,7 +182,11 @@
     "chooseFromLibrary": "Choose from Library",
     "removePicture": "Remove current picture",
     "permissionDenied": "Permission denied",
-    "uploadFailed": "Upload failed"
+    "uploadFailed": "Upload failed",
+    "storage": "Storage",
+    "ofTotal": "of {{total}} used",
+    "storageFree": "{{free}} free",
+    "storageLow": "Only {{free}} free — downloads will pause"
   },
   "settings": {
     "subtitles": {

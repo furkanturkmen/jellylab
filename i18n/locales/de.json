@@ -182,7 +182,11 @@
     "chooseFromLibrary": "Aus Mediathek wählen",
     "removePicture": "Aktuelles Foto entfernen",
     "permissionDenied": "Berechtigung verweigert",
-    "uploadFailed": "Upload fehlgeschlagen"
+    "uploadFailed": "Upload fehlgeschlagen",
+    "storage": "Speicher",
+    "ofTotal": "von {{total}} belegt",
+    "storageFree": "{{free}} frei",
+    "storageLow": "Nur noch {{free}} frei — Downloads pausieren"
   },
   "settings": {
     "subtitles": {

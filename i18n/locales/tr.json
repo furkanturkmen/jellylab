@@ -182,7 +182,11 @@
     "chooseFromLibrary": "Galeriden Seç",
     "removePicture": "Mevcut fotoğrafı kaldır",
     "permissionDenied": "İzin reddedildi",
-    "uploadFailed": "Yükleme başarısız"
+    "uploadFailed": "Yükleme başarısız",
+    "storage": "Depolama",
+    "ofTotal": "/ {{total}} kullanıldı",
+    "storageFree": "{{free}} boş",
+    "storageLow": "Sadece {{free}} boş — indirmeler duracak"
   },
   "settings": {
     "subtitles": {

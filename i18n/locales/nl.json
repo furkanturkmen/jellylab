@@ -182,7 +182,11 @@
     "chooseFromLibrary": "Kies uit bibliotheek",
     "removePicture": "Huidige foto verwijderen",
     "permissionDenied": "Toestemming geweigerd",
-    "uploadFailed": "Uploaden mislukt"
+    "uploadFailed": "Uploaden mislukt",
+    "storage": "Opslag",
+    "ofTotal": "van {{total}} gebruikt",
+    "storageFree": "{{free}} vrij",
+    "storageLow": "Nog maar {{free}} vrij — downloads stoppen straks"
   },
   "settings": {
     "subtitles": {

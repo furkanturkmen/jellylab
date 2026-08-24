@@ -8,7 +8,9 @@ import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
+import * as Push from '@/api/push';
 import { getJellyfinUrl, getJellyseerrUrl } from '@/config';
+import { loadPrefs } from '@/store/prefs';
 import { useAuth } from '@/hooks/useAuth';
 import { loadJellyfinAuth, saveJellyfinAuth } from '@/store/auth';
 import { colors, radius, spacing, type } from '@/theme';
@@ -19,6 +21,7 @@ export default function ProfileScreen() {
   const { state, signOut } = useAuth();
   const [user, setUser] = useState<any>(null);
   const [avatarBust, setAvatarBust] = useState(Date.now());
+  const [storage, setStorage] = useState<Push.StorageInfo | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
@@ -29,6 +32,19 @@ export default function ProfileScreen() {
   if (state.status !== 'signed-in') {
     return <View style={styles.center}><ActivityIndicator color={colors.text} /></View>;
   }
+
+  // Only shown when the push service is configured, since that is what serves
+  // it. Failures stay silent: this is a nice-to-know, and an error card for it
+  // would be louder than the thing is worth.
+  useEffect(() => {
+    (async () => {
+      try {
+        const prefs = await loadPrefs();
+        if (!prefs.pushUrl) return;
+        setStorage(await Push.storage(prefs.pushUrl));
+      } catch {}
+    })();
+  }, []);
 
   const isAdmin = state.auth.isAdmin || user?.Policy?.IsAdministrator;
   const avatarUrl = Jellyfin.userImageUrl(state.auth.userId, state.auth.primaryImageTag, 240) + `&_=${avatarBust}`;
@@ -212,6 +228,13 @@ export default function ProfileScreen() {
           </>
         ) : null}
 
+        {storage ? (
+          <>
+            <SectionHeader>{t('profile.storage')}</SectionHeader>
+            <StorageCard info={storage} />
+          </>
+        ) : null}
+
         <SectionHeader>{t('profile.app')}</SectionHeader>
         <Section>
           <Row icon="server.rack" label={t('profile.menu.servers')} onPress={() => router.push('/servers')} />
@@ -223,6 +246,48 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+    </View>
+  );
+}
+
+/** Free space below this and the server's disk-guard stops qBittorrent. */
+const LOW_SPACE_BYTES = 40 * 1024 ** 3;
+
+function formatBytes(n: number): string {
+  const gb = n / 1024 ** 3;
+  if (gb >= 1024) return `${(gb / 1024).toFixed(2)} TB`;
+  return `${gb.toFixed(0)} GB`;
+}
+
+/**
+ * Used/free on the media drive.
+ *
+ * The bar turns amber below 40 GB free, which is not an arbitrary number: it
+ * is the threshold the server's own disk-guard uses to stop qBittorrent. So
+ * the moment this changes colour is the moment downloads are about to halt,
+ * rather than some generic "nearly full" that means nothing in particular.
+ */
+function StorageCard({ info }: { info: Push.StorageInfo }) {
+  const { t } = useTranslation();
+  const ratio = info.total > 0 ? Math.max(0, Math.min(1, info.used / info.total)) : 0;
+  const low = info.free < LOW_SPACE_BYTES;
+
+  return (
+    <View style={styles.section}>
+      <View style={styles.storageWrap}>
+        <View style={styles.storageTop}>
+          <Text style={styles.storageUsed}>{formatBytes(info.used)}</Text>
+          <Text style={styles.storageTotal}>{t('profile.ofTotal', { total: formatBytes(info.total) })}</Text>
+        </View>
+        <View style={styles.storageTrack}>
+          <View style={[styles.storageFill, { width: `${ratio * 100}%` }, low && styles.storageFillLow]} />
+        </View>
+        <Text style={[styles.storageFree, low && styles.storageFreeLow]}>
+          {low
+            ? t('profile.storageLow', { free: formatBytes(info.free) })
+            : t('profile.storageFree', { free: formatBytes(info.free) })}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -281,6 +346,20 @@ const styles = StyleSheet.create({
   heroName: { ...type.h1, color: colors.text, marginTop: spacing.md },
   heroSub: { ...type.small, color: colors.textMuted, marginTop: spacing.xs },
 
+  storageWrap: { padding: spacing.lg, gap: spacing.sm },
+  storageTop: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.xs },
+  storageUsed: { ...type.h1, color: colors.text },
+  storageTotal: { ...type.body, color: colors.textMuted },
+  storageTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.surfaceRaised,
+    overflow: 'hidden',
+  },
+  storageFill: { height: '100%', borderRadius: 4, backgroundColor: colors.text },
+  storageFillLow: { backgroundColor: '#FF9F0A' },
+  storageFree: { ...type.small, color: colors.textMuted },
+  storageFreeLow: { color: '#FF9F0A' },
   sectionHeader: {
     ...type.caption,
     color: colors.textMuted,
