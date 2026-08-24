@@ -29,11 +29,13 @@ export default function ProfileScreen() {
     Jellyfin.getCurrentUser(state.auth.userId).then(setUser);
   }, [state.status]);
 
-  if (state.status !== 'signed-in') {
-    return <View style={styles.center}><ActivityIndicator color={colors.text} /></View>;
-  }
-
-  // Only shown when the push service is configured, since that is what serves
+  // Above the signed-out guard below, not after it. Hooks must run in the same
+  // order on every render, and a hook placed after an early return runs only on
+  // the renders that get past it - React counts five hooks while signed out and
+  // six once signed in, and refuses with "Rendered more hooks than during the
+  // previous render".
+  //
+  // Only fetches when the push service is configured, since that is what serves
   // it. Failures stay silent: this is a nice-to-know, and an error card for it
   // would be louder than the thing is worth.
   useEffect(() => {
@@ -45,6 +47,10 @@ export default function ProfileScreen() {
       } catch {}
     })();
   }, []);
+
+  if (state.status !== 'signed-in') {
+    return <View style={styles.center}><ActivityIndicator color={colors.text} /></View>;
+  }
 
   const isAdmin = state.auth.isAdmin || user?.Policy?.IsAdministrator;
   const avatarUrl = Jellyfin.userImageUrl(state.auth.userId, state.auth.primaryImageTag, 240) + `&_=${avatarBust}`;
