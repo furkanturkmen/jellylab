@@ -4,11 +4,6 @@ import { loadJellyseerrAuth, saveJellyseerrAuth, clearJellyseerrAuth } from '@/s
 import type { JellyseerrAuth, JellyseerrRequest, JellyseerrSearchResult } from '@/types';
 
 async function makeClient(cookie?: string): Promise<AxiosInstance> {
-  if (__DEV__) {
-    console.log(
-      `[seerr] client cookie: ${cookie ? `explicit, ${cookie.length} chars` : 'none - relying on the native jar'}`
-    );
-  }
   return axios.create({
     // awaited, not read synchronously: the store may still be hydrating
     baseURL: `${await requireJellyseerrUrl()}/api/v1`,
@@ -69,7 +64,6 @@ export async function authClient(): Promise<AxiosInstance> {
     r => r,
     async (e: any) => {
       if (isStaleSession(e) && auth.cookie) {
-        if (__DEV__) console.log('[seerr] 403 with an explicit cookie - dropping it, will use the native jar');
         await saveJellyseerrAuth({ ...auth, cookie: '' });
       }
       throw e;
@@ -116,11 +110,6 @@ export async function loginJellyfin(username: string, password: string): Promise
     : typeof setCookie === 'string'
       ? (setCookie as string).split(';')[0]
       : '';
-  if (__DEV__) {
-    console.log(
-      `[seerr] login ok. set-cookie ${setCookie ? `seen (${Array.isArray(setCookie) ? 'array' : typeof setCookie})` : 'NOT exposed to JS'}; storing ${cookie.length} chars`
-    );
-  }
   const auth: JellyseerrAuth = {
     cookie,
     userId: res.data.id,
