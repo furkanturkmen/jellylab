@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Link, Stack, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 
@@ -28,6 +29,7 @@ export default function LibraryScreen() {
   const { t } = useTranslation();
   const { state } = useAuth();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const [items, setItems] = useState<JellyfinItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -64,35 +66,29 @@ export default function LibraryScreen() {
 
   return (
     <View style={styles.root}>
-      {/* iOS draws this one, not us. A large title that collapses into the bar
-          as you scroll, over a material that is invisible at the top and fades
-          in only once content passes under it - the behaviour we were building
-          out of interpolations and a hand-made scrim.
-          headerStyle stays transparent so the app-wide background does not
-          paint over the material. */}
+      {/* Header does its normal job - name and back control, both pinned - but
+          paints no bar behind itself, so the grid runs the full height of the
+          screen and the two stay legible over it the whole way down. */}
       <Stack.Screen
         options={{
           title: name ?? '',
-          headerLargeTitle: true,
-          headerLargeTitleShadowVisible: false,
           headerTransparent: true,
-          headerBlurEffect: 'systemChromeMaterialDark',
+          // Undoes the app-wide header background: an explicit colour beats
+          // headerTransparent, so without this the bar is painted black.
           headerStyle: { backgroundColor: 'transparent' },
-          headerLargeStyle: { backgroundColor: 'transparent' },
         }}
       />
       <StatusBar style="light" />
       {loading && items.length === 0 ? (
-        <View style={styles.center}><ActivityIndicator color={colors.text} /></View>
+        <View style={[styles.center, { paddingTop: insets.top + 52 }]}>
+          <ActivityIndicator color={colors.text} />
+        </View>
       ) : (
         <FlatList
           data={items}
           keyExtractor={i => i.Id}
           numColumns={COLUMNS}
-          contentContainerStyle={styles.grid}
-          // The header's height is no longer ours to guess: the system insets
-          // the content for it, large title and all.
-          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={[styles.grid, { paddingTop: insets.top + 52 }]}
           columnWrapperStyle={styles.row}
           renderItem={({ item }) => <PosterCard item={item} width={cardWidth} />}
           // Half a screen of slack, so the next page is usually already there
