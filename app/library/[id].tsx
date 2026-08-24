@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Link, Stack, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 
@@ -28,6 +29,7 @@ export default function LibraryScreen() {
   const { t } = useTranslation();
   const { state } = useAuth();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const [items, setItems] = useState<JellyfinItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -64,16 +66,21 @@ export default function LibraryScreen() {
 
   return (
     <View style={styles.root}>
-      <Stack.Screen options={{ title: name ?? '' }} />
+      {/* Transparent, like the request screen: no bar behind the control, the
+          grid runs under it. The padding below is what keeps the first row
+          clear of the back button rather than the bar's own height. */}
+      <Stack.Screen options={{ title: name ?? '', headerTransparent: true }} />
       <StatusBar style="light" />
       {loading && items.length === 0 ? (
-        <View style={styles.center}><ActivityIndicator color={colors.text} /></View>
+        <View style={[styles.center, { paddingTop: insets.top + 52 }]}>
+          <ActivityIndicator color={colors.text} />
+        </View>
       ) : (
         <FlatList
           data={items}
           keyExtractor={i => i.Id}
           numColumns={COLUMNS}
-          contentContainerStyle={styles.grid}
+          contentContainerStyle={[styles.grid, { paddingTop: insets.top + 52 }]}
           columnWrapperStyle={styles.row}
           renderItem={({ item }) => <PosterCard item={item} width={cardWidth} />}
           // Half a screen of slack, so the next page is usually already there
