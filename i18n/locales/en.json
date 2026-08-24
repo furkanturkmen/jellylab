@@ -72,7 +72,8 @@
     "unavailableAuth": "Your session has expired. Sign out and back in to reconnect.",
     "seeAll": "see all",
     "itemCount": "{{count}} titles",
-    "emptyLibrary": "Nothing in this library yet."
+    "emptyLibrary": "Nothing in this library yet.",
+    "rowFailed": "This row didn't load. Tap to try again."
   },
   "search": {
     "placeholder": "Search movies and TV",

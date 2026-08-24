@@ -13,7 +13,7 @@ import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem, JellyfinView } from '@/types';
 
-type LibraryItem = { view: JellyfinView; items: JellyfinItem[]; total: number };
+type LibraryItem = { view: JellyfinView; items: JellyfinItem[]; total: number; failed: boolean };
 
 /**
  * How many posters a library row holds.
@@ -153,9 +153,13 @@ export default function LibraryScreen() {
             // Newest first. Sorted by name, a row was the alphabetical head of
             // the library forever: fine at 24 items, and at 200 it means the
             // A's and nothing else, with anything just added never appearing.
+            // A row that failed is kept and marked, not dropped. Dropping it
+            // left a gap indistinguishable from an empty library, on a screen
+            // whose whole job is to show you what you own.
+            let failed = false;
             const page = await Jellyfin.getItems(state.auth.userId, view.Id, ROW_LIMIT, 'recent')
-              .catch(e => { note(e); return { items: [] as JellyfinItem[], total: 0 }; });
-            return { view, items: page.items, total: page.total };
+              .catch(e => { note(e); failed = true; return { items: [] as JellyfinItem[], total: 0 }; });
+            return { view, items: page.items, total: page.total, failed };
           })
         ),
         Promise.all(
@@ -285,7 +289,7 @@ export default function LibraryScreen() {
           </>
         }
         renderItem={({ item }: { item: LibraryItem }) => (
-          <View style={styles.opaque}><LibraryRow lib={item} /></View>
+          <View style={styles.opaque}><LibraryRow lib={item} onRetry={() => load()} /></View>
         )}
         ListFooterComponent={<View style={[styles.opaque, styles.listFooter]} />}
       />
@@ -427,6 +431,8 @@ function HeroOverlay({ items, height, index, onIndex }: {
             activeOpacity={0.9}
             style={{ width, height }}
             onPress={() => router.push(`/item/${item.Id}`)}
+            accessibilityRole="button"
+            accessibilityLabel={`${t('library.featured')}: ${item.Name}${item.ProductionYear ? `, ${item.ProductionYear}` : ''}`}
           >
             <View style={styles.heroBody}>
               <Text style={styles.heroLabel}>{t('library.featured')}</Text>
@@ -442,7 +448,9 @@ function HeroOverlay({ items, height, index, onIndex }: {
         )}
       />
       {items.length > 1 ? (
-        <View style={styles.heroDots} pointerEvents="none">
+        // Decoration: the page position is already carried by the hero label
+        // and title, and eight unlabelled dots are noise to a screen reader.
+        <View style={styles.heroDots} pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           {items.map((it, i) => (
             <View key={it.Id} style={[styles.heroDot, i === index && styles.heroDotActive]} />
           ))}
@@ -491,7 +499,12 @@ function ResumeCard({ item }: { item: JellyfinItem }) {
 
   return (
     <Link href={`/item/${item.Id}`} asChild>
-      <TouchableOpacity style={styles.resumeCard} activeOpacity={0.8}>
+      <TouchableOpacity
+        style={styles.resumeCard}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={label ? `${item.Name}, ${label}` : item.Name}
+      >
         <View style={styles.resumeImageWrap}>
           <Image
             source={{ uri: Jellyfin.imageUrl(item.Id, tag, imageType, 500) }}
@@ -512,7 +525,7 @@ function ResumeCard({ item }: { item: JellyfinItem }) {
   );
 }
 
-function LibraryRow({ lib }: { lib: LibraryItem }) {
+function LibraryRow({ lib, onRetry }: { lib: LibraryItem; onRetry: () => void }) {
   const { t } = useTranslation();
   const count = lib.total || lib.items.length;
   return (
@@ -538,14 +551,31 @@ function LibraryRow({ lib }: { lib: LibraryItem }) {
           />
         </TouchableOpacity>
       </Link>
-      <FlatList
-        horizontal
-        data={lib.items}
-        keyExtractor={i => i.Id}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: spacing.xl, gap: spacing.md }}
-        renderItem={({ item }) => <PosterCard item={item} />}
-      />
+      {lib.failed ? (
+        <TouchableOpacity
+          style={styles.rowFailed}
+          onPress={onRetry}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`${t('library.rowFailed')}, ${t('common.retry')}`}
+        >
+          <SymbolView
+            name={{ ios: 'arrow.clockwise', android: 'refresh', web: 'refresh' }}
+            tintColor={colors.textMuted}
+            size={15}
+          />
+          <Text style={styles.rowFailedText}>{t('library.rowFailed')}</Text>
+        </TouchableOpacity>
+      ) : (
+        <FlatList
+          horizontal
+          data={lib.items}
+          keyExtractor={i => i.Id}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: spacing.xl, gap: spacing.md }}
+          renderItem={({ item }) => <PosterCard item={item} />}
+        />
+      )}
     </View>
   );
 }
@@ -554,7 +584,12 @@ function PosterCard({ item }: { item: JellyfinItem }) {
   const tag = item.ImageTags?.Primary;
   return (
     <Link href={`/item/${item.Id}`} asChild>
-      <TouchableOpacity style={styles.card} activeOpacity={0.7}>
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={item.ProductionYear ? `${item.Name}, ${item.ProductionYear}` : item.Name}
+      >
         <Image
           source={{ uri: Jellyfin.imageUrl(item.Id, tag) }}
           style={styles.poster}
@@ -657,6 +692,21 @@ const styles = StyleSheet.create({
   heroPillText: { color: colors.text, ...type.caption, textTransform: 'uppercase' },
 
   section: { marginBottom: spacing.xxl },
+  // Sits where the posters would be, so a failed row keeps its place in the
+  // list instead of collapsing and shifting everything below it.
+  rowFailed: {
+    marginHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  rowFailedText: { ...type.small, color: colors.textMuted },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'baseline',

@@ -72,7 +72,8 @@
     "unavailableAuth": "Oturumun sona erdi. Yeniden bağlanmak için çıkış yapıp tekrar giriş yap.",
     "seeAll": "tümünü gör",
     "itemCount": "{{count}} başlık",
-    "emptyLibrary": "Bu kitaplıkta henüz bir şey yok."
+    "emptyLibrary": "Bu kitaplıkta henüz bir şey yok.",
+    "rowFailed": "Bu satır yüklenmedi. Yeniden denemek için dokun."
   },
   "search": {
     "placeholder": "Film ve dizi ara",

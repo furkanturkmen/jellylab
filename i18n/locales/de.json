@@ -72,7 +72,8 @@
     "unavailableAuth": "Deine Sitzung ist abgelaufen. Melde dich ab und wieder an, um neu zu verbinden.",
     "seeAll": "alle ansehen",
     "itemCount": "{{count}} Titel",
-    "emptyLibrary": "Noch nichts in dieser Bibliothek."
+    "emptyLibrary": "Noch nichts in dieser Bibliothek.",
+    "rowFailed": "Diese Zeile wurde nicht geladen. Zum erneuten Versuch tippen."
   },
   "search": {
     "placeholder": "Filme und Serien suchen",
