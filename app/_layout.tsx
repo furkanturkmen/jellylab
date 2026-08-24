@@ -10,6 +10,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentServer } from '@/hooks/useServer';
 import { clearJellyfinAuth, clearJellyseerrAuth } from '@/store/auth';
+import { installErrorLogging } from '@/lib/errorLog';
 
 export {
   ErrorBoundary,
@@ -18,6 +19,11 @@ export {
 export const unstable_settings = {
   initialRouteName: '(tabs)',
 };
+
+// First thing, before anything else here can throw: an error during this
+// module's own evaluation is the one that leaves the root layout undefined and
+// surfaces nowhere near its cause.
+installErrorLogging();
 
 SplashScreen.preventAutoHideAsync();
 

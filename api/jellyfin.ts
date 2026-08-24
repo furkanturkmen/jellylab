@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { CONFIG, getJellyfinUrl, requireJellyfinUrl } from '@/config';
 import { getDeviceId, loadJellyfinAuth, saveJellyfinAuth, clearJellyfinAuth } from '@/store/auth';
+import { logRequestFailure } from '@/lib/errorLog';
 import type { JellyfinAuth, JellyfinItem, JellyfinView } from '@/types';
 
 async function authHeader(token?: string): Promise<string> {
@@ -42,6 +43,10 @@ async function makeClient(token?: string): Promise<AxiosInstance> {
         const path = e?.config?.url ?? '';
         e.message = `${e.message || 'Request failed'} — could not reach ${baseURL}${path}`;
       }
+      // Logged here rather than at the call sites: most callers catch and fall
+      // back to an empty list, so this is the last point at which the failure
+      // still exists.
+      logRequestFailure('jellyfin', e);
       throw e;
     }
   );

@@ -2,10 +2,11 @@ import axios, { AxiosInstance } from 'axios';
 import { Platform } from 'react-native';
 import { getJellyseerrUrl, requireJellyfinUrl, requireJellyseerrUrl } from '@/config';
 import { loadJellyseerrAuth, saveJellyseerrAuth, clearJellyseerrAuth } from '@/store/auth';
+import { logRequestFailure } from '@/lib/errorLog';
 import type { JellyseerrAuth, JellyseerrRequest, JellyseerrSearchResult } from '@/types';
 
 async function makeClient(cookie?: string): Promise<AxiosInstance> {
-  return axios.create({
+  const client = axios.create({
     // awaited, not read synchronously: the store may still be hydrating
     baseURL: `${await requireJellyseerrUrl()}/api/v1`,
     timeout: 15000,
@@ -21,6 +22,17 @@ async function makeClient(cookie?: string): Promise<AxiosInstance> {
       ...(cookie ? { Cookie: cookie } : {}),
     },
   });
+
+  // Seerr failures are non-fatal by design - useAuth treats a failed Seerr
+  // login as something to carry on past - so without this they are invisible.
+  client.interceptors.response.use(
+    r => r,
+    (e: any) => {
+      logRequestFailure('jellyseerr', e);
+      throw e;
+    }
+  );
+  return client;
 }
 
 /**
