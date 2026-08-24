@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
+import { Platform } from 'react-native';
 import { getJellyseerrUrl, requireJellyfinUrl, requireJellyseerrUrl } from '@/config';
 import { loadJellyseerrAuth, saveJellyseerrAuth, clearJellyseerrAuth } from '@/store/auth';
 import type { JellyseerrAuth, JellyseerrRequest, JellyseerrSearchResult } from '@/types';
@@ -8,6 +9,13 @@ async function makeClient(cookie?: string): Promise<AxiosInstance> {
     // awaited, not read synchronously: the store may still be hydrating
     baseURL: `${await requireJellyseerrUrl()}/api/v1`,
     timeout: 15000,
+    // Cookie is a forbidden header name in a browser: the fetch spec has XHR
+    // drop it, so the header set below never leaves the page and every call
+    // arrives unauthenticated. withCredentials is how a browser is asked to
+    // attach its own connect.sid instead. Left off on iOS, where CFNetwork's
+    // jar already does that and the explicit header is what carries the
+    // session.
+    withCredentials: Platform.OS === 'web',
     headers: {
       'Content-Type': 'application/json',
       ...(cookie ? { Cookie: cookie } : {}),
