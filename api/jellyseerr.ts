@@ -13,10 +13,15 @@ async function makeClient(cookie?: string): Promise<AxiosInstance> {
     // Cookie is a forbidden header name in a browser: the fetch spec has XHR
     // drop it, so the header set below never leaves the page and every call
     // arrives unauthenticated. withCredentials is how a browser is asked to
-    // attach its own connect.sid instead. Left off on iOS, where CFNetwork's
-    // jar already does that and the explicit header is what carries the
-    // session.
-    withCredentials: Platform.OS === 'web',
+    // attach its own connect.sid instead.
+    //
+    // Set only on web, and deliberately absent otherwise rather than false.
+    // Axios assigns the flag to the request only when it is defined, and React
+    // Native's XMLHttpRequest defaults it to true - which is what lets
+    // CFNetwork's cookie jar carry the session on iOS. Passing false there
+    // turns the jar off: sign-in succeeds, and every call after it comes back
+    // 401 with no cookie sent.
+    ...(Platform.OS === 'web' ? { withCredentials: true } : {}),
     headers: {
       'Content-Type': 'application/json',
       ...(cookie ? { Cookie: cookie } : {}),
