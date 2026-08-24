@@ -151,20 +151,40 @@ export async function getViews(userId: string): Promise<JellyfinView[]> {
   return res.data.Items ?? [];
 }
 
-export async function getItems(userId: string, parentId?: string, limit = 100): Promise<JellyfinItem[]> {
+/**
+ * A page of a library, and how much of it there is.
+ *
+ * `total` is what the server holds, not what came back - the caller asks for a
+ * screenful, and needs the real size to say so honestly.
+ */
+export type ItemPage = { items: JellyfinItem[]; total: number };
+
+export type ItemSort = 'name' | 'recent';
+
+export async function getItems(
+  userId: string,
+  parentId?: string,
+  limit = 100,
+  sort: ItemSort = 'name'
+): Promise<ItemPage> {
   const client = await authClient();
   const res = await client.get(`/Users/${userId}/Items`, {
     params: {
       ParentId: parentId,
       Limit: limit,
       Recursive: parentId ? true : undefined,
-      SortBy: 'SortName',
-      SortOrder: 'Ascending',
+      // 'recent' is DateCreated, which is when the file arrived on the server -
+      // not the release date, and not when it was last played.
+      SortBy: sort === 'recent' ? 'DateCreated' : 'SortName',
+      SortOrder: sort === 'recent' ? 'Descending' : 'Ascending',
       Fields: 'Overview,PrimaryImageAspectRatio',
       IncludeItemTypes: parentId ? 'Movie,Series' : undefined,
     },
   });
-  return res.data.Items ?? [];
+  return {
+    items: res.data.Items ?? [],
+    total: res.data.TotalRecordCount ?? (res.data.Items ?? []).length,
+  };
 }
 
 export async function getItem(userId: string, itemId: string): Promise<JellyfinItem> {

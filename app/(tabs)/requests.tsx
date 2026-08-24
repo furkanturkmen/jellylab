@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, AppState, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 
@@ -27,6 +27,9 @@ function requestedSeasons(r: JellyseerrRequest): number[] {
     .sort((a, b) => a - b);
 }
 
+/** Matches the Library: long enough that tab-flicking does not refetch. */
+const REFRESH_AFTER_MS = 5000;
+
 export default function RequestsScreen() {
   const router = useRouter();
   const { t: tr } = useTranslation();
@@ -37,6 +40,8 @@ export default function RequestsScreen() {
   const [items, setItems] = useState<EnrichedRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const inFlight = useRef(false);
+  const loadedAt = useRef(0);
 
   /**
    * `silent` keeps the poll invisible. loading drives the RefreshControl, so
@@ -44,6 +49,11 @@ export default function RequestsScreen() {
    * looks like the list is reloading when only a percentage moved.
    */
   const load = useCallback(async (silent = false) => {
+    // A silent load never competes with one already running. On mount the
+    // focus effect fires alongside the mount effect, and without this the tab
+    // fetched everything twice before it had drawn once.
+    if (silent && inFlight.current) return;
+    inFlight.current = true;
     if (!silent) setLoading(true);
     try {
       const raw = await Jellyseerr.listRequests('all');
@@ -79,6 +89,8 @@ export default function RequestsScreen() {
       );
       setItems([]);
     } finally {
+      inFlight.current = false;
+      loadedAt.current = Date.now();
       if (!silent) setLoading(false);
     }
   }, [tr]);
@@ -91,6 +103,21 @@ export default function RequestsScreen() {
     }
     load();
   }, [signedIn, load]);
+
+  /**
+   * Refetch when the tab is opened again, the same way the Library does.
+   *
+   * Approve something in Jellyseerr, or let a download finish while you are on
+   * another tab, and this list was showing whatever was true when it first
+   * mounted. Silent, so returning to the tab does not flash the refresh
+   * spinner, and skipped if it just loaded.
+   */
+  useFocusEffect(
+    useCallback(() => {
+      if (!signedIn) return;
+      if (Date.now() - loadedAt.current > REFRESH_AFTER_MS) load(true);
+    }, [signedIn, load])
+  );
 
   /**
    * Refresh while anything is actually in the download queue, so the bars move

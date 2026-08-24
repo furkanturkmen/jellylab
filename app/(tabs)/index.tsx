@@ -13,7 +13,15 @@ import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem, JellyfinView } from '@/types';
 
-type LibraryItem = { view: JellyfinView; items: JellyfinItem[] };
+type LibraryItem = { view: JellyfinView; items: JellyfinItem[]; total: number };
+
+/**
+ * How many posters a library row holds.
+ *
+ * The row is a sample, not the library: what is on the server is shown next to
+ * the name, so a row of 20 out of 213 does not read as "you own 20 films".
+ */
+const ROW_LIMIT = 20;
 
 const HERO_COUNT = 5;
 const HERO_INTERVAL_MS = 7000;
@@ -141,10 +149,14 @@ export default function LibraryScreen() {
       // VPN where the round trip is the expensive part.
       const [withItems, latestItems] = await Promise.all([
         Promise.all(
-          filtered.map(async view => ({
-            view,
-            items: await Jellyfin.getItems(state.auth.userId, view.Id, 20).catch(e => { note(e); return [] as JellyfinItem[]; }),
-          }))
+          filtered.map(async view => {
+            // Newest first. Sorted by name, a row was the alphabetical head of
+            // the library forever: fine at 24 items, and at 200 it means the
+            // A's and nothing else, with anything just added never appearing.
+            const page = await Jellyfin.getItems(state.auth.userId, view.Id, ROW_LIMIT, 'recent')
+              .catch(e => { note(e); return { items: [] as JellyfinItem[], total: 0 }; });
+            return { view, items: page.items, total: page.total };
+          })
         ),
         Promise.all(
           filtered.map(view => Jellyfin.getLatestItems(state.auth.userId, view.Id, 6).catch(e => { note(e); return []; }))
@@ -505,7 +517,7 @@ function LibraryRow({ lib }: { lib: LibraryItem }) {
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{lib.view.Name}</Text>
-        <Text style={styles.sectionCount}>{lib.items.length}</Text>
+        <Text style={styles.sectionCount}>{lib.total || lib.items.length}</Text>
       </View>
       <FlatList
         horizontal
