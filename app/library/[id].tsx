@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, RefreshControl, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
-import { ScreenHeader } from '@/components/ScreenHeader';
-import { useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem } from '@/types';
@@ -19,11 +17,6 @@ import type { JellyfinItem } from '@/types';
  * which is a sample and says so - the count beside the name is the real total.
  * This is where that total can actually be walked: same sort, three across,
  * fetched a page at a time as you scroll.
- *
- * Dressed like a tab rather than a pushed screen: the same 34pt title on the
- * same fade curve, with a back control where the avatar would be. The native
- * stack header was the alternative and it read as a different app - a small
- * centred title in a system tint, over a back label naming the previous route.
  */
 
 const COLUMNS = 3;
@@ -35,8 +28,6 @@ export default function LibraryScreen() {
   const { t } = useTranslation();
   const { state } = useAuth();
   const { width } = useWindowDimensions();
-  const { headerHeight } = useTabHeaderMetrics();
-  const scrollY = useRef(new Animated.Value(0)).current;
 
   const [items, setItems] = useState<JellyfinItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -73,33 +64,18 @@ export default function LibraryScreen() {
 
   return (
     <View style={styles.root}>
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen options={{ title: name ?? '' }} />
       <StatusBar style="light" />
       {loading && items.length === 0 ? (
-        <View style={[styles.center, { paddingTop: headerHeight }]}>
-          <ActivityIndicator color={colors.text} />
-        </View>
+        <View style={styles.center}><ActivityIndicator color={colors.text} /></View>
       ) : (
-        <Animated.FlatList
+        <FlatList
           data={items}
-          keyExtractor={(i: JellyfinItem) => i.Id}
+          keyExtractor={i => i.Id}
           numColumns={COLUMNS}
-          contentContainerStyle={[styles.grid, { paddingTop: headerHeight + spacing.sm }]}
+          contentContainerStyle={styles.grid}
           columnWrapperStyle={styles.row}
-          renderItem={({ item }: { item: JellyfinItem }) => <PosterCard item={item} width={cardWidth} />}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true }
-          )}
-          scrollEventThrottle={16}
-          refreshControl={
-            <RefreshControl
-              refreshing={loading && items.length > 0}
-              onRefresh={() => loadPage(0)}
-              tintColor={colors.text}
-              progressViewOffset={headerHeight}
-            />
-          }
+          renderItem={({ item }) => <PosterCard item={item} width={cardWidth} />}
           // Half a screen of slack, so the next page is usually already there
           // by the time the last row is reached.
           onEndReachedThreshold={0.5}
@@ -115,7 +91,6 @@ export default function LibraryScreen() {
           }
         />
       )}
-      <ScreenHeader title={name ?? ''} scrollY={scrollY} />
     </View>
   );
 }
