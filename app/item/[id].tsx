@@ -378,6 +378,11 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   // Keep positionRef synced so background/foreground can restore.
   useEffect(() => { positionRef.current = position; }, [position]);
 
+  // Same trick for paused: the reporting below has to read the current value
+  // without listing it as a dependency.
+  const pausedRef = useRef(paused);
+  useEffect(() => { pausedRef.current = paused; }, [paused]);
+
   /**
    * Remount VLC when coming back from the background, so the video surface
    * reattaches - iOS drops it while backgrounded, leaving audio playing over a
@@ -403,12 +408,17 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     return () => sub.remove();
   }, []);
 
-  // Report progress to Jellyfin
+  // Report progress to Jellyfin.
+  //
+  // The cleanup reads positionRef, not position. With an empty dependency list
+  // the closure keeps the value from the first render - zero - so every VLC
+  // playback reported "stopped at 0" on the way out, wiping the resume point
+  // for exactly the files that use this engine: mkv, and most anime.
   useEffect(() => {
     Jellyfin.reportPlaybackStart(itemId, Jellyfin.secondsToTicks(resumeSeconds), playMethod).catch(() => {});
     return () => {
       try {
-        Jellyfin.reportPlaybackStopped(itemId, Jellyfin.secondsToTicks(position), playMethod).catch(() => {});
+        Jellyfin.reportPlaybackStopped(itemId, Jellyfin.secondsToTicks(positionRef.current), playMethod).catch(() => {});
       } catch {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -581,14 +591,38 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     setActiveCue(null);
   }
 
+  // Depending on position rebuilt this interval on every tick from the player -
+  // several times a second - so the 15 second timer restarted before it could
+  // ever fire, and nothing was reported mid-playback at all. The refs let the
+  // timer live for as long as the screen does.
   useEffect(() => {
     const id = setInterval(() => {
       try {
-        Jellyfin.reportPlaybackProgress(itemId, Jellyfin.secondsToTicks(position), paused, playMethod).catch(() => {});
+        Jellyfin.reportPlaybackProgress(
+          itemId,
+          Jellyfin.secondsToTicks(positionRef.current),
+          pausedRef.current,
+          playMethod,
+        ).catch(() => {});
       } catch {}
     }, 15000);
     return () => clearInterval(id);
-  }, [itemId, position, paused]);
+  }, [itemId, playMethod]);
+
+  // Pause and resume are worth reporting immediately rather than waiting up to
+  // fifteen seconds - the native engine already does this, and without it a
+  // paused film keeps counting as playing on the server. Skipped on mount,
+  // where reportPlaybackStart has just said the same thing.
+  const reportedPause = useRef(true);
+  useEffect(() => {
+    if (reportedPause.current) { reportedPause.current = false; return; }
+    Jellyfin.reportPlaybackProgress(
+      itemId,
+      Jellyfin.secondsToTicks(positionRef.current),
+      paused,
+      playMethod,
+    ).catch(() => {});
+  }, [paused, itemId, playMethod]);
 
   // Auto-hide controls
   useEffect(() => {
