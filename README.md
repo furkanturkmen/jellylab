@@ -84,6 +84,29 @@ npm start
 
 Open the app on the phone — it connects to Metro over the same wifi.
 
+`scripts/metro-dev.sh` runs it under tmux instead, ships the output to another
+machine and relays keystrokes back, so the console can be read and driven over
+ssh from anywhere:
+
+```bash
+scripts/metro-dev.sh start     # or status | stop
+```
+
+It pins the port. Expo takes 8081 when free and quietly moves to 8082 when not,
+so a stray bundler — or the one `expo run:ios` starts for itself — can end up
+owning the port the dev client was built against, and then `r` reloads a Metro
+nobody is watching. The script refuses to start beside a stray rather than
+moving out of its way, and `status` says how many bundler ports are in use.
+
+Settings come from `~/.metro-dev.env`, which is not in the repo:
+
+```bash
+REPO=$HOME/path/to/jellylab
+HOMELAB=192.168.1.10
+SSH_USER=you
+PORT=8081
+```
+
 ### Browser preview
 
 The app can also be bundled for a desktop browser, which is enough to look at
