@@ -171,7 +171,8 @@ export default function TmdbDetailScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <Stack.Screen options={{ title: '', headerTransparent: true, headerTintColor: colors.text }} />
+        <Stack.Screen options={{ title: '', headerTransparent: true,
+          headerStyle: { backgroundColor: 'transparent' }, headerTintColor: colors.text }} />
         <ActivityIndicator color={colors.text} />
       </View>
     );
@@ -180,7 +181,8 @@ export default function TmdbDetailScreen() {
   if (!details) {
     return (
       <View style={styles.center}>
-        <Stack.Screen options={{ title: '', headerTransparent: true, headerTintColor: colors.text }} />
+        <Stack.Screen options={{ title: '', headerTransparent: true,
+          headerStyle: { backgroundColor: 'transparent' }, headerTintColor: colors.text }} />
         <Text style={styles.errorText}>Failed to load details</Text>
       </View>
     );
@@ -217,7 +219,8 @@ export default function TmdbDetailScreen() {
 
   return (
     <View style={styles.root}>
-      <Stack.Screen options={{ title: '', headerTransparent: true, headerTintColor: colors.text }} />
+      <Stack.Screen options={{ title: '', headerTransparent: true,
+          headerStyle: { backgroundColor: 'transparent' }, headerTintColor: colors.text }} />
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           {backdrop ? (

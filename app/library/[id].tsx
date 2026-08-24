@@ -69,7 +69,15 @@ export default function LibraryScreen() {
       {/* Header does its normal job - name and back control, both pinned - but
           paints no bar behind itself, so the grid runs the full height of the
           screen and the two stay legible over it the whole way down. */}
-      <Stack.Screen options={{ title: name ?? '', headerTransparent: true }} />
+      <Stack.Screen
+        options={{
+          title: name ?? '',
+          headerTransparent: true,
+          // Undoes the app-wide header background: an explicit colour beats
+          // headerTransparent, so without this the bar is painted black.
+          headerStyle: { backgroundColor: 'transparent' },
+        }}
+      />
       <StatusBar style="light" />
       {loading && items.length === 0 ? (
         <View style={[styles.center, { paddingTop: insets.top + 52 }]}>
