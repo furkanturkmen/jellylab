@@ -97,7 +97,7 @@ export default function PlaybackSettings() {
         </View>
 
         <Text style={styles.note}>
-          Auto picks AVPlayer when the file's container/codec is supported and
+          Auto picks AVPlayer when the file’s container/codec is supported and
           falls back to VLC otherwise. Force AVPlayer if you always want the
           native iOS player; force VLC for maximum compatibility (MKV, DTS,
           TrueHD, VP9, AV1) at the cost of slower startup.
