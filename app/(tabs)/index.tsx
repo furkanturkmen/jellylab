@@ -279,10 +279,20 @@ export default function LibraryScreen() {
             {heroItems.length > 0 ? (
               <HeroOverlay items={heroItems} height={heroHeight} index={heroIndex} onIndex={setHeroIndex} />
             ) : null}
+            {/* The hero ends in artwork and everything below it is solid, so
+                the two met as a hard line straight across the screen. This is
+                the seam: transparent where the hero still shows through, the
+                background colour by the time the first row starts. It sits in
+                the list rather than over it, so it scrolls with the content. */}
+            <LinearGradient
+              colors={['transparent', colors.bg]}
+              style={styles.heroBlend}
+              pointerEvents="none"
+            />
             {/* Everything past the hero is opaque, otherwise the pinned
                 backdrop shows through the list as it scrolls over it. */}
             {resume.length > 0 ? (
-              <View style={styles.opaque}>
+              <View style={[styles.opaque, styles.afterHero]}>
                 <ContinueWatchingRow items={resume} title={t('library.continueWatching')} />
               </View>
             ) : null}
@@ -682,6 +692,12 @@ const styles = StyleSheet.create({
   heroOverlay: { width: '100%', marginBottom: spacing.xl, backgroundColor: 'transparent' },
   transparent: { backgroundColor: 'transparent' },
   opaque: { backgroundColor: colors.bg },
+  // Deep enough to read as a fade rather than a band, and pulled up over the
+  // hero's own bottom fade so the two overlap instead of stacking.
+  heroBlend: { height: 96, marginTop: -96 },
+  // Room to breathe under the hero. Without it the first section title sat
+  // directly against the artwork.
+  afterHero: { paddingTop: spacing.xl },
   listFooter: { height: 150 },
   heroDots: {
     position: 'absolute',
