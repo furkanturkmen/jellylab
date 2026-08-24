@@ -14,7 +14,12 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+// Deep import on purpose. @react-navigation/bottom-tabs is not a dependency
+// of this project and is not installed - expo-router vendors its own copy,
+// which is the one the Tabs navigator below actually hands these props to.
+// Importing the package by name resolves to nothing, so every prop fell back
+// to `any` and the tab bar was typed only by hope.
+import type { BottomTabBarProps } from 'expo-router/build/react-navigation/bottom-tabs';
 
 import { colors, radius, spacing } from '@/theme';
 import { useSearchQuery } from '@/store/search';
