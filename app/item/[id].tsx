@@ -11,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 
 import * as Jellyfin from '@/api/jellyfin';
+import * as Jellyseerr from '@/api/jellyseerr';
 import { ButtonRow, CircleButton, PrimaryButton } from '@/components/AppleButton';
 import { decidePlayback, type Engine, type PlayMode } from '@/player/decide';
 import { parseVtt, findActiveCue, type VttCue } from '@/player/vtt';
@@ -42,6 +43,7 @@ export default function ItemScreen() {
   const castClient = useRemoteMediaClient();
   const castState = useCastState();
   const [castPickerOpen, setCastPickerOpen] = useState(false);
+  const [tmdbArt, setTmdbArt] = useState<{ backdrop?: string; poster?: string }>({});
   const scrollY = useRef(new Animated.Value(0)).current;
   const { width: screenWidth } = useWindowDimensions();
 
@@ -57,6 +59,37 @@ export default function ItemScreen() {
     if (state.status !== 'signed-in' || !id) return;
     Jellyfin.getItem(state.auth.userId, id).then(setItem);
   }, [state.status, id]);
+
+  /**
+   * Prefer TMDB's own artwork for the two big images on this screen.
+   *
+   * Same reasoning as the library hero: Jellyfin serves what its scraper saved
+   * and re-encodes it on the way out, and this backdrop is the widest image in
+   * the app. Jellyseerr proxies TMDB, so there is no key and no new service.
+   *
+   * Everything here is optional. No TMDB id, no Seerr session, or nothing on
+   * TMDB and the screen keeps the server's images, which is what it drew
+   * before. Episodes are left alone - their stills would be a lookup each.
+   */
+  useEffect(() => {
+    if (!item) return;
+    const tmdb = Jellyfin.tmdbId(item);
+    if (!tmdb) return;
+    let cancelled = false;
+    (async () => {
+      const details = await Jellyseerr
+        .getMediaDetails(item.Type === 'Movie' ? 'movie' : 'tv', tmdb)
+        .catch(() => null);
+      if (cancelled || !details) return;
+      setTmdbArt({
+        backdrop: details.backdropPath ? `${TMDB_ORIGINAL}${details.backdropPath}` : undefined,
+        // The poster is drawn at 140pt, so the original would be a 2000px file
+        // scaled down on the device for nothing.
+        poster: details.posterPath ? `${TMDB_POSTER}${details.posterPath}` : undefined,
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [item]);
 
   async function play() {
     if (state.status !== 'signed-in' || !item) return;
@@ -197,9 +230,9 @@ export default function ItemScreen() {
             is no RefreshControl on this screen, so nothing is hidden by it. */}
         <View style={styles.hero}>
           <Animated.View style={[styles.heroBackdrop, heroStretch]}>
-            {backdrop ? (
+            {backdrop || tmdbArt.backdrop ? (
               <Image
-                source={{ uri: Jellyfin.imageUrl(item.Id, backdrop, 'Backdrop', backdropPx) }}
+                source={{ uri: tmdbArt.backdrop ?? Jellyfin.imageUrl(item.Id, backdrop, 'Backdrop', backdropPx) }}
                 style={styles.backdrop}
                 contentFit="cover"
                 transition={300}
@@ -229,7 +262,7 @@ export default function ItemScreen() {
           <View style={styles.headerRow}>
             {primary ? (
               <Image
-                source={{ uri: Jellyfin.imageUrl(item.Id, primary, 'Primary', 400) }}
+                source={{ uri: tmdbArt.poster ?? Jellyfin.imageUrl(item.Id, primary, 'Primary', 400) }}
                 style={styles.poster}
                 contentFit="cover"
                 transition={200}
@@ -1966,6 +1999,10 @@ const POSTER_OFFSET = -80;
 const HERO_BLEED = 320;
 /** Headroom on the stretch so rounding can't show a hairline at the edge. */
 const HERO_STRETCH_SLOP = 1.08;
+/** TMDB's untouched file, and a poster size that suits a 140pt card. */
+const TMDB_ORIGINAL = 'https://image.tmdb.org/t/p/original';
+const TMDB_POSTER = 'https://image.tmdb.org/t/p/w780';
+
 /** Upper bound on requested backdrop width. */
 const HERO_MAX_PX = 2560;
 /** Flat darkening over the backdrop, same dial as the library hero. */
