@@ -181,7 +181,7 @@ export async function getItems(
       // not the release date, and not when it was last played.
       SortBy: sort === 'recent' ? 'DateCreated' : 'SortName',
       SortOrder: sort === 'recent' ? 'Descending' : 'Ascending',
-      Fields: 'Overview,PrimaryImageAspectRatio',
+      Fields: 'Overview,PrimaryImageAspectRatio,ProviderIds',
       IncludeItemTypes: parentId ? 'Movie,Series' : undefined,
     },
   });
@@ -278,7 +278,7 @@ export async function getLatestItems(userId: string, parentId: string, limit = 1
     params: {
       ParentId: parentId,
       Limit: limit,
-      Fields: 'Overview,BackdropImageTags',
+      Fields: 'Overview,BackdropImageTags,ProviderIds',
     },
   });
   return res.data ?? [];
@@ -286,7 +286,24 @@ export async function getLatestItems(userId: string, parentId: string, limit = 1
 
 export function imageUrl(itemId: string, tag?: string, type: 'Primary' | 'Backdrop' = 'Primary', maxWidth = 400): string {
   const tagParam = tag ? `&tag=${tag}` : '';
-  return `${getJellyfinUrl()}/Items/${itemId}/Images/${type}?maxWidth=${maxWidth}${tagParam}`;
+  // Jellyfin re-encodes on the way out and defaults to a conservative quality.
+  // At hero size that shows, and the bytes are cheap on a LAN.
+  return `${getJellyfinUrl()}/Items/${itemId}/Images/${type}?maxWidth=${maxWidth}&quality=90${tagParam}`;
+}
+
+/**
+ * The artwork TMDB holds for an item, which is usually better than what the
+ * server kept.
+ *
+ * Jellyfin stores whatever its scraper downloaded - often a 1280px JPEG, then
+ * re-encoded again on request. TMDB's own file is up to 3840px and untouched.
+ * The id comes from the item's ProviderIds, so this only works for things that
+ * were matched against TMDB in the first place.
+ */
+export function tmdbId(item: { ProviderIds?: Record<string, string> }): number | null {
+  const raw = item.ProviderIds?.Tmdb ?? item.ProviderIds?.tmdb;
+  const parsed = raw ? Number(raw) : NaN;
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export type PlayMethod = 'DirectPlay' | 'Transcode';

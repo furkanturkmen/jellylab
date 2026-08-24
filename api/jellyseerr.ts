@@ -361,18 +361,30 @@ export type MediaDetails = {
   overview?: string;
 };
 
+/**
+ * Details are immutable enough for a session: artwork and overviews do not
+ * change while the app is open, and the library hero asks for the same handful
+ * of titles on every refresh.
+ */
+const detailsCache = new Map<string, MediaDetails | null>();
+
 export async function getMediaDetails(mediaType: 'movie' | 'tv', tmdbId: number): Promise<MediaDetails | null> {
+  const cacheKey = `${mediaType}:${tmdbId}`;
+  const cached = detailsCache.get(cacheKey);
+  if (cached !== undefined) return cached;
   try {
     const client = await authClient();
     const res = await client.get(`/${mediaType}/${tmdbId}`);
     const d = res.data;
-    return {
+    const details: MediaDetails = {
       title: d.title ?? d.name ?? '',
       posterPath: d.posterPath ?? d.poster_path,
       backdropPath: d.backdropPath ?? d.backdrop_path,
       year: (d.releaseDate ?? d.firstAirDate ?? '').slice(0, 4) || undefined,
       overview: d.overview,
     };
+    detailsCache.set(cacheKey, details);
+    return details;
   } catch {
     return null;
   }

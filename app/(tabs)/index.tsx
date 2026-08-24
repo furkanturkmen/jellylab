@@ -8,6 +8,7 @@ import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
+import * as Jellyseerr from '@/api/jellyseerr';
 import { useAuth } from '@/hooks/useAuth';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { colors, radius, spacing, type } from '@/theme';
@@ -39,6 +40,9 @@ const HERO_STRETCH_SLOP = 1.08;
  * across the middle. One dial: 0 is off, 0.9 is almost solid black.
  */
 const HERO_SHADE = 0.3;
+
+/** TMDB's untouched file. Everything smaller is a re-encode of this one. */
+const TMDB_ORIGINAL = 'https://image.tmdb.org/t/p/original';
 
 /**
  * How stale the screen may be before returning to it refetches.
@@ -113,6 +117,7 @@ export default function LibraryScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [heroIndex, setHeroIndex] = useState(0);
+  const [heroArt, setHeroArt] = useState<Record<string, string>>({});
   const scrollY = useRef(new Animated.Value(0)).current;
   const inFlight = useRef(false);
   const loadedAt = useRef(0);
@@ -208,6 +213,41 @@ export default function LibraryScreen() {
     }, [])
   );
 
+  const heroPool = buildHeroPool(resume, latest, libs);
+  // Nothing in the library has a backdrop — fall back to a single still hero.
+  const heroItems = heroPool.length > 0
+    ? heroPool
+    : [resume[0] ?? libs[0]?.items[0]].filter(Boolean) as JellyfinItem[];
+
+  /**
+   * Upgrade the hero artwork to TMDB's own file where there is one.
+   *
+   * Jellyfin serves what its scraper saved - often a 1280px JPEG, re-encoded
+   * again on the way out - which is soft across a 360pt banner. TMDB holds the
+   * original, and Jellyseerr already proxies it, so no key and no new service.
+   *
+   * Best effort in every direction: an item with no TMDB id, a Seerr that is
+   * not signed in, or a title with no backdrop on TMDB all just keep the
+   * server's own image. Results are cached in the api layer, so a refresh does
+   * not re-ask.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      for (const item of heroItems) {
+        if (heroArt[item.Id]) continue;
+        const id = Jellyfin.tmdbId(item);
+        if (!id) continue;
+        const details = await Jellyseerr
+          .getMediaDetails(item.Type === 'Series' ? 'tv' : 'movie', id)
+          .catch(() => null);
+        if (cancelled || !details?.backdropPath) continue;
+        setHeroArt(prev => ({ ...prev, [item.Id]: `${TMDB_ORIGINAL}${details.backdropPath}` }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [heroItems.map(i => i.Id).join(','), heroArt]);
+
   if (state.status !== 'signed-in' || (loading && libs.length === 0 && resume.length === 0)) {
     return (
       <View style={styles.center}>
@@ -248,12 +288,6 @@ export default function LibraryScreen() {
     );
   }
 
-  const heroPool = buildHeroPool(resume, latest, libs);
-  // Nothing in the library has a backdrop — fall back to a single still hero.
-  const heroItems = heroPool.length > 0
-    ? heroPool
-    : [resume[0] ?? libs[0]?.items[0]].filter(Boolean) as JellyfinItem[];
-
   const heroHeight = HERO_HEIGHT + headerHeight;
   const heroItem = heroItems[heroIndex] ?? heroItems[0];
 
@@ -262,7 +296,7 @@ export default function LibraryScreen() {
       <StatusBar style="light" />
       {/* Behind the list on purpose — see HeroBackdrop. */}
       {heroItem ? (
-        <HeroBackdrop item={heroItem} height={heroHeight} topInset={headerHeight} scrollY={scrollY} />
+        <HeroBackdrop item={heroItem} uri={heroArt[heroItem.Id]} height={heroHeight} topInset={headerHeight} scrollY={scrollY} />
       ) : null}
       <Animated.FlatList
         data={libs}
@@ -317,8 +351,10 @@ export default function LibraryScreen() {
  * content. Sitting behind the list, it can grow freely and the spinner still
  * reads.
  */
-function HeroBackdrop({ item, height, topInset, scrollY }: {
+function HeroBackdrop({ item, uri, height, topInset, scrollY }: {
   item: JellyfinItem;
+  /** TMDB's original, when one was found. Falls back to the server's copy. */
+  uri?: string;
   height: number;
   topInset: number;
   scrollY: Animated.Value;
@@ -385,7 +421,7 @@ function HeroBackdrop({ item, height, topInset, scrollY }: {
     <Animated.View style={[styles.heroBackdrop, { height }, stretch]} pointerEvents="none">
       {/* expo-image cross-fades on source change, which is the carousel transition */}
       <Image
-        source={{ uri: Jellyfin.imageUrl(item.Id, tag, imageType, requestPx) }}
+        source={{ uri: uri ?? Jellyfin.imageUrl(item.Id, tag, imageType, requestPx) }}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
         transition={400}

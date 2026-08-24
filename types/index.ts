@@ -30,6 +30,8 @@ export type JellyfinItem = {
   UserData?: { PlaybackPositionTicks: number; Played: boolean };
   ImageTags?: Record<string, string>;
   BackdropImageTags?: string[];
+  /** Scraper ids - Tmdb, Imdb, Tvdb - present only when asked for in Fields. */
+  ProviderIds?: Record<string, string>;
   SeriesId?: string;
   IndexNumber?: number;
   ParentIndexNumber?: number;
