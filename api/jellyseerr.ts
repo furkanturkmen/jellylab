@@ -4,6 +4,11 @@ import { loadJellyseerrAuth, saveJellyseerrAuth, clearJellyseerrAuth } from '@/s
 import type { JellyseerrAuth, JellyseerrRequest, JellyseerrSearchResult } from '@/types';
 
 async function makeClient(cookie?: string): Promise<AxiosInstance> {
+  if (__DEV__) {
+    console.log(
+      `[seerr] client cookie: ${cookie ? `explicit, ${cookie.length} chars` : 'none - relying on the native jar'}`
+    );
+  }
   return axios.create({
     // awaited, not read synchronously: the store may still be hydrating
     baseURL: `${await requireJellyseerrUrl()}/api/v1`,
@@ -13,6 +18,19 @@ async function makeClient(cookie?: string): Promise<AxiosInstance> {
       ...(cookie ? { Cookie: cookie } : {}),
     },
   });
+}
+
+/**
+ * Seerr's answer when a connect.sid is present but it does not know it.
+ *
+ * Distinct from 401, which is what a *missing* cookie gets ("cookie
+ * 'connect.sid' required"). 403 therefore means a stale session is being sent
+ * from somewhere - and on iOS that somewhere can be the native cookie jar
+ * rather than anything this app stored, since CFNetwork keeps cookies per
+ * bundle id and they survive a reinstall.
+ */
+function isStaleSession(e: any): boolean {
+  return e?.response?.status === 403;
 }
 
 /**
@@ -35,7 +53,29 @@ export class NotAuthenticatedError extends Error {
 export async function authClient(): Promise<AxiosInstance> {
   const auth = await loadJellyseerrAuth();
   if (!auth) throw new NotAuthenticatedError();
-  return makeClient(auth.cookie);
+  const client = await makeClient(auth.cookie);
+
+  /**
+   * Recover from a stale session rather than sending it forever.
+   *
+   * A 403 means the connect.sid we sent is one Seerr does not know. If that
+   * came from our own stored copy, dropping it is the fix: the next request
+   * sends no Cookie header, so iOS attaches whatever the last successful login
+   * actually set - which is the session Seerr is expecting. userId and email
+   * are kept, so this stays signed in rather than bouncing to the login screen
+   * for something a refresh can repair.
+   */
+  client.interceptors.response.use(
+    r => r,
+    async (e: any) => {
+      if (isStaleSession(e) && auth.cookie) {
+        if (__DEV__) console.log('[seerr] 403 with an explicit cookie - dropping it, will use the native jar');
+        await saveJellyseerrAuth({ ...auth, cookie: '' });
+      }
+      throw e;
+    }
+  );
+  return client;
 }
 
 /**
@@ -66,8 +106,21 @@ export async function loginJellyfin(username: string, password: string): Promise
     // Unconfigured Seerr: it wants to be told which server to bind to.
     res = await post({ username, password, hostname: await requireJellyfinUrl() });
   }
+  // iOS does not always expose set-cookie to JS: CFNetwork consumes it into
+  // the native jar first. An empty string here is therefore normal, not a
+  // failure - but it does mean this app cannot pin the session itself, and has
+  // to trust the jar to send the right one.
   const setCookie = res.headers['set-cookie'];
-  const cookie = Array.isArray(setCookie) ? setCookie.map(c => c.split(';')[0]).join('; ') : '';
+  const cookie = Array.isArray(setCookie)
+    ? setCookie.map(c => c.split(';')[0]).join('; ')
+    : typeof setCookie === 'string'
+      ? (setCookie as string).split(';')[0]
+      : '';
+  if (__DEV__) {
+    console.log(
+      `[seerr] login ok. set-cookie ${setCookie ? `seen (${Array.isArray(setCookie) ? 'array' : typeof setCookie})` : 'NOT exposed to JS'}; storing ${cookie.length} chars`
+    );
+  }
   const auth: JellyseerrAuth = {
     cookie,
     userId: res.data.id,
