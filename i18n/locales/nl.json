@@ -15,7 +15,8 @@
     "unknownError": "Onbekende fout",
     "notPermitted": "Niet toegestaan",
     "on": "Aan",
-    "off": "Uit"
+    "off": "Uit",
+    "retry": "Opnieuw proberen"
   },
   "login": {
     "title": "jellylab",
@@ -65,7 +66,10 @@
   "library": {
     "welcomeBack": "Welkom terug",
     "featured": "Uitgelicht",
-    "continueWatching": "Verder kijken"
+    "continueWatching": "Verder kijken",
+    "unavailableTitle": "Bibliotheek is niet geladen",
+    "unavailableBody": "Geen antwoord van de server. Controleer of de server draait en probeer het opnieuw.",
+    "unavailableAuth": "Je sessie is verlopen. Meld je af en weer aan om opnieuw te verbinden."
   },
   "search": {
     "placeholder": "Zoek films en series",

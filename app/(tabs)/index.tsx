@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
@@ -56,6 +57,21 @@ function buildHeroPool(resume: JellyfinItem[], latest: JellyfinItem[], libs: Lib
   return pool.slice(0, HERO_COUNT);
 }
 
+/**
+ * What to put under "Library didn't load".
+ *
+ * The axios interceptor in `api/jellyfin` has already appended the address a
+ * request could not reach, so a transport failure arrives here describing
+ * itself. An HTTP status means the server did answer, and the only one worth
+ * its own wording is a rejected token - "Network Error" would send you off
+ * checking a server that is up and answering fine.
+ */
+function describeError(e: any): string {
+  const status = e?.response?.status;
+  if (status === 401 || status === 403) return 'auth';
+  return e?.message || String(e);
+}
+
 export default function LibraryScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -65,41 +81,52 @@ export default function LibraryScreen() {
   const [latest, setLatest] = useState<JellyfinItem[]>([]);
   const [libs, setLibs] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [heroIndex, setHeroIndex] = useState(0);
   const scrollY = useRef(new Animated.Value(0)).current;
 
   async function load() {
     if (state.status !== 'signed-in') return;
     setLoading(true);
+    // Each call is allowed to fail on its own. One slow or unhappy library
+    // used to reject the whole Promise.all, which surfaced as an uncaught
+    // "AxiosError: Network Error" and left the screen empty even though
+    // everything else had loaded fine.
+    //
+    // The failures are kept rather than dropped, because swallowing them made
+    // a dead server and an empty library render identically: a blank shelf
+    // either way, with no way to tell which one you were looking at.
+    const failures: string[] = [];
+    const note = (e: unknown) => { failures.push(describeError(e)); };
     try {
-      // Each call is allowed to fail on its own. One slow or unhappy library
-      // used to reject the whole Promise.all, which surfaced as an uncaught
-      // "AxiosError: Network Error" and left the screen empty even though
-      // everything else had loaded fine.
       const [views, resumeItems] = await Promise.all([
-        Jellyfin.getViews(state.auth.userId).catch(() => [] as JellyfinView[]),
-        Jellyfin.getResumeItems(state.auth.userId, 12).catch(() => [] as JellyfinItem[]),
+        Jellyfin.getViews(state.auth.userId).catch(e => { note(e); return [] as JellyfinView[]; }),
+        Jellyfin.getResumeItems(state.auth.userId, 12).catch(e => { note(e); return [] as JellyfinItem[]; }),
       ]);
       const filtered = views.filter(v => v.CollectionType === 'movies' || v.CollectionType === 'tvshows');
       const withItems = await Promise.all(
         filtered.map(async view => ({
           view,
-          items: await Jellyfin.getItems(state.auth.userId, view.Id, 20).catch(() => [] as JellyfinItem[]),
+          items: await Jellyfin.getItems(state.auth.userId, view.Id, 20).catch(e => { note(e); return [] as JellyfinItem[]; }),
         }))
       );
       const latestItems = (
         await Promise.all(
-          filtered.map(view => Jellyfin.getLatestItems(state.auth.userId, view.Id, 6).catch(() => []))
+          filtered.map(view => Jellyfin.getLatestItems(state.auth.userId, view.Id, 6).catch(e => { note(e); return []; }))
         )
       ).flat();
       setResume(resumeItems);
       setLatest(latestItems);
       setLibs(withItems);
+      // Only take over the screen when there is nothing to show. A single row
+      // that failed while the rest loaded is not worth an error page - the
+      // pull to refresh is right there.
+      const nothing = resumeItems.length === 0 && withItems.every(l => l.items.length === 0);
+      setError(nothing && failures.length > 0 ? failures[0] : null);
     } catch (e) {
-      // Nothing to show the user here: the per-call catches above already keep
-      // partial results, so anything reaching this point is unexpected rather
-      // than a server being briefly unreachable.
-      console.warn('library load failed', e);
+      // The per-call catches above keep partial results, so anything reaching
+      // here is unexpected rather than a server being briefly unreachable.
+      setError(describeError(e));
     } finally {
       setLoading(false);
     }
@@ -113,6 +140,38 @@ export default function LibraryScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={colors.text} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.root}>
+        <StatusBar style="light" />
+        <View style={{ height: headerHeight }} />
+        <View style={styles.errorCenter}>
+          <View style={styles.errorIcon}>
+            <SymbolView
+              name={{ ios: 'exclamationmark.triangle', android: 'error', web: 'error' }}
+              tintColor={colors.textMuted}
+              size={48}
+            />
+          </View>
+          <Text style={styles.errorTitle}>{t('library.unavailableTitle')}</Text>
+          <Text style={styles.errorBody}>
+            {error === 'auth' ? t('library.unavailableAuth') : t('library.unavailableBody')}
+          </Text>
+          {error === 'auth' ? null : <Text style={styles.errorDetail}>{error}</Text>}
+          <TouchableOpacity style={styles.retry} onPress={load} activeOpacity={0.7} disabled={loading}>
+            {/* The button is the only moving part on this screen, so it has to
+                carry the wait itself - otherwise a retry against a server that
+                is still down looks like a dead tap. */}
+            {loading
+              ? <ActivityIndicator color={colors.accentContrast} />
+              : <Text style={styles.retryText}>{t('common.retry')}</Text>}
+          </TouchableOpacity>
+        </View>
+        <TabHeader title={t('tabs.library')} scrollY={scrollY} />
       </View>
     );
   }
@@ -424,6 +483,44 @@ const RESUME_HEIGHT = 115;
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
+
+  errorCenter: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xxl,
+    paddingBottom: 150,
+  },
+  errorIcon: {
+    width: 108,
+    height: 108,
+    borderRadius: 54,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
+  },
+  errorTitle: { ...type.h1, color: colors.text, marginBottom: spacing.sm, textAlign: 'center' },
+  errorBody: { ...type.body, color: colors.textMuted, textAlign: 'center', lineHeight: 22 },
+  // The address the request could not reach. Dim on purpose: it is for the
+  // person debugging their own server, not the headline.
+  errorDetail: { ...type.small, color: colors.textDim, textAlign: 'center', marginTop: spacing.md },
+  retry: {
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.md,
+    borderRadius: radius.button,
+    backgroundColor: colors.accent,
+    // Pinned height and centring so swapping the label for the spinner does
+    // not resize the button mid-tap.
+    minHeight: 48,
+    minWidth: 160,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryText: { ...type.bodyStrong, color: colors.accentContrast },
 
   heroShade: {
     position: 'absolute',

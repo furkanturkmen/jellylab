@@ -15,7 +15,8 @@
     "unknownError": "Unbekannter Fehler",
     "notPermitted": "Nicht erlaubt",
     "on": "An",
-    "off": "Aus"
+    "off": "Aus",
+    "retry": "Erneut versuchen"
   },
   "login": {
     "title": "jellylab",
@@ -65,7 +66,10 @@
   "library": {
     "welcomeBack": "Willkommen zurück",
     "featured": "Empfohlen",
-    "continueWatching": "Weiter schauen"
+    "continueWatching": "Weiter schauen",
+    "unavailableTitle": "Bibliothek wurde nicht geladen",
+    "unavailableBody": "Keine Antwort vom Server. Prüfe, ob der Server läuft, und versuche es erneut.",
+    "unavailableAuth": "Deine Sitzung ist abgelaufen. Melde dich ab und wieder an, um neu zu verbinden."
   },
   "search": {
     "placeholder": "Filme und Serien suchen",

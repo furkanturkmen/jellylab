@@ -15,7 +15,8 @@
     "unknownError": "Bilinmeyen hata",
     "notPermitted": "İzin yok",
     "on": "Açık",
-    "off": "Kapalı"
+    "off": "Kapalı",
+    "retry": "Yeniden dene"
   },
   "login": {
     "title": "jellylab",
@@ -65,7 +66,10 @@
   "library": {
     "welcomeBack": "Tekrar hoş geldin",
     "featured": "Öne çıkan",
-    "continueWatching": "Devam Et"
+    "continueWatching": "Devam Et",
+    "unavailableTitle": "Kitaplık yüklenmedi",
+    "unavailableBody": "Sunucudan yanıt gelmedi. Sunucunun çalıştığını doğrula ve yeniden dene.",
+    "unavailableAuth": "Oturumun sona erdi. Yeniden bağlanmak için çıkış yapıp tekrar giriş yap."
   },
   "search": {
     "placeholder": "Film ve dizi ara",

@@ -15,7 +15,8 @@
     "unknownError": "Unknown error",
     "notPermitted": "Not permitted",
     "on": "On",
-    "off": "Off"
+    "off": "Off",
+    "retry": "Try again"
   },
   "login": {
     "title": "jellylab",
@@ -65,7 +66,10 @@
   "library": {
     "welcomeBack": "Welcome back",
     "featured": "Featured",
-    "continueWatching": "Continue Watching"
+    "continueWatching": "Continue Watching",
+    "unavailableTitle": "Library didn't load",
+    "unavailableBody": "Nothing answered. Check that the server is running, then try again.",
+    "unavailableAuth": "Your session has expired. Sign out and back in to reconnect."
   },
   "search": {
     "placeholder": "Search movies and TV",
