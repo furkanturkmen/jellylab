@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 import * as Jellyseerr from '@/api/jellyseerr';
+import { FloatingBackButton } from '@/components/BackButton';
 import { GlassButton, PrimaryButton } from '@/components/AppleButton';
 import { colors, radius, spacing, type } from '@/theme';
 import { MEDIA_STATUS } from '@/types';
@@ -171,7 +172,8 @@ export default function TmdbDetailScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <Stack.Screen options={{ title: '', headerTransparent: true, headerTintColor: colors.text }} />
+        <Stack.Screen options={{ headerShown: false }} />
+        <FloatingBackButton />
         <ActivityIndicator color={colors.text} />
       </View>
     );
@@ -180,7 +182,8 @@ export default function TmdbDetailScreen() {
   if (!details) {
     return (
       <View style={styles.center}>
-        <Stack.Screen options={{ title: '', headerTransparent: true, headerTintColor: colors.text }} />
+        <Stack.Screen options={{ headerShown: false }} />
+        <FloatingBackButton />
         <Text style={styles.errorText}>Failed to load details</Text>
       </View>
     );
@@ -217,7 +220,8 @@ export default function TmdbDetailScreen() {
 
   return (
     <View style={styles.root}>
-      <Stack.Screen options={{ title: '', headerTransparent: true, headerBackTitle: 'Back', headerTintColor: colors.text }} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <FloatingBackButton />
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           {backdrop ? (

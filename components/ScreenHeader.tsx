@@ -1,9 +1,7 @@
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTranslation } from 'react-i18next';
 
+import { BackButton } from '@/components/BackButton';
 import { colors, spacing } from '@/theme';
 
 /**
@@ -19,9 +17,7 @@ import { colors, spacing } from '@/theme';
 const FADE_END = 130;
 
 export function ScreenHeader({ title, scrollY }: { title: string; scrollY: Animated.Value }) {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
 
   const opacity = scrollY.interpolate({
     inputRange: [0, 60, FADE_END],
@@ -42,21 +38,7 @@ export function ScreenHeader({ title, scrollY }: { title: string; scrollY: Anima
       ]}
       pointerEvents="box-none"
     >
-      <TouchableOpacity
-        onPress={() => router.back()}
-        activeOpacity={0.8}
-        style={styles.backBtn}
-        accessibilityRole="button"
-        accessibilityLabel={t('common.back')}
-        // The circle is small for a finger; the tap area is not.
-        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-      >
-        <SymbolView
-          name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }}
-          tintColor={colors.text}
-          size={17}
-        />
-      </TouchableOpacity>
+      <BackButton />
       <Text style={styles.title} numberOfLines={1}>{title}</Text>
       {/* Balances the back button so the title sits where a tab title sits. */}
       <View style={styles.spacer} />
@@ -75,16 +57,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     zIndex: 10,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.glassTint,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.glassBorder,
   },
   title: {
     flex: 1,

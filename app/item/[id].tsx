@@ -8,6 +8,7 @@ import { VLCPlayer } from 'react-native-vlc-media-player';
 import GoogleCast, { useCastState, useRemoteMediaClient } from 'react-native-google-cast';
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
+import { BackButton, FloatingBackButton } from '@/components/BackButton';
 import * as ScreenOrientation from 'expo-screen-orientation';
 
 import * as Jellyfin from '@/api/jellyfin';
@@ -175,16 +176,11 @@ export default function ItemScreen() {
 
   return (
     <View style={styles.root}>
-      <Stack.Screen
-        options={{
-          title: '',
-          headerShown: true,
-          headerTransparent: true,
-          headerBackTitle: 'Back',
-          headerTintColor: colors.text,
-          gestureEnabled: true,
-        }}
-      />
+      {/* No native header: the app has its own back control, and the one the
+          stack draws came with a system tint and a "Back" label naming the
+          previous route. The swipe-back gesture is kept. */}
+      <Stack.Screen options={{ headerShown: false, gestureEnabled: true }} />
+      <FloatingBackButton />
       <Animated.ScrollView
         contentContainerStyle={{ paddingBottom: spacing.xxl }}
         showsVerticalScrollIndicator={false}
@@ -727,14 +723,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
               pointerEvents="none"
             />
             <View style={styles.overlayTop} pointerEvents="box-none">
-              <TouchableOpacity
-                style={styles.overlayIconBtn}
-                onPress={onExit}
-                activeOpacity={0.7}
-                hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-              >
-                <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }} tintColor={colors.text} size={22} />
-              </TouchableOpacity>
+              <BackButton onPress={onExit} />
               <Text style={styles.overlayTitle} numberOfLines={1}>{title}</Text>
             </View>
 
@@ -1626,9 +1615,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeS
 
             {/* Top bar */}
             <View style={styles.overlayTop} pointerEvents="box-none">
-              <TouchableOpacity style={styles.overlayIconBtn} onPress={onExit} activeOpacity={0.7}>
-                <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }} tintColor={colors.text} size={22} />
-              </TouchableOpacity>
+              <BackButton onPress={onExit} />
               <Text style={styles.overlayTitle} numberOfLines={1}>{title}</Text>
             </View>
 
