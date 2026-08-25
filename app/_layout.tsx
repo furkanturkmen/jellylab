@@ -179,6 +179,17 @@ function RootLayoutNav() {
           }}
         />
         <Stack.Screen
+          name="sheet/player"
+          options={{
+            presentation: 'formSheet',
+            headerShown: false,
+            sheetAllowedDetents: 'fitToContents',
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 28,
+            contentStyle: { backgroundColor: colors.bgElevated },
+          }}
+        />
+        <Stack.Screen
           name="sheet/cast"
           options={{
             presentation: 'formSheet',

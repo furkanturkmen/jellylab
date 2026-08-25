@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, AppState, Modal, PanResponder, PixelRatio, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Animated, AppState, PanResponder, PixelRatio, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -20,6 +20,8 @@ import { parseVtt, findActiveCue, type VttCue } from '@/player/vtt';
 import { matchesLanguage } from '@/player/lang';
 import { useAuth } from '@/hooks/useAuth';
 import { getDeviceId } from '@/store/auth';
+import { cleanSubLabel } from '@/components/TrackRow';
+import { openPlayerSheet } from '@/store/playerSheet';
 import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/prefs';
 import { formatDate } from '@/lib/date';
 import { jellyfinKind, kindKey } from '@/lib/kind';
@@ -491,6 +493,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
 }) {
   const vlcRef = useRef<any>(null);
   const lastSeekAt = useRef(0);
+  const router = useRouter();
   const [paused, setPaused] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(initialDuration);
@@ -500,8 +503,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   const [scrubValue, setScrubValue] = useState(0);
   const [isLandscape, setIsLandscape] = useState(false);
   const [ready, setReady] = useState(false);
-  const [subsOpen, setSubsOpen] = useState(false);
-  const [speedOpen, setSpeedOpen] = useState(false);
+
   const [rate, setRate] = useState(1);
   const [activeSubIndex, setActiveSubIndex] = useState<number | null>(null);
   const [externalCues, setExternalCues] = useState<VttCue[]>([]);
@@ -513,7 +515,6 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   const [vlcTextTrackId, setVlcTextTrackId] = useState<number>(-1); // -1 = off
   const [vlcAudioTracks, setVlcAudioTracks] = useState<{ id: number; name?: string }[]>([]);
   const [vlcAudioTrackId, setVlcAudioTrackId] = useState<number>(-1);
-  const [audioOpen, setAudioOpen] = useState(false);
   const [subDelayMs, setSubDelayMs] = useState(0);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const prefsRef = useRef<Prefs | null>(null);
@@ -809,9 +810,47 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     setPosition(t);
   }
 
+  /**
+   * The pickers are a route now, so opening one is: leave the payload, push.
+   * The sheet closes itself once a choice is made, which is why none of these
+   * callbacks says anything about closing.
+   */
+  function showSubtitleSheet() {
+    openPlayerSheet({
+      kind: 'vlcSubtitles',
+      externalSubs,
+      internalTracks: vlcTextTracks,
+      activeExternalIndex: activeSubIndex,
+      activeInternalId: vlcTextTrackId,
+      subDelayMs,
+      delayEnabled: externalCues.length > 0,
+      onDelayChange: changeSubDelay,
+      onPickExternal: pickExternalSub,
+      onPickInternal: pickInternalSub,
+      // pickExternalSub(null) already forces a remount with textTrack -1.
+      onOff: () => pickExternalSub(null),
+    });
+    router.push('/sheet/player');
+  }
+
+  function showAudioSheet() {
+    openPlayerSheet({
+      kind: 'vlcAudio',
+      tracks: audioChoices,
+      activeId: vlcAudioTrackId,
+      declaredCount: audioStreams.length,
+      onPick: applyAudioTrack,
+    });
+    router.push('/sheet/player');
+  }
+
+  function showSpeedSheet() {
+    openPlayerSheet({ kind: 'speed', current: rate, rates: SPEEDS, onPick: changeSpeed });
+    router.push('/sheet/player');
+  }
+
   function changeSpeed(nextRate: number) {
     setRate(nextRate);
-    setSpeedOpen(false);
   }
 
   async function toggleFullscreen() {
@@ -993,14 +1032,14 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
               <View style={styles.actionsRow} pointerEvents="box-none">
                 <View style={{ flex: 1 }} />
                 {audioChoices.length > 1 ? (
-                  <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setAudioOpen(true)} activeOpacity={0.7}>
+                  <TouchableOpacity style={styles.overlayIconBtn} onPress={showAudioSheet} activeOpacity={0.7}>
                     <SymbolView name={{ ios: 'waveform', android: 'graphic_eq', web: 'graphic_eq' }} tintColor={colors.text} size={22} />
                   </TouchableOpacity>
                 ) : null}
-                <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setSubsOpen(true)} activeOpacity={0.7}>
+                <TouchableOpacity style={styles.overlayIconBtn} onPress={showSubtitleSheet} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setSpeedOpen(true)} activeOpacity={0.7}>
+                <TouchableOpacity style={styles.overlayIconBtn} onPress={showSpeedSheet} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
@@ -1019,274 +1058,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
           </View>
         ) : null}
       </View>
-      <AudioTracksModal
-        visible={audioOpen}
-        tracks={audioChoices}
-        activeId={vlcAudioTrackId}
-        declaredCount={audioStreams.length}
-        onPick={(id) => {
-          applyAudioTrack(id);
-          setAudioOpen(false);
-        }}
-        onClose={() => setAudioOpen(false)}
-      />
-      <VlcSubsModal
-        visible={subsOpen}
-        externalSubs={externalSubs}
-        internalTracks={vlcTextTracks}
-        activeExternalIndex={activeSubIndex}
-        activeInternalId={vlcTextTrackId}
-        subDelayMs={subDelayMs}
-        delayEnabled={externalCues.length > 0}
-        onDelayChange={changeSubDelay}
-        onPickExternal={(idx) => {
-          pickExternalSub(idx);
-          setSubsOpen(false);
-        }}
-        onPickInternal={(id) => {
-          pickInternalSub(id);
-          setSubsOpen(false);
-        }}
-        onOff={() => {
-          // pickExternalSub(null) already forces remount + textTrack=-1
-          pickExternalSub(null);
-          setSubsOpen(false);
-        }}
-        onClose={() => setSubsOpen(false)}
-      />
-      <SpeedPickerModal
-        visible={speedOpen}
-        current={rate}
-        onClose={() => setSpeedOpen(false)}
-        onPick={changeSpeed}
-      />
     </>
-  );
-}
-
-function cleanSubLabel(raw: string): string {
-  // Collapse redundant "English - [English]" style into "English",
-  // drop empty brackets, trim separators.
-  let s = raw ?? '';
-  // Strip "- [X]" if X duplicates a preceding word
-  s = s.replace(/\s*-\s*\[([^\]]+)\]/g, (_, inner) => {
-    const before = s.split(/\s*-\s*\[/)[0].trim().toLowerCase();
-    return before.includes(inner.toLowerCase()) ? '' : ` (${inner})`;
-  });
-  // Trim trailing " - Default" style dashes
-  s = s.replace(/\s*-\s*Default\b/i, '');
-  return s.trim();
-}
-
-function VlcSubsModal({
-  visible, externalSubs, internalTracks, activeExternalIndex, activeInternalId,
-  subDelayMs, delayEnabled, onDelayChange,
-  onPickExternal, onPickInternal, onOff, onClose,
-}: {
-  visible: boolean;
-  externalSubs: { index: number; label: string }[];
-  internalTracks: { id: number; name?: string }[];
-  activeExternalIndex: number | null;
-  activeInternalId: number;
-  subDelayMs: number;
-  delayEnabled: boolean;
-  onDelayChange: (ms: number) => void;
-  onPickExternal: (index: number) => void;
-  onPickInternal: (id: number) => void;
-  onOff: () => void;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation();
-  const isOff = activeExternalIndex == null && activeInternalId === -1;
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
-    >
-      <Pressable style={styles.modalBackdrop} onPress={onClose}>
-        <Pressable style={[styles.modalSheet, styles.modalSheetTall]} onPress={() => {}}>
-          <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>{t('player.subtitles')}</Text>
-          <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
-            {externalSubs.length === 0 && internalTracks.length === 0 ? (
-              <Text style={styles.modalEmpty}>{t('player.noSubtitles')}</Text>
-            ) : (
-              <>
-                <TrackRow label={t('player.off')} selected={isOff} onPress={onOff} />
-                {internalTracks.length > 0 ? <SubGroupLabel>{t('player.embedded')}</SubGroupLabel> : null}
-                {internalTracks.map(track => (
-                  <TrackRow
-                    key={`int-${track.id}`}
-                    label={cleanSubLabel(track.name ?? t('player.trackNumber', { number: track.id }))}
-                    selected={activeInternalId === track.id}
-                    onPress={() => onPickInternal(track.id)}
-                  />
-                ))}
-                {externalSubs.length > 0 ? <SubGroupLabel>{t('player.external')}</SubGroupLabel> : null}
-                {externalSubs.map(s => (
-                  <TrackRow
-                    key={`ext-${s.index}`}
-                    label={cleanSubLabel(s.label)}
-                    selected={activeExternalIndex === s.index}
-                    onPress={() => onPickExternal(s.index)}
-                  />
-                ))}
-              </>
-            )}
-          </ScrollView>
-
-          <View style={styles.delayBlock}>
-            <View style={styles.delayHeader}>
-              <Text style={styles.delayLabel}>{t('player.timing')}</Text>
-              <Text style={styles.delayValue}>
-                {subDelayMs === 0 ? t('player.inSync') : `${subDelayMs > 0 ? '+' : ''}${(subDelayMs / 1000).toFixed(1)}s`}
-              </Text>
-            </View>
-            <View style={styles.delayRow}>
-              <DelayButton label="-0.5s" disabled={!delayEnabled} onPress={() => onDelayChange(subDelayMs - 500)} />
-              <DelayButton label="-0.1s" disabled={!delayEnabled} onPress={() => onDelayChange(subDelayMs - 100)} />
-              <DelayButton label={t('player.reset')} disabled={!delayEnabled || subDelayMs === 0} onPress={() => onDelayChange(0)} />
-              <DelayButton label="+0.1s" disabled={!delayEnabled} onPress={() => onDelayChange(subDelayMs + 100)} />
-              <DelayButton label="+0.5s" disabled={!delayEnabled} onPress={() => onDelayChange(subDelayMs + 500)} />
-            </View>
-            <Text style={styles.delayHint}>
-              {delayEnabled
-                ? t('player.delayHint')
-                : t('player.delayHintOff')}
-            </Text>
-          </View>
-
-          <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.modalCloseText}>{t('player.close')}</Text>
-          </TouchableOpacity>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
-
-function DelayButton({ label, disabled, onPress }: { label: string; disabled?: boolean; onPress: () => void }) {
-  return (
-    <TouchableOpacity
-      style={[styles.delayBtn, disabled && styles.delayBtnDisabled]}
-      onPress={onPress}
-      disabled={disabled}
-      activeOpacity={0.7}
-    >
-      <Text style={[styles.delayBtnText, disabled && styles.delayBtnTextDisabled]}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-
-/**
- * Audio track picker.
- *
- * `declaredCount` is how many tracks Jellyfin said the file has. When that is
- * more than VLC can see, the stream is being transcoded and the server has
- * already collapsed it to one - worth saying plainly, because the alternative
- * is a picker that inexplicably lists a single entry.
- */
-function AudioTracksModal({
-  visible, tracks, activeId, declaredCount, onPick, onClose,
-}: {
-  visible: boolean;
-  tracks: { id: number; label: string }[];
-  activeId: number;
-  declaredCount: number;
-  onPick: (id: number) => void;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
-    >
-      <Pressable style={styles.modalBackdrop} onPress={onClose}>
-        <Pressable style={[styles.modalSheet, styles.modalSheetTall]} onPress={() => {}}>
-          <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>{t('player.audio')}</Text>
-          <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
-            {tracks.length === 0 ? (
-              <Text style={styles.modalEmpty}>{t('player.noAudio')}</Text>
-            ) : (
-              tracks.map(track => (
-                <TrackRow
-                  key={`aud-${track.id}`}
-                  label={track.label}
-                  selected={activeId === track.id}
-                  onPress={() => onPick(track.id)}
-                />
-              ))
-            )}
-          </ScrollView>
-          {declaredCount > tracks.length && tracks.length > 0 ? (
-            <Text style={styles.delayHint}>
-              {t('player.transcodedAudio', { tracks: declaredCount })}
-            </Text>
-          ) : null}
-          <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.modalCloseText}>{t('player.close')}</Text>
-          </TouchableOpacity>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
-
-function SubGroupLabel({ children }: { children: React.ReactNode }) {
-  return <Text style={styles.subGroupLabel}>{children}</Text>;
-}
-
-function ExternalSubsModal({
-  visible, externalSubs, activeIndex, onPick, onClose,
-}: {
-  visible: boolean;
-  externalSubs: { index: number; label: string }[];
-  activeIndex: number | null;
-  onPick: (index: number | null) => void;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
-    >
-      <Pressable style={styles.modalBackdrop} onPress={onClose}>
-        <Pressable style={styles.modalSheet} onPress={() => {}}>
-          <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>{t('player.subtitles')}</Text>
-          {externalSubs.length === 0 ? (
-            <Text style={styles.modalEmpty}>{t('player.noExternalSubtitles')}</Text>
-          ) : (
-            <>
-              <TrackRow label={t('player.off')} selected={activeIndex == null} onPress={() => onPick(null)} />
-              {externalSubs.map(s => (
-                <TrackRow
-                  key={`ext-vlc-${s.index}`}
-                  label={s.label}
-                  selected={activeIndex === s.index}
-                  onPress={() => onPick(s.index)}
-                />
-              ))}
-            </>
-          )}
-          <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.modalCloseText}>{t('player.close')}</Text>
-          </TouchableOpacity>
-        </Pressable>
-      </Pressable>
-    </Modal>
   );
 }
 
@@ -1535,6 +1307,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, subtitl
 }) {
   // metadata belongs to the source rather than the player: it describes this
   // video, not the thing playing it.
+  const router = useRouter();
   const source = { uri: url, metadata: { title, artist: subtitle, artwork: artworkUri } };
   const player = useVideoPlayer(source, p => {
     if (resumeSeconds > 0) {
@@ -1556,8 +1329,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, subtitl
     p.staysActiveInBackground = true;
     p.play();
   });
-  const [tracksOpen, setTracksOpen] = useState(false);
-  const [speedOpen, setSpeedOpen] = useState(false);
+
   const [controlsVisible, setControlsVisible] = useState(true);
   const [playing, setPlaying] = useState(true);
   const [position, setPosition] = useState(0);
@@ -1723,12 +1495,28 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, subtitl
     } catch {}
   }
 
+  /** Same handoff as the VLC player's, with the live player object attached. */
+  function showTracksSheet() {
+    openPlayerSheet({
+      kind: 'tracks',
+      player,
+      externalSubs,
+      activeExternalSubIndex: activeSubIndex,
+      onPickExternal: pickExternalSub,
+    });
+    router.push('/sheet/player');
+  }
+
+  function showSpeedSheet() {
+    openPlayerSheet({ kind: 'speed', current: speed, rates: SPEEDS, onPick: changeSpeed });
+    router.push('/sheet/player');
+  }
+
   function changeSpeed(rate: number) {
     try {
       player.playbackRate = rate;
       setSpeed(rate);
     } catch {}
-    setSpeedOpen(false);
   }
 
   async function pickExternalSub(streamIndex: number | null, persistPref = true) {
@@ -1840,10 +1628,10 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, subtitl
 
               <View style={styles.actionsRow} pointerEvents="box-none">
                 <View style={{ flex: 1 }} />
-                <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setTracksOpen(true)} activeOpacity={0.7}>
+                <TouchableOpacity style={styles.overlayIconBtn} onPress={showTracksSheet} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.overlayIconBtn} onPress={() => setSpeedOpen(true)} activeOpacity={0.7}>
+                <TouchableOpacity style={styles.overlayIconBtn} onPress={showSpeedSheet} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.overlayIconBtn} onPress={togglePip} activeOpacity={0.7}>
@@ -1875,20 +1663,6 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, subtitl
           </View>
         ) : null}
       </View>
-      <TrackPickerModal
-        visible={tracksOpen}
-        player={player}
-        externalSubs={externalSubs}
-        activeExternalSubIndex={activeSubIndex}
-        onPickExternal={pickExternalSub}
-        onClose={() => setTracksOpen(false)}
-      />
-      <SpeedPickerModal
-        visible={speedOpen}
-        current={speed}
-        onClose={() => setSpeedOpen(false)}
-        onPick={changeSpeed}
-      />
     </>
   );
 }
@@ -1902,128 +1676,6 @@ function formatTime(seconds: number): string {
   const mm = m.toString().padStart(h > 0 ? 2 : 1, '0');
   const ss = s.toString().padStart(2, '0');
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
-}
-
-function TrackPickerModal({
-  visible,
-  player,
-  externalSubs,
-  activeExternalSubIndex,
-  onPickExternal,
-  onClose,
-}: {
-  visible: boolean;
-  player: ReturnType<typeof useVideoPlayer>;
-  externalSubs: { index: number; label: string }[];
-  activeExternalSubIndex: number | null;
-  onPickExternal: (index: number | null) => void;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation();
-  const [subtitles, setSubtitles] = useState<any[]>([]);
-  const [audios, setAudios] = useState<any[]>([]);
-  const [activeSub, setActiveSub] = useState<any>(null);
-  const [activeAudio, setActiveAudio] = useState<any>(null);
-
-  useEffect(() => {
-    if (!visible) return;
-    try {
-      const subs = (player as any).availableSubtitleTracks ?? [];
-      const auds = (player as any).availableAudioTracks ?? [];
-      setSubtitles(subs);
-      setAudios(auds);
-      setActiveSub((player as any).subtitleTrack ?? null);
-      setActiveAudio((player as any).audioTrack ?? null);
-    } catch {}
-  }, [visible, player]);
-
-  function pickEmbedded(track: any | null) {
-    try {
-      (player as any).subtitleTrack = track;
-      setActiveSub(track);
-      if (track) onPickExternal(null); // stop external overlay
-    } catch {}
-  }
-
-  function pickAudio(track: any) {
-    try {
-      (player as any).audioTrack = track;
-      setActiveAudio(track);
-    } catch {}
-  }
-
-  const hasAnySub = subtitles.length > 0 || externalSubs.length > 0;
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
-    >
-      <Pressable style={styles.modalBackdrop} onPress={onClose}>
-        <Pressable style={styles.modalSheet} onPress={() => {}}>
-          <View style={styles.modalHandle} />
-
-          <Text style={styles.modalTitle}>{t('player.subtitles')}</Text>
-          {!hasAnySub ? (
-            <Text style={styles.modalEmpty}>{t('player.noSubtitles')}</Text>
-          ) : (
-            <>
-              <TrackRow
-                label={t('player.off')}
-                selected={!activeSub && activeExternalSubIndex == null}
-                onPress={() => {
-                  pickEmbedded(null);
-                  onPickExternal(null);
-                }}
-              />
-              {subtitles.map((track, i) => (
-                <TrackRow
-                  key={`emb-${i}`}
-                  label={t('player.trackEmbedded', {
-                    label: track.label ?? track.language ?? t('player.trackNumber', { number: i + 1 }),
-                  })}
-                  selected={activeSub && (activeSub.id === track.id || activeSub.label === track.label)}
-                  onPress={() => pickEmbedded(track)}
-                />
-              ))}
-              {externalSubs.map((s) => (
-                <TrackRow
-                  key={`ext-${s.index}`}
-                  label={t('player.trackExternal', { label: s.label })}
-                  selected={activeExternalSubIndex === s.index}
-                  onPress={() => {
-                    pickEmbedded(null);
-                    onPickExternal(s.index);
-                  }}
-                />
-              ))}
-            </>
-          )}
-
-          <Text style={[styles.modalTitle, { marginTop: spacing.lg }]}>{t('player.audio')}</Text>
-          {audios.length === 0 ? (
-            <Text style={styles.modalEmpty}>{t('player.noAlternateAudio')}</Text>
-          ) : (
-            audios.map((track, i) => (
-              <TrackRow
-                key={`aud-${i}`}
-                label={track.label ?? track.language ?? t('player.trackNumber', { number: i + 1 })}
-                selected={activeAudio && (activeAudio.id === track.id || activeAudio.label === track.label)}
-                onPress={() => pickAudio(track)}
-              />
-            ))
-          )}
-
-          <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.modalCloseText}>{t('player.close')}</Text>
-          </TouchableOpacity>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
 }
 
 function Scrubber({
@@ -2085,50 +1737,6 @@ function Scrubber({
         <View style={[styles.scrubberThumb, { left: `${pct}%` }]} />
       </View>
     </View>
-  );
-}
-
-function SpeedPickerModal({
-  visible, current, onClose, onPick,
-}: {
-  visible: boolean; current: number; onClose: () => void; onPick: (r: number) => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
-    >
-      <Pressable style={styles.modalBackdrop} onPress={onClose}>
-        <Pressable style={styles.modalSheet} onPress={() => {}}>
-          <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>{t('player.speed')}</Text>
-          {SPEEDS.map(rate => (
-            <TrackRow
-              key={rate}
-              label={`${rate}x${rate === 1 ? ` (${t('player.speedNormal')})` : ''}`}
-              selected={Math.abs(current - rate) < 0.01}
-              onPress={() => onPick(rate)}
-            />
-          ))}
-          <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.modalCloseText}>{t('player.close')}</Text>
-          </TouchableOpacity>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
-
-function TrackRow({ label, selected, onPress }: { label: string; selected?: boolean; onPress: () => void }) {
-  return (
-    <TouchableOpacity style={styles.deviceRow} onPress={onPress} activeOpacity={0.7}>
-      <Text style={{ ...type.body, color: colors.text, flex: 1 }}>{label}</Text>
-      {selected ? <SymbolView name={{ ios: 'checkmark', android: 'check', web: 'check' }} tintColor={colors.text} size={18} /> : null}
-    </TouchableOpacity>
   );
 }
 
