@@ -16,7 +16,8 @@
     "notPermitted": "Not permitted",
     "on": "On",
     "off": "Off",
-    "retry": "Try again"
+    "retry": "Try again",
+    "screenMissing": "This screen doesn't exist."
   },
   "login": {
     "title": "jellylab",
@@ -27,7 +28,9 @@
     "signingIn": "Signing in…",
     "failed": "Login failed",
     "tapToConfigureServer": "Tap to configure server",
-    "manageServers": "Manage servers"
+    "manageServers": "Manage servers",
+    "partialTitle": "Signed in to Jellyfin only",
+    "partialBody": "{{error}}\n\nBrowsing and playback work. Requests and search need Jellyseerr - check its address in Servers."
   },
   "servers": {
     "title": "Servers",
@@ -86,7 +89,9 @@
       "upcoming": "Upcoming",
       "inYourLibrary": "In your library",
       "requestNew": "Request"
-    }
+    },
+    "failedTitle": "Search failed",
+    "failedBody": "Could not reach Jellyfin or Jellyseerr."
   },
   "requests": {
     "empty": "No requests yet",
@@ -229,7 +234,9 @@
       "autoplayNextDesc": "Automatically play the next episode of a TV show when the current one ends.",
       "preferVLC": "Always use VLC player",
       "preferVLCDesc": "Skip AVPlayer entirely. Slower start, works with every codec and container.",
-      "note": "The player still auto-selects VLC when a file's container or codec is not AVPlayer-compatible. Enabling 'Always use VLC' bypasses AVPlayer even for MP4/H.264 files."
+      "note": "The player still auto-selects VLC when a file's container or codec is not AVPlayer-compatible. Enabling 'Always use VLC' bypasses AVPlayer even for MP4/H.264 files.",
+      "engineNote": "Auto picks AVPlayer when the file’s container and codec are supported and falls back to VLC otherwise. Force AVPlayer if you always want the native iOS player; force VLC for maximum compatibility (MKV, DTS, TrueHD, VP9, AV1) at the cost of slower startup.",
+      "qualityNote": "Original quality streams the file untouched - best picture, no work for the server, but it needs a connection fast enough for the source bitrate. Picking a limit makes the server transcode anything above it, which is what you want on cellular. Files already under the limit are streamed untouched either way."
     },
     "content": {
       "title": "Content",
@@ -265,7 +272,8 @@
       "autoplay": "Autoplay next episode",
       "engineAuto": "Auto (recommended)",
       "engineNative": "AVPlayer (native)",
-      "engineVlc": "VLC"
+      "engineVlc": "VLC",
+      "originalQuality": "Original quality"
     }
   },
   "languages": {
@@ -305,7 +313,16 @@
     "disconnect": "Disconnect current session",
     "noDevices": "No devices found on this network.",
     "castLabel": "Cast to a device",
-    "unknownDevice": "Unknown device"
+    "unknownDevice": "Unknown device",
+    "inSync": "In sync",
+    "delayHint": "Plus shows subtitles later, minus shows them earlier.",
+    "delayHintOff": "Pick a track under External to adjust its timing. Embedded tracks are drawn by VLC, which offers no timing control.",
+    "transcodedAudio": "This file has {{tracks}} audio tracks, but it is being transcoded and the server sends only one. Set playback quality to Original to switch between them.",
+    "trackEmbedded": "{{label}} (embedded)",
+    "trackExternal": "{{label}} (external)",
+    "trackNumber": "Track {{number}}",
+    "speedNormal": "Normal",
+    "castHint": "The AirPlay picker is inside the player."
   },
   "request": {
     "failed": "Failed to load details",
@@ -324,7 +341,19 @@
     "episodeCount": "Episodes",
     "countries": "Countries",
     "seasonNumber": "Season {{number}}",
-    "seasonsNote": "Seasons already available, downloading or not yet aired cannot be requested - that is why they are greyed out rather than hidden."
+    "seasonsNote": "Seasons already available, downloading or not yet aired cannot be requested - that is why they are greyed out rather than hidden.",
+    "nothingTitle": "Nothing to request",
+    "nothingBody": "Every season is already available, downloading, or has not aired yet.",
+    "loadSeasonsFailed": "Could not load seasons",
+    "submitFailed": "Request failed",
+    "deleteTitle": "Delete request?",
+    "deleteBody": "The request will be cancelled but any downloaded files stay on Jellyfin.",
+    "deleteFailed": "Delete failed",
+    "removeTitle": "Remove from Jellyfin?",
+    "removeBody": "This removes the media from Jellyseerr and asks Radarr/Sonarr to remove the file. Irreversible.",
+    "removeFailed": "Remove failed",
+    "waitingCinema": "Still in cinemas. Nothing to download until the digital release on {{date}} - your server will pick it up automatically then.",
+    "waitingMatch": "Approved and waiting for a match. Your server keeps searching, so this can take a while if nothing good is available yet."
   },
   "badge": {
     "available": "Available",
@@ -358,5 +387,16 @@
     "Planned": "Planned",
     "Released": "Released",
     "Post Production": "Post-production"
+  },
+  "trackLanguages": {
+    "off": "Off",
+    "original": "Original",
+    "eng": "English",
+    "nld": "Dutch",
+    "tur": "Turkish",
+    "ger": "German",
+    "fre": "French",
+    "spa": "Spanish",
+    "jpn": "Japanese"
   }
 }

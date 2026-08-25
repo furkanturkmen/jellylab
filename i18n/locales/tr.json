@@ -16,7 +16,8 @@
     "notPermitted": "İzin yok",
     "on": "Açık",
     "off": "Kapalı",
-    "retry": "Yeniden dene"
+    "retry": "Yeniden dene",
+    "screenMissing": "Bu ekran mevcut değil."
   },
   "login": {
     "title": "jellylab",
@@ -27,7 +28,9 @@
     "signingIn": "Giriş yapılıyor…",
     "failed": "Giriş başarısız",
     "tapToConfigureServer": "Sunucuyu ayarlamak için dokun",
-    "manageServers": "Sunucuları yönet"
+    "manageServers": "Sunucuları yönet",
+    "partialTitle": "Yalnızca Jellyfin’e giriş yapıldı",
+    "partialBody": "{{error}}\n\nGezinme ve oynatma çalışıyor. İstekler ve arama için Jellyseerr gerekir - adresini Sunucular’da kontrol et."
   },
   "servers": {
     "title": "Sunucular",
@@ -86,7 +89,9 @@
       "upcoming": "Yakında",
       "inYourLibrary": "Kıtaplığında",
       "requestNew": "İstek oluştur"
-    }
+    },
+    "failedTitle": "Arama başarısız",
+    "failedBody": "Jellyfin veya Jellyseerr’e ulaşılamadı."
   },
   "requests": {
     "empty": "Henüz istek yok",
@@ -229,7 +234,9 @@
       "autoplayNextDesc": "Mevcut bölüm bittiğinde bir sonrakini otomatik başlat.",
       "preferVLC": "Her zaman VLC oynatıcı kullan",
       "preferVLCDesc": "AVPlayer'ı atla. Başlatma biraz yavaş, tüm codec ve konteynerle çalışır.",
-      "note": "Oynatıcı zaten AVPlayer uyumsuz dosyalarda VLC'ye geçer. 'Her zaman VLC' ile MP4/H.264'te de AVPlayer atlanır."
+      "note": "Oynatıcı zaten AVPlayer uyumsuz dosyalarda VLC'ye geçer. 'Her zaman VLC' ile MP4/H.264'te de AVPlayer atlanır.",
+      "engineNote": "Otomatik, dosyanın kabı ve kodeği destekleniyorsa AVPlayer’ı seçer, aksi hâlde VLC’ye döner. Her zaman yerel iOS oynatıcısını istiyorsan AVPlayer’ı zorla; en geniş uyumluluk için (MKV, DTS, TrueHD, VP9, AV1) daha yavaş başlama pahasına VLC’yi zorla.",
+      "qualityNote": "Orijinal kalite dosyayı olduğu gibi aktarır - en iyi görüntü, sunucuya yük yok, ancak kaynak bit hızına yetecek bir bağlantı ister. Bir sınır seçmek, sunucunun üstündeki her şeyi transkod etmesini sağlar; mobil veride istediğin budur. Zaten sınırın altındaki dosyalar her hâlükârda olduğu gibi aktarılır."
     },
     "content": {
       "title": "İçerik",
@@ -265,7 +272,8 @@
       "autoplay": "Sonraki bölümü otomatik oynat",
       "engineAuto": "Otomatik (önerilen)",
       "engineNative": "AVPlayer (yerel)",
-      "engineVlc": "VLC"
+      "engineVlc": "VLC",
+      "originalQuality": "Orijinal kalite"
     }
   },
   "languages": {
@@ -305,7 +313,16 @@
     "disconnect": "Geçerli oturumu kes",
     "noDevices": "Bu ağda cihaz bulunamadı.",
     "castLabel": "Bir cihaza yayınla",
-    "unknownDevice": "Bilinmeyen cihaz"
+    "unknownDevice": "Bilinmeyen cihaz",
+    "inSync": "Senkron",
+    "delayHint": "Artı altyazıları geciktirir, eksi öne alır.",
+    "delayHintOff": "Zamanlamayı ayarlamak için Harici altındaki bir izi seç. Gömülü izleri VLC çiziyor ve zamanlama denetimi sunmuyor.",
+    "transcodedAudio": "Bu dosyada {{tracks}} ses izi var, ancak transkod ediliyor ve sunucu yalnızca birini gönderiyor. Aralarında geçiş yapmak için kaliteyi Orijinal yap.",
+    "trackEmbedded": "{{label}} (gömülü)",
+    "trackExternal": "{{label}} (harici)",
+    "trackNumber": "İz {{number}}",
+    "speedNormal": "Normal",
+    "castHint": "AirPlay seçici oynatıcının içinde."
   },
   "request": {
     "failed": "Ayrıntılar yüklenemedi",
@@ -324,7 +341,19 @@
     "episodeCount": "Bölüm",
     "countries": "Ülkeler",
     "seasonNumber": "{{number}}. sezon",
-    "seasonsNote": "Hâlihazırda mevcut olan, indirilen ya da henüz yayınlanmamış sezonlar istenemez - bu yüzden gizlenmek yerine soluk gösterilir."
+    "seasonsNote": "Hâlihazırda mevcut olan, indirilen ya da henüz yayınlanmamış sezonlar istenemez - bu yüzden gizlenmek yerine soluk gösterilir.",
+    "nothingTitle": "İstenecek bir şey yok",
+    "nothingBody": "Her sezon ya mevcut, ya indiriliyor ya da henüz yayınlanmadı.",
+    "loadSeasonsFailed": "Sezonlar yüklenemedi",
+    "submitFailed": "İstek başarısız",
+    "deleteTitle": "İstek silinsin mi?",
+    "deleteBody": "İstek iptal edilir, ancak indirilen dosyalar Jellyfin’de kalır.",
+    "deleteFailed": "Silme başarısız",
+    "removeTitle": "Jellyfin’den kaldırılsın mı?",
+    "removeBody": "Bu, medyayı Jellyseerr’den kaldırır ve Radarr/Sonarr’dan dosyayı silmesini ister. Geri alınamaz.",
+    "removeFailed": "Kaldırma başarısız",
+    "waitingCinema": "Hâlâ sinemalarda. {{date}} tarihindeki dijital çıkışa kadar indirilecek bir şey yok - sunucun o zaman otomatik olarak alacak.",
+    "waitingMatch": "Onaylandı ve eşleşme bekleniyor. Sunucun aramayı sürdürüyor, uygun bir şey yoksa bu biraz zaman alabilir."
   },
   "badge": {
     "available": "Mevcut",
@@ -358,5 +387,16 @@
     "Planned": "Planlandı",
     "Released": "Yayınlandı",
     "Post Production": "Post prodüksiyon"
+  },
+  "trackLanguages": {
+    "off": "Kapalı",
+    "original": "Orijinal",
+    "eng": "İngilizce",
+    "nld": "Felemenkçe",
+    "tur": "Türkçe",
+    "ger": "Almanca",
+    "fre": "Fransızca",
+    "spa": "İspanyolca",
+    "jpn": "Japonca"
   }
 }

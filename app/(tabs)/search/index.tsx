@@ -108,7 +108,7 @@ export default function SearchScreen() {
       setLibrary(mine ?? []);
       setBusy(false);
       if (seerr === null && mine === null) {
-        Alert.alert('Search failed', 'Could not reach Jellyfin or Jellyseerr.');
+        Alert.alert(t('search.failedTitle'), t('search.failedBody'));
       }
     }, 350);
     return () => clearTimeout(handle);

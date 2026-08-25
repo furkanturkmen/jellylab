@@ -10,7 +10,7 @@ export default function NotFoundScreen() {
     <>
       <Stack.Screen options={{ title: t('nav.notFound') }} />
       <View style={styles.container}>
-        <Text style={styles.title}>This screen doesn’t exist.</Text>
+        <Text style={styles.title}>{t('common.screenMissing')}</Text>
 
         <Link href="/" style={styles.link}>
           <Text style={styles.linkText}>{t('nav.goHome')}</Text>

@@ -115,7 +115,7 @@ export default function TmdbDetailScreen() {
         await Jellyseerr.createRequest(type, details.id);
         await refresh();
       } catch (e: any) {
-        Alert.alert('Request failed', e?.response?.data?.message ?? e?.message ?? 'Unknown error');
+        Alert.alert(t('request.submitFailed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
       } finally {
         setActing(false);
       }
@@ -127,10 +127,7 @@ export default function TmdbDetailScreen() {
       const all = await Jellyseerr.getTvSeasons(details.id);
       const requestable = all.filter(Jellyseerr.isSeasonRequestable);
       if (requestable.length === 0) {
-        Alert.alert(
-          'Nothing to request',
-          'Every season is already available, downloading, or has not aired yet.'
-        );
+        Alert.alert(t('request.nothingTitle'), t('request.nothingBody'));
         return;
       }
       // The sheet is a route: it is handed the list and the callback through
@@ -142,7 +139,7 @@ export default function TmdbDetailScreen() {
       });
       router.push('/sheet/seasons');
     } catch (e: any) {
-      Alert.alert('Could not load seasons', e?.response?.data?.message ?? e?.message ?? 'Unknown error');
+      Alert.alert(t('request.loadSeasonsFailed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
     } finally {
       setActing(false);
     }
@@ -155,7 +152,7 @@ export default function TmdbDetailScreen() {
       await Jellyseerr.createRequest('tv', details.id, seasons);
       await refresh();
     } catch (e: any) {
-      Alert.alert('Request failed', e?.response?.data?.message ?? e?.message ?? 'Unknown error');
+      Alert.alert(t('request.submitFailed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
     } finally {
       setActing(false);
     }
@@ -164,10 +161,10 @@ export default function TmdbDetailScreen() {
   async function onDeleteRequest() {
     if (!details?.mediaInfo?.requests?.length) return;
     const reqId = details.mediaInfo.requests[0].id;
-    Alert.alert('Delete request?', 'The request will be cancelled but any downloaded files stay on Jellyfin.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('request.deleteTitle'), t('request.deleteBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           setActing(true);
@@ -175,7 +172,7 @@ export default function TmdbDetailScreen() {
             await Jellyseerr.deleteRequest(reqId);
             await refresh();
           } catch (e: any) {
-            Alert.alert('Delete failed', e?.response?.data?.message ?? e?.message ?? 'Not permitted');
+            Alert.alert(t('request.deleteFailed'), e?.response?.data?.message ?? e?.message ?? t('common.notPermitted'));
           } finally {
             setActing(false);
           }
@@ -188,12 +185,12 @@ export default function TmdbDetailScreen() {
     if (!details?.mediaInfo?.id) return;
     const mediaId = details.mediaInfo.id;
     Alert.alert(
-      'Remove from Jellyfin?',
-      'This removes the media from Jellyseerr and asks Radarr/Sonarr to remove the file. Irreversible.',
+      t('request.removeTitle'),
+      t('request.removeBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Remove',
+          text: t('common.remove'),
           style: 'destructive',
           onPress: async () => {
             setActing(true);
@@ -204,7 +201,7 @@ export default function TmdbDetailScreen() {
               await Jellyseerr.deleteMedia(mediaId);
               await refresh();
             } catch (e: any) {
-              Alert.alert('Remove failed', e?.response?.data?.message ?? e?.message ?? 'Not permitted');
+              Alert.alert(t('request.removeFailed'), e?.response?.data?.message ?? e?.message ?? t('common.notPermitted'));
             } finally {
               setActing(false);
             }
@@ -262,10 +259,9 @@ export default function TmdbDetailScreen() {
     if (!processing || activeDownloads.length > 0) return null;
     const digital = type === 'movie' ? Jellyseerr.digitalReleaseDate(details) : null;
     if (digital && digital.getTime() > Date.now()) {
-      const when = formatDate(digital);
-      return `Still in cinemas. Nothing to download until the digital release on ${when} — your server will pick it up automatically then.`;
+      return t('request.waitingCinema', { date: formatDate(digital) });
     }
-    return 'Approved and waiting for a match. Your server keeps searching, so this can take a while if nothing good is available yet.';
+    return t('request.waitingMatch');
   })();
 
   return (

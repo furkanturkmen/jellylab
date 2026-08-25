@@ -6,22 +6,11 @@ import { useTranslation } from 'react-i18next';
 import { DEFAULT_PREFS, loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
 
-const LANGS: { code: string; label: string }[] = [
-  { code: 'off', label: 'Off' },
-  { code: 'eng', label: 'English' },
-  { code: 'nld', label: 'Dutch' },
-  { code: 'tur', label: 'Turkish' },
-  { code: 'ger', label: 'German' },
-  { code: 'fre', label: 'French' },
-  { code: 'spa', label: 'Spanish' },
-  { code: 'jpn', label: 'Japanese' },
-];
+// Codes, not labels: the names are looked up in the app's language where the
+// rows are drawn, since t() does not exist at module scope.
+const LANGS = ['off', 'eng', 'nld', 'tur', 'ger', 'fre', 'spa', 'jpn'];
 
-const SIZES: { value: Prefs['subtitleSize']; label: string }[] = [
-  { value: 'sm', label: 'Small' },
-  { value: 'md', label: 'Medium' },
-  { value: 'lg', label: 'Large' },
-];
+const SIZES: Prefs['subtitleSize'][] = ['sm', 'md', 'lg'];
 
 export default function SubtitlesSettings() {
   const { t } = useTranslation();
@@ -44,36 +33,33 @@ export default function SubtitlesSettings() {
 
   return (
     <View style={styles.root}>
-      <Stack.Screen options={{ title: 'Subtitles', headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text } }} />
+      <Stack.Screen options={{ title: t('nav.subtitles'), headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text } }} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <Text style={styles.cardLabel}>{t('settings.labels.preferredSubs')}</Text>
-          {LANGS.map(l => (
+          {LANGS.map(code => (
             <OptionRow
-              key={l.code}
-              label={l.label}
-              selected={prefs.subtitleLanguage === l.code}
-              onPress={() => update('subtitleLanguage', l.code)}
+              key={code}
+              label={t(`trackLanguages.${code}`)}
+              selected={prefs.subtitleLanguage === code}
+              onPress={() => update('subtitleLanguage', code)}
             />
           ))}
         </View>
 
         <View style={styles.card}>
           <Text style={styles.cardLabel}>{t('settings.labels.textSize')}</Text>
-          {SIZES.map(s => (
+          {SIZES.map(size => (
             <OptionRow
-              key={s.value}
-              label={s.label}
-              selected={prefs.subtitleSize === s.value}
-              onPress={() => update('subtitleSize', s.value)}
+              key={size}
+              label={t(`settings.subtitles.size.${size}`)}
+              selected={prefs.subtitleSize === size}
+              onPress={() => update('subtitleSize', size)}
             />
           ))}
         </View>
 
-        <Text style={styles.note}>
-          Preferences are stored on this device. When the player finds a matching
-          subtitle track for the media, it will be selected automatically.
-        </Text>
+        <Text style={styles.note}>{t('settings.subtitles.note')}</Text>
       </ScrollView>
     </View>
   );

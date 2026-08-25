@@ -6,22 +6,18 @@ import { useTranslation } from 'react-i18next';
 import { loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
 
-const BITRATES: { mbps: number; label: string }[] = [
-  { mbps: 0, label: 'Original quality' },
+// These tables are module scope and t() is not, so anything that needs
+// translating is carried as a language code or a key and resolved where the row
+// is drawn. "8 Mbps" reads the same in every language and stays a literal.
+const BITRATES: { mbps: number; label?: string; labelKey?: string }[] = [
+  { mbps: 0, labelKey: 'settings.labels.originalQuality' },
   { mbps: 8, label: '8 Mbps' },
   { mbps: 4, label: '4 Mbps' },
   { mbps: 2, label: '2 Mbps' },
   { mbps: 1, label: '1 Mbps' },
 ];
 
-const AUDIO: { code: string; label: string }[] = [
-  { code: 'original', label: 'Original' },
-  { code: 'eng', label: 'English' },
-  { code: 'nld', label: 'Dutch' },
-  { code: 'tur', label: 'Turkish' },
-  { code: 'ger', label: 'German' },
-  { code: 'jpn', label: 'Japanese' },
-];
+const AUDIO = ['original', 'eng', 'nld', 'tur', 'ger', 'jpn'];
 
 export default function PlaybackSettings() {
   const { t } = useTranslation();
@@ -44,16 +40,16 @@ export default function PlaybackSettings() {
 
   return (
     <View style={styles.root}>
-      <Stack.Screen options={{ title: 'Playback', headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text } }} />
+      <Stack.Screen options={{ title: t('nav.playback'), headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text } }} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
           <Text style={styles.cardLabel}>{t('settings.labels.preferredAudio')}</Text>
-          {AUDIO.map(a => (
+          {AUDIO.map(code => (
             <OptionRow
-              key={a.code}
-              label={a.label}
-              selected={prefs.audioLanguage === a.code}
-              onPress={() => update('audioLanguage', a.code)}
+              key={code}
+              label={t(`trackLanguages.${code}`)}
+              selected={prefs.audioLanguage === code}
+              onPress={() => update('audioLanguage', code)}
             />
           ))}
         </View>
@@ -82,7 +78,7 @@ export default function PlaybackSettings() {
           {BITRATES.map(b => (
             <OptionRow
               key={b.mbps}
-              label={b.label}
+              label={b.labelKey ? t(b.labelKey) : b.label ?? ''}
               selected={prefs.maxBitrateMbps === b.mbps}
               onPress={() => update('maxBitrateMbps', b.mbps)}
             />
@@ -92,26 +88,15 @@ export default function PlaybackSettings() {
         <View style={styles.card}>
           <ToggleRow
             label={t('settings.labels.autoplay')}
-            description="Automatically play the next episode of a TV show when the current one ends."
+            description={t('settings.playback.autoplayNextDesc')}
             value={prefs.autoplayNext}
             onValueChange={v => update('autoplayNext', v)}
           />
         </View>
 
-        <Text style={styles.note}>
-          Auto picks AVPlayer when the file’s container/codec is supported and
-          falls back to VLC otherwise. Force AVPlayer if you always want the
-          native iOS player; force VLC for maximum compatibility (MKV, DTS,
-          TrueHD, VP9, AV1) at the cost of slower startup.
-        </Text>
+        <Text style={styles.note}>{t('settings.playback.engineNote')}</Text>
 
-        <Text style={styles.note}>
-          Original quality streams the file untouched — best picture, no work
-          for the server, but needs a connection fast enough for the source
-          bitrate. Picking a limit makes the server transcode anything above it,
-          which is what you want on cellular. Files already under the limit are
-          streamed untouched either way.
-        </Text>
+        <Text style={styles.note}>{t('settings.playback.qualityNote')}</Text>
       </ScrollView>
     </View>
   );

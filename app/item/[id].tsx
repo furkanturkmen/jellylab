@@ -404,9 +404,7 @@ export default function ItemScreen() {
                   tint={castState === 'connected' ? colors.pink : undefined}
                 />
               </ButtonRow>
-              <Text style={styles.castHint}>
-                Cast: {castState ?? 'sdk-not-ready'} · AirPlay picker is inside the player
-              </Text>
+              <Text style={styles.castHint}>{t('player.castHint')}</Text>
             </>
           ) : null}
 
@@ -1108,12 +1106,12 @@ function VlcSubsModal({
               <>
                 <TrackRow label={t('player.off')} selected={isOff} onPress={onOff} />
                 {internalTracks.length > 0 ? <SubGroupLabel>{t('player.embedded')}</SubGroupLabel> : null}
-                {internalTracks.map(t => (
+                {internalTracks.map(track => (
                   <TrackRow
-                    key={`int-${t.id}`}
-                    label={cleanSubLabel(t.name ?? `Track ${t.id}`)}
-                    selected={activeInternalId === t.id}
-                    onPress={() => onPickInternal(t.id)}
+                    key={`int-${track.id}`}
+                    label={cleanSubLabel(track.name ?? t('player.trackNumber', { number: track.id }))}
+                    selected={activeInternalId === track.id}
+                    onPress={() => onPickInternal(track.id)}
                   />
                 ))}
                 {externalSubs.length > 0 ? <SubGroupLabel>{t('player.external')}</SubGroupLabel> : null}
@@ -1133,7 +1131,7 @@ function VlcSubsModal({
             <View style={styles.delayHeader}>
               <Text style={styles.delayLabel}>{t('player.timing')}</Text>
               <Text style={styles.delayValue}>
-                {subDelayMs === 0 ? 'In sync' : `${subDelayMs > 0 ? '+' : ''}${(subDelayMs / 1000).toFixed(1)}s`}
+                {subDelayMs === 0 ? t('player.inSync') : `${subDelayMs > 0 ? '+' : ''}${(subDelayMs / 1000).toFixed(1)}s`}
               </Text>
             </View>
             <View style={styles.delayRow}>
@@ -1145,8 +1143,8 @@ function VlcSubsModal({
             </View>
             <Text style={styles.delayHint}>
               {delayEnabled
-                ? 'Plus shows subtitles later, minus shows them earlier.'
-                : 'Pick a track under External to adjust its timing. Embedded tracks are drawn by VLC, which offers no timing control.'}
+                ? t('player.delayHint')
+                : t('player.delayHintOff')}
             </Text>
           </View>
 
@@ -1207,20 +1205,19 @@ function AudioTracksModal({
             {tracks.length === 0 ? (
               <Text style={styles.modalEmpty}>{t('player.noAudio')}</Text>
             ) : (
-              tracks.map(t => (
+              tracks.map(track => (
                 <TrackRow
-                  key={`aud-${t.id}`}
-                  label={t.label}
-                  selected={activeId === t.id}
-                  onPress={() => onPick(t.id)}
+                  key={`aud-${track.id}`}
+                  label={track.label}
+                  selected={activeId === track.id}
+                  onPress={() => onPick(track.id)}
                 />
               ))
             )}
           </ScrollView>
           {declaredCount > tracks.length && tracks.length > 0 ? (
             <Text style={styles.delayHint}>
-              This file has {declaredCount} audio tracks, but it is being transcoded and the
-              server sends only one. Set playback quality to Original to switch between them.
+              {t('player.transcodedAudio', { tracks: declaredCount })}
             </Text>
           ) : null}
           <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
@@ -1971,18 +1968,20 @@ function TrackPickerModal({
                   onPickExternal(null);
                 }}
               />
-              {subtitles.map((t, i) => (
+              {subtitles.map((track, i) => (
                 <TrackRow
                   key={`emb-${i}`}
-                  label={`${t.label ?? t.language ?? `Track ${i + 1}`} (embedded)`}
-                  selected={activeSub && (activeSub.id === t.id || activeSub.label === t.label)}
-                  onPress={() => pickEmbedded(t)}
+                  label={t('player.trackEmbedded', {
+                    label: track.label ?? track.language ?? t('player.trackNumber', { number: i + 1 }),
+                  })}
+                  selected={activeSub && (activeSub.id === track.id || activeSub.label === track.label)}
+                  onPress={() => pickEmbedded(track)}
                 />
               ))}
               {externalSubs.map((s) => (
                 <TrackRow
                   key={`ext-${s.index}`}
-                  label={`${s.label} (external)`}
+                  label={t('player.trackExternal', { label: s.label })}
                   selected={activeExternalSubIndex === s.index}
                   onPress={() => {
                     pickEmbedded(null);
@@ -1997,12 +1996,12 @@ function TrackPickerModal({
           {audios.length === 0 ? (
             <Text style={styles.modalEmpty}>{t('player.noAlternateAudio')}</Text>
           ) : (
-            audios.map((t, i) => (
+            audios.map((track, i) => (
               <TrackRow
                 key={`aud-${i}`}
-                label={t.label ?? t.language ?? `Track ${i + 1}`}
-                selected={activeAudio && (activeAudio.id === t.id || activeAudio.label === t.label)}
-                onPress={() => pickAudio(t)}
+                label={track.label ?? track.language ?? t('player.trackNumber', { number: i + 1 })}
+                selected={activeAudio && (activeAudio.id === track.id || activeAudio.label === track.label)}
+                onPress={() => pickAudio(track)}
               />
             ))
           )}
@@ -2099,7 +2098,7 @@ function SpeedPickerModal({
           {SPEEDS.map(rate => (
             <TrackRow
               key={rate}
-              label={`${rate}x${rate === 1 ? ' (Normal)' : ''}`}
+              label={`${rate}x${rate === 1 ? ` (${t('player.speedNormal')})` : ''}`}
               selected={Math.abs(current - rate) < 0.01}
               onPress={() => onPick(rate)}
             />

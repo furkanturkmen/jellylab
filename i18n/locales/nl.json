@@ -16,7 +16,8 @@
     "notPermitted": "Niet toegestaan",
     "on": "Aan",
     "off": "Uit",
-    "retry": "Opnieuw proberen"
+    "retry": "Opnieuw proberen",
+    "screenMissing": "Dit scherm bestaat niet."
   },
   "login": {
     "title": "jellylab",
@@ -27,7 +28,9 @@
     "signingIn": "Bezig met aanmelden…",
     "failed": "Aanmelden mislukt",
     "tapToConfigureServer": "Tik om server in te stellen",
-    "manageServers": "Servers beheren"
+    "manageServers": "Servers beheren",
+    "partialTitle": "Alleen aangemeld bij Jellyfin",
+    "partialBody": "{{error}}\n\nBladeren en afspelen werken. Aanvragen en zoeken hebben Jellyseerr nodig - controleer het adres bij Servers."
   },
   "servers": {
     "title": "Servers",
@@ -86,7 +89,9 @@
       "upcoming": "Binnenkort",
       "inYourLibrary": "In je bibliotheek",
       "requestNew": "Aanvragen"
-    }
+    },
+    "failedTitle": "Zoeken mislukt",
+    "failedBody": "Jellyfin of Jellyseerr was niet bereikbaar."
   },
   "requests": {
     "empty": "Nog geen aanvragen",
@@ -217,7 +222,7 @@
       "textSize": "Tekstgrootte",
       "size": {
         "sm": "Klein",
-        "md": "Gemiddeld",
+        "md": "Normaal",
         "lg": "Groot"
       },
       "note": "Voorkeuren worden op dit apparaat opgeslagen. Als de speler een passend ondertitelspoor vindt, wordt dat automatisch geselecteerd."
@@ -229,7 +234,9 @@
       "autoplayNextDesc": "Speel automatisch de volgende aflevering als de huidige eindigt.",
       "preferVLC": "Altijd VLC-speler gebruiken",
       "preferVLCDesc": "Sla AVPlayer helemaal over. Iets langzamere start, werkt met alle codecs en containers.",
-      "note": "De speler kiest sowieso VLC als de container of codec niet AVPlayer-compatibel is. Met 'Altijd VLC' sla je AVPlayer ook over voor MP4/H.264 bestanden."
+      "note": "De speler kiest sowieso VLC als de container of codec niet AVPlayer-compatibel is. Met 'Altijd VLC' sla je AVPlayer ook over voor MP4/H.264 bestanden.",
+      "engineNote": "Auto kiest AVPlayer als de container en codec van het bestand worden ondersteund en valt anders terug op VLC. Kies AVPlayer als je altijd de native iOS-speler wilt; kies VLC voor maximale compatibiliteit (MKV, DTS, TrueHD, VP9, AV1) ten koste van een tragere start.",
+      "qualityNote": "Originele kwaliteit streamt het bestand onbewerkt - het beste beeld en geen werk voor de server, maar het vraagt een verbinding die de bronbitrate aankan. Een limiet laat de server alles daarboven transcoderen, wat je op mobiel wilt. Bestanden die al onder de limiet vallen worden hoe dan ook onbewerkt gestreamd."
     },
     "content": {
       "title": "Inhoud",
@@ -265,7 +272,8 @@
       "autoplay": "Volgende aflevering automatisch afspelen",
       "engineAuto": "Automatisch (aanbevolen)",
       "engineNative": "AVPlayer (native)",
-      "engineVlc": "VLC"
+      "engineVlc": "VLC",
+      "originalQuality": "Originele kwaliteit"
     }
   },
   "languages": {
@@ -305,7 +313,16 @@
     "disconnect": "Huidige sessie verbreken",
     "noDevices": "Geen apparaten gevonden op dit netwerk.",
     "castLabel": "Casten naar een apparaat",
-    "unknownDevice": "Onbekend apparaat"
+    "unknownDevice": "Onbekend apparaat",
+    "inSync": "Gelijk",
+    "delayHint": "Plus toont ondertitels later, min toont ze eerder.",
+    "delayHintOff": "Kies een spoor onder Extern om de timing aan te passen. Ingebouwde sporen worden door VLC getekend, dat geen timing-instelling biedt.",
+    "transcodedAudio": "Dit bestand heeft {{tracks}} audiosporen, maar wordt getranscodeerd en de server stuurt er maar een. Zet de kwaliteit op Origineel om te wisselen.",
+    "trackEmbedded": "{{label}} (ingebouwd)",
+    "trackExternal": "{{label}} (extern)",
+    "trackNumber": "Spoor {{number}}",
+    "speedNormal": "Normaal",
+    "castHint": "De AirPlay-kiezer zit in de speler."
   },
   "request": {
     "failed": "Details konden niet worden geladen",
@@ -324,7 +341,19 @@
     "episodeCount": "Afleveringen",
     "countries": "Landen",
     "seasonNumber": "Seizoen {{number}}",
-    "seasonsNote": "Seizoenen die al beschikbaar zijn, gedownload worden of nog niet zijn uitgezonden kun je niet aanvragen - daarom staan ze grijs in plaats van verborgen."
+    "seasonsNote": "Seizoenen die al beschikbaar zijn, gedownload worden of nog niet zijn uitgezonden kun je niet aanvragen - daarom staan ze grijs in plaats van verborgen.",
+    "nothingTitle": "Niets aan te vragen",
+    "nothingBody": "Elk seizoen is al beschikbaar, wordt gedownload of is nog niet uitgezonden.",
+    "loadSeasonsFailed": "Seizoenen konden niet worden geladen",
+    "submitFailed": "Aanvraag mislukt",
+    "deleteTitle": "Aanvraag verwijderen?",
+    "deleteBody": "De aanvraag wordt geannuleerd, maar gedownloade bestanden blijven op Jellyfin staan.",
+    "deleteFailed": "Verwijderen mislukt",
+    "removeTitle": "Verwijderen van Jellyfin?",
+    "removeBody": "Dit verwijdert de media uit Jellyseerr en vraagt Radarr/Sonarr het bestand te verwijderen. Onomkeerbaar.",
+    "removeFailed": "Verwijderen mislukt",
+    "waitingCinema": "Draait nog in de bioscoop. Er valt niets te downloaden tot de digitale release op {{date}} - je server pakt het dan automatisch op.",
+    "waitingMatch": "Goedgekeurd en wachtend op een match. Je server blijft zoeken, dus dit kan even duren als er nog niets goeds beschikbaar is."
   },
   "badge": {
     "available": "Beschikbaar",
@@ -358,5 +387,16 @@
     "Planned": "Gepland",
     "Released": "Uitgebracht",
     "Post Production": "Postproductie"
+  },
+  "trackLanguages": {
+    "off": "Uit",
+    "original": "Origineel",
+    "eng": "Engels",
+    "nld": "Nederlands",
+    "tur": "Turks",
+    "ger": "Duits",
+    "fre": "Frans",
+    "spa": "Spaans",
+    "jpn": "Japans"
   }
 }

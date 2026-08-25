@@ -27,10 +27,7 @@ export default function LoginScreen() {
       // discover it later as a Requests tab and a search that return nothing.
       const seerr = getSeerrError();
       if (seerr) {
-        Alert.alert(
-          'Signed in to Jellyfin only',
-          `${seerr}\n\nBrowsing and playback work. Requests and search need Jellyseerr - check its address in Servers.`
-        );
+        Alert.alert(t('login.partialTitle'), t('login.partialBody', { error: seerr }));
       }
     } catch (e: any) {
       Alert.alert(t('login.failed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));

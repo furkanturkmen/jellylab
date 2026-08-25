@@ -16,7 +16,8 @@
     "notPermitted": "Nicht erlaubt",
     "on": "An",
     "off": "Aus",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "screenMissing": "Diese Seite gibt es nicht."
   },
   "login": {
     "title": "jellylab",
@@ -27,7 +28,9 @@
     "signingIn": "Anmeldung läuft…",
     "failed": "Anmeldung fehlgeschlagen",
     "tapToConfigureServer": "Tippen, um Server einzurichten",
-    "manageServers": "Server verwalten"
+    "manageServers": "Server verwalten",
+    "partialTitle": "Nur bei Jellyfin angemeldet",
+    "partialBody": "{{error}}\n\nStöbern und Abspielen funktionieren. Anfragen und Suche brauchen Jellyseerr - prüfe die Adresse unter Server."
   },
   "servers": {
     "title": "Server",
@@ -86,7 +89,9 @@
       "upcoming": "Demnächst",
       "inYourLibrary": "In deiner Bibliothek",
       "requestNew": "Anfragen"
-    }
+    },
+    "failedTitle": "Suche fehlgeschlagen",
+    "failedBody": "Jellyfin oder Jellyseerr war nicht erreichbar."
   },
   "requests": {
     "empty": "Noch keine Anfragen",
@@ -229,7 +234,9 @@
       "autoplayNextDesc": "Spiele automatisch die nächste Folge einer Serie ab, wenn die aktuelle endet.",
       "preferVLC": "Immer VLC verwenden",
       "preferVLCDesc": "AVPlayer komplett überspringen. Etwas langsamerer Start, funktioniert mit jedem Codec und Container.",
-      "note": "Der Player wählt bei nicht-AVPlayer-kompatiblen Dateien ohnehin VLC. Mit 'Immer VLC' wird AVPlayer auch bei MP4/H.264 übersprungen."
+      "note": "Der Player wählt bei nicht-AVPlayer-kompatiblen Dateien ohnehin VLC. Mit 'Immer VLC' wird AVPlayer auch bei MP4/H.264 übersprungen.",
+      "engineNote": "Auto wählt AVPlayer, wenn Container und Codec der Datei unterstützt werden, und fällt sonst auf VLC zurück. Erzwinge AVPlayer, wenn du immer den nativen iOS-Player willst; erzwinge VLC für maximale Kompatibilität (MKV, DTS, TrueHD, VP9, AV1) auf Kosten eines langsameren Starts.",
+      "qualityNote": "Originalqualität streamt die Datei unangetastet - bestes Bild, keine Arbeit für den Server, verlangt aber eine Verbindung, die der Quellbitrate gewachsen ist. Ein Limit lässt den Server alles darüber transkodieren, was im Mobilfunk sinnvoll ist. Dateien unterhalb des Limits werden ohnehin unangetastet gestreamt."
     },
     "content": {
       "title": "Inhalte",
@@ -265,7 +272,8 @@
       "autoplay": "Nächste Folge automatisch abspielen",
       "engineAuto": "Automatisch (empfohlen)",
       "engineNative": "AVPlayer (nativ)",
-      "engineVlc": "VLC"
+      "engineVlc": "VLC",
+      "originalQuality": "Originalqualität"
     }
   },
   "languages": {
@@ -305,7 +313,16 @@
     "disconnect": "Aktuelle Sitzung trennen",
     "noDevices": "Keine Geräte in diesem Netzwerk gefunden.",
     "castLabel": "Auf ein Gerät streamen",
-    "unknownDevice": "Unbekanntes Gerät"
+    "unknownDevice": "Unbekanntes Gerät",
+    "inSync": "Synchron",
+    "delayHint": "Plus zeigt Untertitel später, Minus früher.",
+    "delayHintOff": "Wähle unter Extern eine Spur, um ihr Timing anzupassen. Eingebettete Spuren zeichnet VLC, das keine Timing-Steuerung bietet.",
+    "transcodedAudio": "Diese Datei hat {{tracks}} Tonspuren, wird aber transkodiert und der Server sendet nur eine. Stelle die Qualität auf Original, um zu wechseln.",
+    "trackEmbedded": "{{label}} (eingebettet)",
+    "trackExternal": "{{label}} (extern)",
+    "trackNumber": "Spur {{number}}",
+    "speedNormal": "Normal",
+    "castHint": "Die AirPlay-Auswahl steckt im Player."
   },
   "request": {
     "failed": "Details konnten nicht geladen werden",
@@ -324,7 +341,19 @@
     "episodeCount": "Folgen",
     "countries": "Länder",
     "seasonNumber": "Staffel {{number}}",
-    "seasonsNote": "Staffeln, die bereits verfügbar sind, geladen werden oder noch nicht ausgestrahlt wurden, lassen sich nicht anfragen - deshalb sind sie ausgegraut statt ausgeblendet."
+    "seasonsNote": "Staffeln, die bereits verfügbar sind, geladen werden oder noch nicht ausgestrahlt wurden, lassen sich nicht anfragen - deshalb sind sie ausgegraut statt ausgeblendet.",
+    "nothingTitle": "Nichts anzufragen",
+    "nothingBody": "Jede Staffel ist bereits verfügbar, wird geladen oder ist noch nicht ausgestrahlt.",
+    "loadSeasonsFailed": "Staffeln konnten nicht geladen werden",
+    "submitFailed": "Anfrage fehlgeschlagen",
+    "deleteTitle": "Anfrage löschen?",
+    "deleteBody": "Die Anfrage wird storniert, heruntergeladene Dateien bleiben auf Jellyfin.",
+    "deleteFailed": "Löschen fehlgeschlagen",
+    "removeTitle": "Von Jellyfin entfernen?",
+    "removeBody": "Das entfernt die Medien aus Jellyseerr und bittet Radarr/Sonarr, die Datei zu löschen. Nicht umkehrbar.",
+    "removeFailed": "Entfernen fehlgeschlagen",
+    "waitingCinema": "Läuft noch im Kino. Bis zur digitalen Veröffentlichung am {{date}} gibt es nichts zu laden - dein Server holt es dann automatisch.",
+    "waitingMatch": "Genehmigt und wartet auf einen Treffer. Dein Server sucht weiter, das kann dauern, solange nichts Gutes gefunden wird."
   },
   "badge": {
     "available": "Verfügbar",
@@ -358,5 +387,16 @@
     "Planned": "Geplant",
     "Released": "Veröffentlicht",
     "Post Production": "Postproduktion"
+  },
+  "trackLanguages": {
+    "off": "Aus",
+    "original": "Original",
+    "eng": "Englisch",
+    "nld": "Niederländisch",
+    "tur": "Türkisch",
+    "ger": "Deutsch",
+    "fre": "Französisch",
+    "spa": "Spanisch",
+    "jpn": "Japanisch"
   }
 }
