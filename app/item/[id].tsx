@@ -836,7 +836,17 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       externalSubs,
       internalTracks: vlcTextTracks,
       activeExternalIndex: activeSubIndex,
-      activeInternalId: vlcTextTrackId,
+      /**
+       * One tick, always.
+       *
+       * The overlay and VLC's own track are separate pieces of state, and on
+       * load they can both be set for a moment: our overlay is chosen from the
+       * saved preference while VLC reselects the container's default track -
+       * "Signs & Songs" here, since the file marks it default. The picker was
+       * showing a tick against each. An external track wins, because that is
+       * the one being drawn.
+       */
+      activeInternalId: activeSubIndex != null ? -1 : vlcTextTrackId,
       subDelayMs,
       delayEnabled: externalCues.length > 0,
       onDelayChange: changeSubDelay,
