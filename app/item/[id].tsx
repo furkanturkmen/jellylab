@@ -26,6 +26,7 @@ import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/pre
 import { useDownload, useDownloads } from '@/hooks/useDownloads';
 import { formatBytes } from '@/lib/bytes';
 import {
+  cancelDownload,
   enqueueDownload,
   getDownloadSync,
   localSubtitleSync,
@@ -98,6 +99,16 @@ export default function ItemScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const { width: screenWidth } = useWindowDimensions();
   const download = useDownload(id);
+  const downloading = download?.status === 'downloading' || download?.status === 'queued';
+  /**
+   * How far along, or null while the size is unknown.
+   *
+   * A queued item has not started and a server that sent no Content-Length
+   * gives -1; both draw an empty button rather than a bar pretending to know.
+   */
+  const downloadProgress = download && download.totalBytes > 0
+    ? download.bytesWritten / download.totalBytes
+    : null;
 
   useEffect(() => {
     (async () => {
@@ -226,7 +237,20 @@ export default function ItemScreen() {
       );
       return;
     }
-    if (download?.status === 'downloading' || download?.status === 'queued') return;
+    // Pressing it while it is working is a request to stop, not a second
+    // download - and stopping needs asking, because what arrived is thrown
+    // away with it.
+    if (download?.status === 'downloading' || download?.status === 'queued') {
+      Alert.alert(
+        t('downloads.stopTitle'),
+        t('downloads.stopBody', { title: item.Name }),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('downloads.stop'), style: 'destructive', onPress: () => cancelDownload(item.Id) },
+        ],
+      );
+      return;
+    }
 
     const sources = await Jellyfin.getPlaybackInfo(state.auth.userId, item.Id).catch(() => []);
     const source = sources[0];
@@ -674,11 +698,18 @@ export default function ItemScreen() {
                 <CircleButton
                   icon={download?.status === 'done'
                     ? { ios: 'arrow.down.circle.fill', android: 'download_done', web: 'download_done' }
-                    : { ios: 'arrow.down.circle', android: 'download', web: 'download' }}
+                    : downloading
+                      ? { ios: 'stop.circle', android: 'stop', web: 'stop' }
+                      : { ios: 'arrow.down.circle', android: 'download', web: 'download' }}
                   onPress={downloadItem}
+                  // The button fills as the file arrives, so the thing you
+                  // pressed is the thing that reports on itself.
+                  progress={downloading ? downloadProgress : null}
                   accessibilityLabel={download?.status === 'done'
                     ? t('downloads.downloaded')
-                    : t('downloads.label')}
+                    : downloading
+                      ? t('downloads.downloading')
+                      : t('downloads.label')}
                   tint={download?.status === 'done' ? colors.successBorder : undefined}
                 />
               </ButtonRow>

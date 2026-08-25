@@ -83,7 +83,10 @@
     "seasonTitle_one": "Download {{count}} episode?",
     "seasonTitle_other": "Download {{count}} episodes?",
     "seasonBody": "About {{size}} in total. They arrive one at a time, so the first is watchable while the rest come in.",
-    "seasonNone": "Every episode in this season is already on this device."
+    "seasonNone": "Every episode in this season is already on this device.",
+    "stopTitle": "Stop downloading?",
+    "stopBody": "What has arrived of {{title}} is deleted.",
+    "stop": "Stop"
   },
   "library": {
     "welcomeBack": "Welcome back",

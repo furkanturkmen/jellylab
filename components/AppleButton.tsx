@@ -148,13 +148,23 @@ export function CircleButton({
   style,
   tint,
   size = 52,
+  progress,
   accessibilityLabel,
 }: BaseProps & {
   icon: Glyph;
   tint?: string;
   size?: number;
+  /**
+   * 0 to 1, drawn as the button filling from the bottom.
+   *
+   * For work that is already happening because you pressed this button - a
+   * download - so the button itself is the most honest place to show it. Null
+   * or undefined draws nothing.
+   */
+  progress?: number | null;
   accessibilityLabel: string;
 }) {
+  const filled = progress == null ? null : Math.max(0, Math.min(1, progress));
   const { animatedStyle, onPressIn, onPressOut } = usePressScale(disabled);
   return (
     <Animated.View style={[animatedStyle, style]}>
@@ -170,6 +180,16 @@ export function CircleButton({
       >
         <BlurView tint="dark" intensity={40} style={[StyleSheet.absoluteFill, { borderRadius: size / 2 }]} />
         <View style={[StyleSheet.absoluteFill, styles.glassLift, { borderRadius: size / 2 }]} />
+        {filled != null ? (
+          // Under the glyph, above the glass: the icon stays readable at every
+          // level, which a ring around the edge would not manage at this size.
+          <View
+            style={[StyleSheet.absoluteFill, { borderRadius: size / 2, overflow: 'hidden' }]}
+            pointerEvents="none"
+          >
+            <View style={[styles.fill, { height: `${filled * 100}%` }]} />
+          </View>
+        ) : null}
         <SymbolView
           name={icon as any}
           tintColor={tint ?? (disabled ? colors.textDim : colors.text)}
@@ -190,6 +210,8 @@ const HEIGHT = 52;
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
+
+  fill: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(245, 245, 247, 0.30)' },
 
   primary: {
     height: HEIGHT,
