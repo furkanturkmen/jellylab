@@ -332,6 +332,57 @@ async function storeCompanions(
 /** Media source ids, needed to build subtitle URLs after the fact. */
 const mediaSourceIds = new Map<string, string>();
 
+/**
+ * The queue.
+ *
+ * A season is ten to twenty files, and starting them all at once means twenty
+ * transfers fighting for the same connection, twenty progress bars moving
+ * imperceptibly, and nothing watchable for an hour. One at a time means the
+ * first episode is ready while the rest are still coming - which is the order
+ * anyone actually watches them in.
+ */
+const queue: { item: JellyfinItem; container: string; companions?: Companions }[] = [];
+let draining = false;
+
+type Companions = { mediaSourceId?: string; subs: { index: number; label: string }[] };
+
+export async function enqueueDownload(
+  item: JellyfinItem,
+  container: string,
+  companions?: Companions,
+): Promise<void> {
+  await ensureDownloadsLoaded();
+
+  const existing = cache[item.Id];
+  if (existing && existing.status !== 'failed') return;
+
+  set(item.Id, { meta: describeItem(item, container), status: 'queued', bytesWritten: 0, totalBytes: -1 });
+  queue.push({ item, container, companions });
+  void drainQueue();
+}
+
+async function drainQueue(): Promise<void> {
+  if (draining) return;
+  draining = true;
+  try {
+    while (queue.length > 0) {
+      const next = queue.shift();
+      if (!next) break;
+      // Cancelled while it waited: removeDownload dropped the entry, and that
+      // is the signal, since the queue itself holds no state worth reading.
+      if (!cache[next.item.Id]) continue;
+      await startDownload(next.item, next.container, next.companions);
+    }
+  } finally {
+    draining = false;
+  }
+}
+
+/** How many are waiting behind the one being fetched. */
+export function queuedCountSync(): number {
+  return queue.length;
+}
+
 export async function startDownload(
   item: JellyfinItem,
   container: string,

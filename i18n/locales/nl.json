@@ -78,7 +78,12 @@
     "downloaded": "Gedownload",
     "downloading": "Bezig…",
     "label": "Downloaden voor offline",
-    "playingOffline": "Speelt de kopie op dit apparaat af"
+    "playingOffline": "Speelt de kopie op dit apparaat af",
+    "season": "Seizoen downloaden",
+    "seasonTitle_one": "{{count}} aflevering downloaden?",
+    "seasonTitle_other": "{{count}} afleveringen downloaden?",
+    "seasonBody": "Ongeveer {{size}} in totaal. Ze komen een voor een binnen, dus de eerste is te kijken terwijl de rest nog laadt.",
+    "seasonNone": "Elke aflevering van dit seizoen staat al op dit apparaat."
   },
   "library": {
     "welcomeBack": "Welkom terug",

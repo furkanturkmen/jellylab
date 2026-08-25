@@ -78,7 +78,12 @@
     "downloaded": "Geladen",
     "downloading": "Wird geladen…",
     "label": "Für offline laden",
-    "playingOffline": "Spielt die Kopie auf diesem Gerät"
+    "playingOffline": "Spielt die Kopie auf diesem Gerät",
+    "season": "Staffel laden",
+    "seasonTitle_one": "{{count}} Folge laden?",
+    "seasonTitle_other": "{{count}} Folgen laden?",
+    "seasonBody": "Etwa {{size}} insgesamt. Sie kommen nacheinander, die erste ist also sehbar, während der Rest noch lädt.",
+    "seasonNone": "Jede Folge dieser Staffel ist bereits auf diesem Gerät."
   },
   "library": {
     "welcomeBack": "Willkommen zurück",

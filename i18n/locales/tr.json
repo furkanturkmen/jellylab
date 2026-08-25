@@ -78,7 +78,12 @@
     "downloaded": "İndirildi",
     "downloading": "İndiriliyor…",
     "label": "Çevrimdışı için indir",
-    "playingOffline": "Bu cihazdaki kopya oynatılıyor"
+    "playingOffline": "Bu cihazdaki kopya oynatılıyor",
+    "season": "Sezonu indir",
+    "seasonTitle_one": "{{count}} bölüm indirilsin mi?",
+    "seasonTitle_other": "{{count}} bölüm indirilsin mi?",
+    "seasonBody": "Toplam yaklaşık {{size}}. Teker teker gelirler, böylece ilki izlenebilirken kalanlar inmeye devam eder.",
+    "seasonNone": "Bu sezonun her bölümü zaten bu cihazda."
   },
   "library": {
     "welcomeBack": "Tekrar hoş geldin",

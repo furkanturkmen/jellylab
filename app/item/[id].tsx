@@ -23,9 +23,10 @@ import { getDeviceId } from '@/store/auth';
 import { cleanSubLabel } from '@/components/TrackRow';
 import { openPlayerSheet } from '@/store/playerSheet';
 import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/prefs';
-import { useDownload } from '@/hooks/useDownloads';
+import { useDownload, useDownloads } from '@/hooks/useDownloads';
 import { formatBytes } from '@/lib/bytes';
 import {
+  enqueueDownload,
   getDownloadSync,
   localSubtitleSync,
   offlineItemSync,
@@ -228,7 +229,7 @@ export default function ItemScreen() {
         { text: t('common.cancel'), style: 'cancel' },
         {
           text: t('downloads.start'),
-          onPress: () => startDownload(item, container, { mediaSourceId: source?.Id, subs }),
+          onPress: () => enqueueDownload(item, container, { mediaSourceId: source?.Id, subs }),
         },
       ],
     );
@@ -1312,6 +1313,22 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   );
 }
 
+/** Container, size and subtitle tracks, straight off the episode list. */
+function episodeDownload(ep: any): { container: string; bytes: number; mediaSourceId?: string; subs: { index: number; label: string }[] } {
+  const source = ep.MediaSources?.[0];
+  return {
+    container: (source?.Container ?? 'mkv').split(',')[0].trim(),
+    bytes: source?.Size ?? 0,
+    mediaSourceId: source?.Id,
+    subs: (source?.MediaStreams ?? [])
+      .filter((stream: any) => stream.Type === 'Subtitle' && typeof stream.Index === 'number')
+      .map((stream: any) => ({
+        index: stream.Index as number,
+        label: stream.DisplayTitle ?? stream.Language ?? `Track ${stream.Index}`,
+      })),
+  };
+}
+
 function SeriesEpisodes({ seriesId, userId, tmdbId, seasons }: {
   seriesId: string;
   userId: string;
@@ -1321,7 +1338,8 @@ function SeriesEpisodes({ seriesId, userId, tmdbId, seasons }: {
   seasons: any[];
 }) {
   const router = useRouter();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { entries: downloads } = useDownloads();
   /**
    * Titles and descriptions in the app's language, by episode number.
    *
@@ -1342,6 +1360,33 @@ function SeriesEpisodes({ seriesId, userId, tmdbId, seasons }: {
     setLoading(false);
     setActiveSeasonId(current => current ?? seasons[0]?.Id ?? null);
   }, [seasons]);
+
+  function downloadSeason() {
+    const stored = new Set(downloads.map(entry => entry.meta.itemId));
+    const pending = episodes.filter(ep => !stored.has(ep.Id));
+    if (pending.length === 0) {
+      Alert.alert(t('downloads.season'), t('downloads.seasonNone'));
+      return;
+    }
+
+    const total = pending.reduce((sum, ep) => sum + episodeDownload(ep).bytes, 0);
+    Alert.alert(
+      t('downloads.seasonTitle', { count: pending.length }),
+      t('downloads.seasonBody', { size: formatBytes(total) }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('downloads.start'),
+          onPress: () => {
+            for (const ep of pending) {
+              const { container, mediaSourceId, subs } = episodeDownload(ep);
+              enqueueDownload(ep, container, { mediaSourceId, subs });
+            }
+          },
+        },
+      ],
+    );
+  }
 
   useEffect(() => {
     if (!activeSeasonId) return;
@@ -1393,6 +1438,26 @@ function SeriesEpisodes({ seriesId, userId, tmdbId, seasons }: {
           );
         })}
       </ScrollView>
+
+      {/*
+        * A season is the unit people watch, so it is the unit they want on the
+        * phone. Queued rather than fired at once - see the store.
+        */}
+      {episodes.length > 0 ? (
+        <TouchableOpacity
+          style={styles.seasonDownload}
+          onPress={downloadSeason}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+        >
+          <SymbolView
+            name={{ ios: 'arrow.down.circle', android: 'download', web: 'download' }}
+            tintColor={colors.text}
+            size={17}
+          />
+          <Text style={styles.seasonDownloadText}>{t('downloads.season')}</Text>
+        </TouchableOpacity>
+      ) : null}
 
       <View style={{ marginTop: spacing.md }}>
         {loadingEps ? (
@@ -2264,6 +2329,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
+  seasonDownload: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  seasonDownloadText: { ...type.small, color: colors.text, fontWeight: '600' },
   seasonPill: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,

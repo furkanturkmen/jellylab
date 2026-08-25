@@ -78,7 +78,12 @@
     "downloaded": "Downloaded",
     "downloading": "Downloading…",
     "label": "Download for offline",
-    "playingOffline": "Playing the copy on this device"
+    "playingOffline": "Playing the copy on this device",
+    "season": "Download season",
+    "seasonTitle_one": "Download {{count}} episode?",
+    "seasonTitle_other": "Download {{count}} episodes?",
+    "seasonBody": "About {{size}} in total. They arrive one at a time, so the first is watchable while the rest come in.",
+    "seasonNone": "Every episode in this season is already on this device."
   },
   "library": {
     "welcomeBack": "Welcome back",
