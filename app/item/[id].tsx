@@ -687,6 +687,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   const vlcRef = useRef<any>(null);
   const lastSeekAt = useRef(0);
   const router = useRouter();
+  const { t } = useTranslation();
   const [paused, setPaused] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(initialDuration);
