@@ -486,6 +486,44 @@ export function streamUrl(itemId: string, token: string, deviceId: string): stri
  * makes the server do real work, so only reach for it when the source is too
  * fat for the connection — see decidePlayback().
  */
+/** What the audio track gets when the server re-encodes it. */
+const TRANSCODE_AUDIO_BITRATE = 192_000;
+
+/**
+ * The query a transcode needs, as its own function so it can be tested.
+ *
+ * `MaxStreamingBitrate` is not enough on this endpoint: Jellyfin does not
+ * derive a video bitrate from it, and hands ffmpeg `-b:v 0 -maxrate 0` with
+ * CBR rate control, which cannot encode and exits 234. The server then offers
+ * a 256 kbps, 416x234 rendition whose segments all fail - the player sees a
+ * stream that will not start and falls back, which is what made "Always use
+ * AVPlayer" look broken.
+ *
+ * So the video bitrate is stated, and the audio's share is taken out of it
+ * rather than added on top of the ceiling the user asked for.
+ */
+export function transcodeParams(
+  mediaSourceId: string,
+  token: string,
+  deviceId: string,
+  maxBitrate: number,
+): URLSearchParams {
+  const video = Math.max(400_000, maxBitrate - TRANSCODE_AUDIO_BITRATE);
+  return new URLSearchParams({
+    api_key: token,
+    DeviceId: deviceId,
+    MediaSourceId: mediaSourceId,
+    VideoCodec: 'h264',
+    AudioCodec: 'aac',
+    VideoBitrate: String(video),
+    AudioBitrate: String(TRANSCODE_AUDIO_BITRATE),
+    MaxStreamingBitrate: String(maxBitrate),
+    TranscodingContainer: 'ts',
+    TranscodingProtocol: 'hls',
+    SegmentContainer: 'ts',
+  });
+}
+
 export function transcodeUrl(
   itemId: string,
   mediaSourceId: string,
@@ -493,16 +531,6 @@ export function transcodeUrl(
   deviceId: string,
   maxBitrate: number,
 ): string {
-  const params = new URLSearchParams({
-    api_key: token,
-    DeviceId: deviceId,
-    MediaSourceId: mediaSourceId,
-    VideoCodec: 'h264',
-    AudioCodec: 'aac',
-    MaxStreamingBitrate: String(maxBitrate),
-    TranscodingContainer: 'ts',
-    TranscodingProtocol: 'hls',
-    SegmentContainer: 'ts',
-  });
+  const params = transcodeParams(mediaSourceId, token, deviceId, maxBitrate);
   return `${getJellyfinUrl()}/Videos/${itemId}/master.m3u8?${params.toString()}`;
 }
