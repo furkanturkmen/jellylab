@@ -27,7 +27,12 @@ export type JellyfinItem = {
   ProductionYear?: number;
   Overview?: string;
   RunTimeTicks?: number;
-  UserData?: { PlaybackPositionTicks: number; Played: boolean };
+  UserData?: {
+    PlaybackPositionTicks: number;
+    Played: boolean;
+    /** ISO stamp of the last time this was watched - present when asked for. */
+    LastPlayedDate?: string;
+  };
   ImageTags?: Record<string, string>;
   BackdropImageTags?: string[];
   /** Scraper ids - Tmdb, Imdb, Tvdb - present only when asked for in Fields. */

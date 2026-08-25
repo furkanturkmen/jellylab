@@ -210,7 +210,8 @@
       "content": "Inhalte",
       "language": "Sprache",
       "servers": "Server",
-      "about": "Über"
+      "about": "Über",
+      "history": "Wiedergabeverlauf"
     },
     "app": "App",
     "signOutOfServer": "Von {{name}} abmelden",
@@ -314,7 +315,8 @@
     "password": "Passwort",
     "about": "Über",
     "notFound": "Hoppla!",
-    "goHome": "Zum Startbildschirm"
+    "goHome": "Zum Startbildschirm",
+    "history": "Wiedergabeverlauf"
   },
   "player": {
     "subtitles": "Untertitel",
@@ -434,5 +436,10 @@
     "requested": "Angefragt",
     "episodes_one": "{{count}} Folge",
     "episodes_other": "{{count}} Folgen"
+  },
+  "history": {
+    "empty": "Noch nichts zu Ende gesehen. Was du durchschaust, erscheint hier.",
+    "count_one": "{{count}} gesehen",
+    "count_other": "{{count}} gesehen"
   }
 }

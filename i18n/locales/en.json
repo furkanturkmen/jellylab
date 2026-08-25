@@ -210,7 +210,8 @@
       "content": "Content",
       "language": "Language",
       "servers": "Servers",
-      "about": "About"
+      "about": "About",
+      "history": "Watch history"
     },
     "app": "App",
     "signOutOfServer": "Sign out of {{name}}",
@@ -314,7 +315,8 @@
     "password": "Password",
     "about": "About",
     "notFound": "Oops!",
-    "goHome": "Go to home screen"
+    "goHome": "Go to home screen",
+    "history": "Watch history"
   },
   "player": {
     "subtitles": "Subtitles",
@@ -434,5 +436,10 @@
     "requested": "Requested",
     "episodes_one": "{{count}} episode",
     "episodes_other": "{{count}} episodes"
+  },
+  "history": {
+    "empty": "Nothing finished yet. Anything you watch to the end shows up here.",
+    "count_one": "{{count}} watched",
+    "count_other": "{{count}} watched"
   }
 }

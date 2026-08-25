@@ -210,7 +210,8 @@
       "content": "Inhoud",
       "language": "Taal",
       "servers": "Servers",
-      "about": "Over"
+      "about": "Over",
+      "history": "Kijkgeschiedenis"
     },
     "app": "App",
     "signOutOfServer": "Afmelden van {{name}}",
@@ -314,7 +315,8 @@
     "password": "Wachtwoord",
     "about": "Over",
     "notFound": "Oeps!",
-    "goHome": "Ga naar het startscherm"
+    "goHome": "Ga naar het startscherm",
+    "history": "Kijkgeschiedenis"
   },
   "player": {
     "subtitles": "Ondertiteling",
@@ -434,5 +436,10 @@
     "requested": "Aangevraagd",
     "episodes_one": "{{count}} aflevering",
     "episodes_other": "{{count}} afleveringen"
+  },
+  "history": {
+    "empty": "Nog niets uitgekeken. Wat je tot het einde kijkt verschijnt hier.",
+    "count_one": "{{count}} bekeken",
+    "count_other": "{{count}} bekeken"
   }
 }

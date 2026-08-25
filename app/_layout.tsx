@@ -154,6 +154,7 @@ function RootLayoutNav() {
         <Stack.Screen name="settings/language" options={{ title: t('nav.language') }} />
         <Stack.Screen name="settings/password" options={{ title: t('nav.password') }} />
         <Stack.Screen name="settings/about" options={{ title: t('nav.about') }} />
+        <Stack.Screen name="history" options={{ title: t('nav.history') }} />
 
         {/*
           * Sheets, drawn by iOS rather than by us.

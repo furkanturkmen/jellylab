@@ -210,7 +210,8 @@
       "content": "İçerik",
       "language": "Dil",
       "servers": "Sunucular",
-      "about": "Hakkında"
+      "about": "Hakkında",
+      "history": "İzleme geçmişi"
     },
     "app": "Uygulama",
     "signOutOfServer": "{{name}} sunucusundan çıkış yap",
@@ -314,7 +315,8 @@
     "password": "Parola",
     "about": "Hakkında",
     "notFound": "Hop!",
-    "goHome": "Ana ekrana git"
+    "goHome": "Ana ekrana git",
+    "history": "İzleme geçmişi"
   },
   "player": {
     "subtitles": "Altyazılar",
@@ -434,5 +436,10 @@
     "requested": "İstendi",
     "episodes_one": "{{count}} bölüm",
     "episodes_other": "{{count}} bölüm"
+  },
+  "history": {
+    "empty": "Henüz biten bir şey yok. Sonuna kadar izlediklerin burada görünür.",
+    "count_one": "{{count}} izlendi",
+    "count_other": "{{count}} izlendi"
   }
 }

@@ -224,6 +224,35 @@ export async function setPlayed(userId: string, itemId: string, played: boolean)
   else await client.delete(path);
 }
 
+/**
+ * What has been watched, most recent first.
+ *
+ * Films and episodes only: a series counts as played when its last episode
+ * does, and a history that says "Jujutsu Kaisen" between two of its own
+ * episodes reads as a duplicate rather than a fact.
+ */
+export async function getPlayedItems(userId: string, limit = 60, startIndex = 0): Promise<ItemPage> {
+  const client = await authClient();
+  const res = await client.get(`/Users/${userId}/Items`, {
+    params: {
+      Recursive: true,
+      Filters: 'IsPlayed',
+      IncludeItemTypes: 'Movie,Episode',
+      SortBy: 'DatePlayed',
+      SortOrder: 'Descending',
+      Limit: limit,
+      StartIndex: startIndex || undefined,
+      // UserData carries LastPlayedDate, which is the only thing that makes
+      // this a history rather than a list.
+      Fields: 'UserData,PrimaryImageAspectRatio,ProviderIds',
+    },
+  });
+  return {
+    items: res.data.Items ?? [],
+    total: res.data.TotalRecordCount ?? (res.data.Items ?? []).length,
+  };
+}
+
 /** Full-text search across the user's own libraries. */
 export async function searchLibrary(userId: string, term: string, limit = 24): Promise<JellyfinItem[]> {
   const client = await authClient();

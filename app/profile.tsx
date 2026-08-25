@@ -207,6 +207,7 @@ export default function ProfileScreen() {
         <Section>
           <Row icon="person" label={t('profile.displayName')} value={user?.Name ?? state.auth.userName} onPress={editName} />
           <Row icon="key" label={t('profile.changePassword')} onPress={() => router.push('/settings/password')} />
+          <Row icon="clock.arrow.circlepath" label={t('profile.menu.history')} onPress={() => router.push('/history')} />
         </Section>
 
         <SectionHeader>{t('profile.preferences')}</SectionHeader>
