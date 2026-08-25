@@ -311,6 +311,50 @@ const seasonArtCache = new Map<string, string | null>();
  * the only per-season art that exists — and being 16:9 they suit a card
  * background better than a poster would anyway.
  */
+export type LocalisedEpisode = { name?: string; overview?: string };
+
+const seasonEpisodeCache = new Map<string, Map<number, LocalisedEpisode>>();
+
+/**
+ * Episode titles and descriptions in one language, keyed by episode number.
+ *
+ * The server holds whatever its library was scraped in - an anime library set
+ * to Japanese hands back 両面宿儺 and a Japanese synopsis - and that is a
+ * server-wide setting, not something a client can ask to vary. TMDB will vary
+ * it per request, and Jellyseerr passes the parameter through.
+ *
+ * Empty strings are dropped rather than stored: TMDB answers a missing
+ * translation with an empty overview, and an empty string would otherwise
+ * replace text the server did have.
+ */
+export async function getSeasonEpisodes(
+  tmdbId: number,
+  seasonNumber: number,
+  language: string,
+): Promise<Map<number, LocalisedEpisode>> {
+  const key = `${tmdbId}:${seasonNumber}:${language}`;
+  const cached = seasonEpisodeCache.get(key);
+  if (cached) return cached;
+
+  const byNumber = new Map<number, LocalisedEpisode>();
+  try {
+    const client = await authClient();
+    const res = await client.get(`/tv/${tmdbId}/season/${seasonNumber}`, { params: { language } });
+    for (const e of (res.data?.episodes ?? []) as any[]) {
+      const number = e?.episodeNumber ?? e?.episode_number;
+      if (typeof number !== 'number') continue;
+      const name = typeof e?.name === 'string' && e.name.trim() ? e.name : undefined;
+      const overview = typeof e?.overview === 'string' && e.overview.trim() ? e.overview : undefined;
+      if (name || overview) byNumber.set(number, { name, overview });
+    }
+  } catch {
+    // No Seerr session, no TMDB id, no network: the screen keeps the server's
+    // own text, which is what it showed before this existed.
+  }
+  seasonEpisodeCache.set(key, byNumber);
+  return byNumber;
+}
+
 export async function getSeasonArt(tmdbId: number, seasonNumber: number): Promise<string | null> {
   const key = `${tmdbId}:${seasonNumber}`;
   const cached = seasonArtCache.get(key);
@@ -368,13 +412,21 @@ export type MediaDetails = {
  */
 const detailsCache = new Map<string, MediaDetails | null>();
 
-export async function getMediaDetails(mediaType: 'movie' | 'tv', tmdbId: number): Promise<MediaDetails | null> {
-  const cacheKey = `${mediaType}:${tmdbId}`;
+export async function getMediaDetails(
+  mediaType: 'movie' | 'tv',
+  tmdbId: number,
+  language?: string,
+): Promise<MediaDetails | null> {
+  // Language is part of the key: without it, switching the app to Dutch would
+  // be served the English copy that was cached on the previous screen.
+  const cacheKey = `${mediaType}:${tmdbId}:${language ?? 'default'}`;
   const cached = detailsCache.get(cacheKey);
   if (cached !== undefined) return cached;
   try {
     const client = await authClient();
-    const res = await client.get(`/${mediaType}/${tmdbId}`);
+    const res = await client.get(`/${mediaType}/${tmdbId}`, {
+      params: language ? { language } : undefined,
+    });
     const d = res.data;
     const details: MediaDetails = {
       title: d.title ?? d.name ?? '',

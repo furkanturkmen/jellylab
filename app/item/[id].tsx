@@ -21,7 +21,7 @@ import { matchesLanguage } from '@/player/lang';
 import { useAuth } from '@/hooks/useAuth';
 import { getDeviceId } from '@/store/auth';
 import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/prefs';
-import { plainText, oneLine } from '@/lib/text';
+import { metadataLanguage, plainText, oneLine } from '@/lib/text';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem } from '@/types';
 
@@ -46,8 +46,10 @@ export default function ItemScreen() {
   const castClient = useRemoteMediaClient();
   const castState = useCastState();
   const [castPickerOpen, setCastPickerOpen] = useState(false);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [tmdbArt, setTmdbArt] = useState<{ backdrop?: string; poster?: string }>({});
+  /** TMDB's description in the app's language, when it has one. */
+  const [localisedOverview, setLocalisedOverview] = useState<string | null>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const { width: screenWidth } = useWindowDimensions();
 
@@ -82,9 +84,14 @@ export default function ItemScreen() {
     let cancelled = false;
     (async () => {
       const details = await Jellyseerr
-        .getMediaDetails(item.Type === 'Movie' ? 'movie' : 'tv', tmdb)
+        .getMediaDetails(item.Type === 'Movie' ? 'movie' : 'tv', tmdb, metadataLanguage(i18n.language))
         .catch(() => null);
       if (cancelled || !details) return;
+      // The server holds one language for a whole library - the anime one here
+      // is set to Japanese - and it cannot vary per client. TMDB can, so the
+      // description follows the app instead. Empty means TMDB has no
+      // translation, and then the server's own text is the better answer.
+      setLocalisedOverview(details.overview?.trim() ? details.overview : null);
       setTmdbArt({
         backdrop: details.backdropPath ? `${TMDB_ORIGINAL}${details.backdropPath}` : undefined,
         // The poster is drawn at 140pt, so the original would be a 2000px file
@@ -93,7 +100,7 @@ export default function ItemScreen() {
       });
     })();
     return () => { cancelled = true; };
-  }, [item]);
+  }, [item, i18n.language]);
 
   async function play() {
     if (state.status !== 'signed-in' || !item) return;
@@ -359,11 +366,14 @@ export default function ItemScreen() {
           ) : null}
 
           {item.Overview ? (
-            <OverviewCard text={plainText(item.Overview)} clamp={item.Type === 'Series'} />
+            <OverviewCard
+              text={plainText(localisedOverview ?? item.Overview)}
+              clamp={item.Type === 'Series'}
+            />
           ) : null}
 
           {item.Type === 'Series' && state.status === 'signed-in' ? (
-            <SeriesEpisodes seriesId={item.Id} userId={state.auth.userId} />
+            <SeriesEpisodes seriesId={item.Id} userId={state.auth.userId} tmdbId={Jellyfin.tmdbId(item)} />
           ) : null}
         </View>
       </Animated.ScrollView>
@@ -1331,8 +1341,24 @@ function CastPickerModal({ visible, onClose }: { visible: boolean; onClose: () =
   );
 }
 
-function SeriesEpisodes({ seriesId, userId }: { seriesId: string; userId: string }) {
+function SeriesEpisodes({ seriesId, userId, tmdbId }: {
+  seriesId: string;
+  userId: string;
+  /** null when the series was never matched against TMDB. */
+  tmdbId: number | null;
+}) {
   const router = useRouter();
+  const { i18n } = useTranslation();
+  /**
+   * Titles and descriptions in the app's language, by episode number.
+   *
+   * The anime library is scraped in Japanese, so the server returns 両面宿儺 and
+   * a Japanese synopsis for every episode. TMDB will answer in whichever
+   * language is asked for, and Jellyseerr passes the parameter through - so
+   * this fills in over the top, and leaves the server's text wherever TMDB has
+   * no translation.
+   */
+  const [localised, setLocalised] = useState<Map<number, Jellyseerr.LocalisedEpisode>>(new Map());
   const [seasons, setSeasons] = useState<any[]>([]);
   const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null);
   const [episodes, setEpisodes] = useState<any[]>([]);
@@ -1356,6 +1382,17 @@ function SeriesEpisodes({ seriesId, userId }: { seriesId: string; userId: string
       .then(setEpisodes)
       .finally(() => setLoadingEps(false));
   }, [activeSeasonId, seriesId, userId]);
+
+  const activeSeasonNumber = seasons.find(s => s.Id === activeSeasonId)?.IndexNumber;
+
+  useEffect(() => {
+    if (!tmdbId || typeof activeSeasonNumber !== 'number') return;
+    let cancelled = false;
+    Jellyseerr.getSeasonEpisodes(tmdbId, activeSeasonNumber, metadataLanguage(i18n.language))
+      .then(map => { if (!cancelled) setLocalised(map); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [tmdbId, activeSeasonNumber, i18n.language]);
 
   if (loading) {
     return (
@@ -1432,13 +1469,22 @@ function SeriesEpisodes({ seriesId, userId }: { seriesId: string; userId: string
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.epTitle} numberOfLines={2}>
-                    {ep.IndexNumber != null ? `${ep.IndexNumber}. ` : ''}{ep.Name}
+                    {ep.IndexNumber != null ? `${ep.IndexNumber}. ` : ''}
+                    {localised.get(ep.IndexNumber ?? -1)?.name ?? ep.Name}
                   </Text>
                   <Text style={styles.epMeta}>
                     {runtimeMin ? `${runtimeMin}m` : ''}
                     {ep.PremiereDate ? ` · ${ep.PremiereDate.slice(0, 10)}` : ''}
                   </Text>
-                  {ep.Overview ? <Text style={styles.epOverview} numberOfLines={2}>{oneLine(ep.Overview)}</Text> : null}
+                  {/* TMDB's copy in the app's language when it has one, the
+                      server's otherwise - the anime library is scraped in
+                      Japanese, so most of these come from TMDB. */}
+                  {(() => {
+                    const text = localised.get(ep.IndexNumber ?? -1)?.overview ?? ep.Overview;
+                    return text ? (
+                      <Text style={styles.epOverview} numberOfLines={2}>{oneLine(text)}</Text>
+                    ) : null;
+                  })()}
                 </View>
               </TouchableOpacity>
             );

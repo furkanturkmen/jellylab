@@ -11,6 +11,17 @@
  * stood for, once, here.
  */
 
+/**
+ * The app's language as TMDB wants it.
+ *
+ * i18n carries 'en', 'nl', 'tr', 'de' - or 'en-US' when the device supplied a
+ * region - and TMDB takes either. Sent as-is rather than mapped, so adding a
+ * language to the app needs nothing here.
+ */
+export function metadataLanguage(i18nLanguage: string | undefined): string {
+  return (i18nLanguage || 'en').split('-')[0];
+}
+
 /** The entities that actually turn up in scraped descriptions. */
 const ENTITIES: Record<string, string> = {
   amp: '&',
