@@ -155,7 +155,9 @@
     },
     "seasons": "{{count}} seasons",
     "seasons_one": "1 season",
-    "perEpisode": "{{minutes}}m per ep"
+    "perEpisode": "{{minutes}}m per ep",
+    "showMore": "More",
+    "showLess": "Less"
   },
   "profile": {
     "title": "Profile",

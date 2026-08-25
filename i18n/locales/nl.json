@@ -155,7 +155,9 @@
     },
     "seasons": "{{count}} seizoenen",
     "seasons_one": "1 seizoen",
-    "perEpisode": "{{minutes}}m per afl"
+    "perEpisode": "{{minutes}}m per afl",
+    "showMore": "Meer",
+    "showLess": "Minder"
   },
   "profile": {
     "title": "Profiel",

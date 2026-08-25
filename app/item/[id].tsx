@@ -359,10 +359,7 @@ export default function ItemScreen() {
           ) : null}
 
           {item.Overview ? (
-            <View style={styles.overviewCard}>
-              <Text style={styles.sectionLabel}>Overview</Text>
-              <Text style={styles.overview}>{plainText(item.Overview)}</Text>
-            </View>
+            <OverviewCard text={plainText(item.Overview)} clamp={item.Type === 'Series'} />
           ) : null}
 
           {item.Type === 'Series' && state.status === 'signed-in' ? (
@@ -372,6 +369,42 @@ export default function ItemScreen() {
       </Animated.ScrollView>
       <CastPickerModal visible={castPickerOpen} onClose={() => setCastPickerOpen(false)} />
     </View>
+  );
+}
+
+/**
+ * The description, clamped on a series.
+ *
+ * On a film this is the last thing on the screen, so its length costs nothing.
+ * On a series the episode list is underneath it, and that list is what you came
+ * for - and these descriptions are long: AniDB writes four paragraphs plus a
+ * source note, which pushed episode one about two screens down.
+ *
+ * Three lines and a tap, the way Apple TV and Netflix handle the same problem:
+ * enough to decide whether to watch, without standing between you and the
+ * thing you meant to play.
+ */
+function OverviewCard({ text, clamp }: { text: string; clamp: boolean }) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  // Only worth a control when there is more to see. Three lines is roughly 180
+  // characters at this width; below that the tap would do nothing visible.
+  const clamped = clamp && !expanded && text.length > 180;
+
+  return (
+    <TouchableOpacity
+      style={styles.overviewCard}
+      activeOpacity={clamp ? 0.8 : 1}
+      onPress={clamp ? () => setExpanded(v => !v) : undefined}
+      accessibilityRole={clamp ? 'button' : undefined}
+      accessibilityLabel={clamp ? t(expanded ? 'detail.showLess' : 'detail.showMore') : undefined}
+    >
+      <Text style={styles.sectionLabel}>{t('detail.overview')}</Text>
+      <Text style={styles.overview} numberOfLines={clamped ? 3 : undefined}>{text}</Text>
+      {clamp && text.length > 180 ? (
+        <Text style={styles.overviewMore}>{t(expanded ? 'detail.showLess' : 'detail.showMore')}</Text>
+      ) : null}
+    </TouchableOpacity>
   );
 }
 
@@ -2112,6 +2145,7 @@ const styles = StyleSheet.create({
   },
   metaCol: { flex: 1, paddingBottom: spacing.sm },
   title: { ...type.h1, color: colors.text, marginBottom: spacing.md },
+  overviewMore: { ...type.small, color: colors.textMuted, marginTop: spacing.sm, fontWeight: '600' },
   pillRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   pill: {
     paddingHorizontal: spacing.md,

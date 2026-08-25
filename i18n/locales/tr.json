@@ -155,7 +155,9 @@
     },
     "seasons": "{{count}} sezon",
     "seasons_one": "1 sezon",
-    "perEpisode": "bölüm başına {{minutes}}dk"
+    "perEpisode": "bölüm başına {{minutes}}dk",
+    "showMore": "Daha fazla",
+    "showLess": "Daha az"
   },
   "profile": {
     "title": "Profil",
