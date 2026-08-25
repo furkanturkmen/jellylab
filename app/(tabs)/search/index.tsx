@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import type { NativeSyntheticEvent, TextInputFocusEventData } from 'react-native';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -42,6 +43,23 @@ export default function SearchScreen() {
   const [busy, setBusy] = useState(false);
   const [discover, setDiscover] = useState<Section[]>([]);
   const [discoverLoading, setDiscoverLoading] = useState(true);
+
+  /**
+   * These two are memoised, and it matters.
+   *
+   * The search bar is not a component that renders - it registers itself with
+   * the screen, and expo-router re-registers it whenever the props it was given
+   * change identity. Inline arrows are a new identity every render, so each
+   * keystroke tore the native search bar down and built a new one: the typed
+   * text vanished, the results never arrived, and the field could not be
+   * dismissed. `setQuery` is stable, so with these wrapped the registration
+   * happens once.
+   */
+  const handleChangeText = useCallback(
+    (e: NativeSyntheticEvent<TextInputFocusEventData>) => setQuery(e.nativeEvent.text),
+    [],
+  );
+  const clearQuery = useCallback(() => setQuery(''), []);
 
   useEffect(() => {
     loadDiscover();
@@ -135,10 +153,10 @@ export default function SearchScreen() {
       <Stack.SearchBar
         placeholder={t('search.placeholder')}
         // The native bar reports through an event, not a plain string.
-        onChangeText={e => setQuery(e.nativeEvent.text)}
+        onChangeText={handleChangeText}
         // Cancel wipes the field itself; the results have to be told.
-        onCancelButtonPress={() => setQuery('')}
-        onClose={() => setQuery('')}
+        onCancelButtonPress={clearQuery}
+        onClose={clearQuery}
         autoCapitalize="none"
         // It is the only control on the screen - it should not disappear the
         // moment you scroll the results it produced.
