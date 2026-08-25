@@ -8,6 +8,25 @@ Pre-1.0 on purpose: Downloads works per item but has no eviction and no way to
 take a whole season (`docs/downloads.md`), and 1.0 should mean the tabs all do
 what they say.
 
+## 0.15.0 — a season at a time, and a build that builds
+
+- **Download a whole season.** One button above the episode list: it counts
+  what is not already stored, adds up the size, and queues them one at a time -
+  so the first episode is watchable while the rest are still arriving, instead
+  of twenty transfers crawling together.
+- **Fullscreen works.** The button locked an orientation the player's own
+  screen did not allow, so iOS ignored it silently - no error, nothing in the
+  log. Needs no rebuild.
+- **`npx expo prebuild` works.** It was generating an Android project nobody
+  has ever built, where the VLC plugin's Gradle hook fails against React Native
+  0.86 - and taking `ios/` down with it, which made it look like an iOS
+  problem. This app is iOS and web now, as far as prebuild is concerned.
+- **Release dates were a day early** for anyone west of Greenwich: TMDB sends a
+  bare date, and reading it as midnight UTC moves it. Found by the new CI on
+  its first run, on a test that had passed here for weeks.
+- **CI**: types, lint and tests on every push, and a check that a tag matches
+  the version the app reports.
+
 ## 0.14.0 — watch it on a plane
 
 The version where Downloads stopped being a placeholder. Pick an episode, put
