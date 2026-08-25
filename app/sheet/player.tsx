@@ -35,13 +35,19 @@ export default function PlayerSheet() {
 
   if (!request) return null;
 
+  /*
+   * The scroller is the sheet itself - see the seasons sheet for why. Padding
+   * rides on the content so the card is measured from what it holds.
+   */
+  const pad = [styles.content, { paddingBottom: Math.max(insets.bottom, spacing.lg) }];
+
   return (
-    <View style={[styles.root, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
+    <ScrollView style={styles.root} contentContainerStyle={pad} showsVerticalScrollIndicator={false}>
       {request.kind === 'vlcSubtitles' ? <VlcSubtitles request={request} close={router.back} /> : null}
       {request.kind === 'vlcAudio' ? <VlcAudio request={request} close={router.back} /> : null}
       {request.kind === 'tracks' ? <NativeTracks request={request} close={router.back} /> : null}
       {request.kind === 'speed' ? <Speed request={request} close={router.back} /> : null}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -61,9 +67,7 @@ function VlcSubtitles({ request, close }: { request: Of<'vlcSubtitles'>; close: 
 
   return (
     <>
-      {/* One scroller, timing block included - see the seasons sheet. */}
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{t('player.subtitles')}</Text>
+      <Text style={styles.title}>{t('player.subtitles')}</Text>
         {request.externalSubs.length === 0 && request.internalTracks.length === 0 ? (
           <Text style={styles.empty}>{t('player.noSubtitles')}</Text>
         ) : (
@@ -107,7 +111,6 @@ function VlcSubtitles({ request, close }: { request: Of<'vlcSubtitles'>; close: 
             {request.delayEnabled ? t('player.delayHint') : t('player.delayHintOff')}
           </Text>
         </View>
-      </ScrollView>
     </>
   );
 }
@@ -116,8 +119,7 @@ function VlcAudio({ request, close }: { request: Of<'vlcAudio'>; close: () => vo
   const { t } = useTranslation();
   return (
     <>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{t('player.audio')}</Text>
+      <Text style={styles.title}>{t('player.audio')}</Text>
         {request.tracks.length === 0 ? (
           <Text style={styles.empty}>{t('player.noAudio')}</Text>
         ) : (
@@ -133,7 +135,6 @@ function VlcAudio({ request, close }: { request: Of<'vlcAudio'>; close: () => vo
         {request.declaredCount > request.tracks.length && request.tracks.length > 0 ? (
           <Text style={styles.hint}>{t('player.transcodedAudio', { tracks: request.declaredCount })}</Text>
         ) : null}
-      </ScrollView>
     </>
   );
 }
@@ -167,7 +168,7 @@ function NativeTracks({ request, close }: { request: Of<'tracks'>; close: () => 
   const hasAnySub = subtitles.length > 0 || request.externalSubs.length > 0;
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <>
       <Text style={styles.title}>{t('player.subtitles')}</Text>
       {!hasAnySub ? (
         <Text style={styles.empty}>{t('player.noSubtitles')}</Text>
@@ -212,14 +213,14 @@ function NativeTracks({ request, close }: { request: Of<'tracks'>; close: () => 
           />
         ))
       )}
-    </ScrollView>
+    </>
   );
 }
 
 function Speed({ request, close }: { request: Of<'speed'>; close: () => void }) {
   const { t } = useTranslation();
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <>
       <Text style={styles.title}>{t('player.speed')}</Text>
       {request.rates.map(rate => (
         <TrackRow
@@ -229,7 +230,7 @@ function Speed({ request, close }: { request: Of<'speed'>; close: () => void }) 
           onPress={() => { request.onPick(rate); close(); }}
         />
       ))}
-    </ScrollView>
+    </>
   );
 }
 
@@ -237,7 +238,8 @@ const styles = StyleSheet.create({
   // No corners and no handle: the sheet around this draws both.
   // No flex, for the same reason as the seasons sheet: the card is measured
   // from this view, and flex would make it report the whole screen.
-  root: { backgroundColor: colors.bgElevated, paddingHorizontal: spacing.lg, paddingTop: spacing.xl },
+  root: { backgroundColor: colors.bgElevated },
+  content: { paddingHorizontal: spacing.lg, paddingTop: spacing.xl },
   title: { ...type.h1, color: colors.text, marginBottom: spacing.md },
   secondTitle: { marginTop: spacing.lg },
   empty: { ...type.small, color: colors.textDim, paddingVertical: spacing.md, textAlign: 'center' },

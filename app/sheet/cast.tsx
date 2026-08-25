@@ -67,12 +67,10 @@ export default function CastSheet() {
     } catch {}
   }
 
+  // The scroller is the sheet - see the seasons sheet for why.
   return (
-    <View style={styles.root}>
-      {/* One child, like the other sheets - a header, a button and a list as
-          siblings is more than a form sheet will lay out. */}
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
+    <ScrollView style={styles.root} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.header}>
         <Text style={styles.title}>{t('player.castTo')}</Text>
         {scanning ? <ActivityIndicator color={colors.text} /> : null}
       </View>
@@ -108,14 +106,14 @@ export default function CastSheet() {
             {connecting === d.deviceId ? <ActivityIndicator color={colors.text} /> : null}
           </TouchableOpacity>
         ))}
-        </View>
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { backgroundColor: colors.bgElevated, padding: spacing.lg, paddingBottom: spacing.xxl },
+  root: { backgroundColor: colors.bgElevated },
+  content: { padding: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.xxl },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { ...type.h1, color: colors.text },
   list: { marginTop: spacing.md },

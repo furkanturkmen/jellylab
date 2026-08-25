@@ -62,16 +62,20 @@ export default function SeasonSheet() {
   }
 
   return (
-    // The card ends at the home indicator, not a guessed distance from it.
-    <View style={[styles.root, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
-      {/*
-        * Everything lives in this one scroller, the Request button included.
-        *
-        * A form sheet lays out at most two subviews, and drawing a title, a
-        * list and a footer as siblings had UIKit placing them over each other -
-        * the title landing on top of the first row, inset differently from it.
-        */}
-      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+    /*
+     * The scroller is the sheet, rather than something inside it.
+     *
+     * A form sheet lays out at most two subviews and measures them to decide
+     * the card's height. A title, a list and a footer as siblings had UIKit
+     * drawing them over each other; wrapping them in a plain View instead left
+     * the ScrollView with no height to fill, so the list came out empty. One
+     * ScrollView, holding everything, with the padding on its content.
+     */
+    <ScrollView
+      style={styles.root}
+      contentContainerStyle={[styles.list, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}
+      showsVerticalScrollIndicator={false}
+    >
         <Text style={styles.title}>{t('request.seasons')}</Text>
         {request.seasons.map(s => {
           const selectable = Jellyseerr.isSeasonRequestable(s);
@@ -112,20 +116,17 @@ export default function SeasonSheet() {
             {picked.size > 0 ? `${t('action.request')} (${picked.size})` : t('action.request')}
           </Text>
         </TouchableOpacity>
-      </ScrollView>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   // No rounded corners or handle here: both belong to the sheet iOS draws
   // around this content.
-  // No flex: the sheet is sized to this view, so it has to be as tall as
-  // what is in it rather than as tall as it is allowed to be.
+  root: { backgroundColor: colors.bgElevated },
   // paddingTop clears the grabber iOS draws over the top of the card.
-  root: { backgroundColor: colors.bgElevated, paddingHorizontal: spacing.lg, paddingTop: spacing.xl },
+  list: { paddingHorizontal: spacing.lg, paddingTop: spacing.xl },
   title: { ...type.h1, color: colors.text, marginBottom: spacing.md },
-  list: { paddingBottom: 0 },
   seasonRow: {
     flexDirection: 'row',
     alignItems: 'center',
