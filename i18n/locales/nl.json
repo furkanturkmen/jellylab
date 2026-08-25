@@ -255,6 +255,17 @@
       "source": "Broncode",
       "changes": "Wat is er veranderd",
       "tmdbCredit": "Beeldmateriaal en metadata van TMDB. Deze app gebruikt de TMDB API maar is niet goedgekeurd of gecertificeerd door TMDB."
+    },
+    "labels": {
+      "preferredAudio": "Voorkeurstaal audio",
+      "engine": "Speler",
+      "maxQuality": "Maximale streamkwaliteit",
+      "preferredSubs": "Voorkeurstaal",
+      "textSize": "Tekstgrootte",
+      "autoplay": "Volgende aflevering automatisch afspelen",
+      "engineAuto": "Automatisch (aanbevolen)",
+      "engineNative": "AVPlayer (native)",
+      "engineVlc": "VLC"
     }
   },
   "languages": {
@@ -316,5 +327,31 @@
     "available": "Beschikbaar",
     "requested": "Aangevraagd",
     "play": "Afspelen"
+  },
+  "action": {
+    "playOnJellyfin": "Afspelen op Jellyfin",
+    "availableOnJellyfin": "Beschikbaar op Jellyfin",
+    "processing": "Bezig…",
+    "playAvailable": "Speel af wat beschikbaar is",
+    "partiallyAvailable": "Deels beschikbaar",
+    "requested": "Aangevraagd",
+    "requesting": "Aanvragen…",
+    "request": "Aanvragen"
+  },
+  "mediaStatus": {
+    "1": "Onbekend",
+    "2": "In afwachting",
+    "3": "Bezig",
+    "4": "Deels beschikbaar",
+    "5": "Beschikbaar"
+  },
+  "tmdbStatus": {
+    "Returning Series": "Loopt nog",
+    "Ended": "Afgelopen",
+    "Canceled": "Geannuleerd",
+    "In Production": "In productie",
+    "Planned": "Gepland",
+    "Released": "Uitgebracht",
+    "Post Production": "Postproductie"
   }
 }

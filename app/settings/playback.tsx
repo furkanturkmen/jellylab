@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { Stack } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
@@ -23,6 +24,7 @@ const AUDIO: { code: string; label: string }[] = [
 ];
 
 export default function PlaybackSettings() {
+  const { t } = useTranslation();
   const [prefs, setPrefs] = useState<Prefs | null>(null);
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function PlaybackSettings() {
       <Stack.Screen options={{ title: 'Playback', headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text } }} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>Preferred audio language</Text>
+          <Text style={styles.cardLabel}>{t('settings.labels.preferredAudio')}</Text>
           {AUDIO.map(a => (
             <OptionRow
               key={a.code}
@@ -57,26 +59,26 @@ export default function PlaybackSettings() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>Player engine</Text>
+          <Text style={styles.cardLabel}>{t('settings.labels.engine')}</Text>
           <OptionRow
-            label="Auto (recommended)"
+            label={t('settings.labels.engineAuto')}
             selected={prefs.preferredEngine === 'auto'}
             onPress={() => update('preferredEngine', 'auto')}
           />
           <OptionRow
-            label="AVPlayer (native)"
+            label={t('settings.labels.engineNative')}
             selected={prefs.preferredEngine === 'native'}
             onPress={() => update('preferredEngine', 'native')}
           />
           <OptionRow
-            label="VLC"
+            label={t('settings.labels.engineVlc')}
             selected={prefs.preferredEngine === 'vlc'}
             onPress={() => update('preferredEngine', 'vlc')}
           />
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>Maximum streaming quality</Text>
+          <Text style={styles.cardLabel}>{t('settings.labels.maxQuality')}</Text>
           {BITRATES.map(b => (
             <OptionRow
               key={b.mbps}
@@ -89,7 +91,7 @@ export default function PlaybackSettings() {
 
         <View style={styles.card}>
           <ToggleRow
-            label="Autoplay next episode"
+            label={t('settings.labels.autoplay')}
             description="Automatically play the next episode of a TV show when the current one ends."
             value={prefs.autoplayNext}
             onValueChange={v => update('autoplayNext', v)}

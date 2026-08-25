@@ -255,6 +255,17 @@
       "source": "Kaynak kodu",
       "changes": "Neler değişti",
       "tmdbCredit": "Görseller ve meta veriler TMDB’den. Bu uygulama TMDB API’sini kullanır ancak TMDB tarafından onaylanmamıştır."
+    },
+    "labels": {
+      "preferredAudio": "Tercih edilen ses dili",
+      "engine": "Oynatıcı",
+      "maxQuality": "En yüksek yayın kalitesi",
+      "preferredSubs": "Tercih edilen dil",
+      "textSize": "Yazı boyutu",
+      "autoplay": "Sonraki bölümü otomatik oynat",
+      "engineAuto": "Otomatik (önerilen)",
+      "engineNative": "AVPlayer (yerel)",
+      "engineVlc": "VLC"
     }
   },
   "languages": {
@@ -316,5 +327,31 @@
     "available": "Mevcut",
     "requested": "İstendi",
     "play": "Oynat"
+  },
+  "action": {
+    "playOnJellyfin": "Jellyfin'de oynat",
+    "availableOnJellyfin": "Jellyfin'de mevcut",
+    "processing": "İşleniyor…",
+    "playAvailable": "Mevcut olanı oynat",
+    "partiallyAvailable": "Kısmen mevcut",
+    "requested": "İstendi",
+    "requesting": "İsteniyor…",
+    "request": "İste"
+  },
+  "mediaStatus": {
+    "1": "Bilinmiyor",
+    "2": "Beklemede",
+    "3": "İşleniyor",
+    "4": "Kısmen mevcut",
+    "5": "Mevcut"
+  },
+  "tmdbStatus": {
+    "Returning Series": "Devam ediyor",
+    "Ended": "Bitti",
+    "Canceled": "İptal edildi",
+    "In Production": "Yapım aşamasında",
+    "Planned": "Planlandı",
+    "Released": "Yayınlandı",
+    "Post Production": "Post prodüksiyon"
   }
 }

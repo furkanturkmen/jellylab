@@ -255,6 +255,17 @@
       "source": "Quellcode",
       "changes": "Was sich geändert hat",
       "tmdbCredit": "Bilder und Metadaten von TMDB. Diese App nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert."
+    },
+    "labels": {
+      "preferredAudio": "Bevorzugte Audiosprache",
+      "engine": "Player",
+      "maxQuality": "Maximale Streamqualität",
+      "preferredSubs": "Bevorzugte Sprache",
+      "textSize": "Textgröße",
+      "autoplay": "Nächste Folge automatisch abspielen",
+      "engineAuto": "Automatisch (empfohlen)",
+      "engineNative": "AVPlayer (nativ)",
+      "engineVlc": "VLC"
     }
   },
   "languages": {
@@ -316,5 +327,31 @@
     "available": "Verfügbar",
     "requested": "Angefragt",
     "play": "Abspielen"
+  },
+  "action": {
+    "playOnJellyfin": "Auf Jellyfin abspielen",
+    "availableOnJellyfin": "Auf Jellyfin verfügbar",
+    "processing": "Wird verarbeitet…",
+    "playAvailable": "Verfügbares abspielen",
+    "partiallyAvailable": "Teilweise verfügbar",
+    "requested": "Angefragt",
+    "requesting": "Wird angefragt…",
+    "request": "Anfragen"
+  },
+  "mediaStatus": {
+    "1": "Unbekannt",
+    "2": "Ausstehend",
+    "3": "Wird verarbeitet",
+    "4": "Teilweise verfügbar",
+    "5": "Verfügbar"
+  },
+  "tmdbStatus": {
+    "Returning Series": "Laufende Serie",
+    "Ended": "Beendet",
+    "Canceled": "Abgesetzt",
+    "In Production": "In Produktion",
+    "Planned": "Geplant",
+    "Released": "Veröffentlicht",
+    "Post Production": "Postproduktion"
   }
 }

@@ -244,15 +244,35 @@ export default function ItemScreen() {
   // is centre-anchored, so the translate cancels the half that would push the
   // top edge off screen and all the growth goes downward. Clamped on the right
   // so ordinary upward scrolling keeps the existing behaviour.
+  // Two translations, added: the rubber-band growth on a downward pull, and a
+  // slower drift once the page starts moving up.
+  //
+  // Without the drift the whole hero - artwork, shade and gradients together -
+  // slid up at the speed of the text, so the dark overlay travelled across the
+  // screen as a moving band rather than staying where the artwork was. Same
+  // treatment as the library hero: a third of the scroll speed, and gone by the
+  // time the content has covered where it was.
+  const heroRubberBand = scrollY.interpolate({
+    inputRange: [-HERO_HEIGHT, 0],
+    outputRange: [-HERO_HEIGHT / 2, 0],
+    extrapolateLeft: 'extend' as const,
+    extrapolateRight: 'clamp' as const,
+  });
+  const heroDrift = scrollY.interpolate({
+    inputRange: [0, HERO_HEIGHT],
+    outputRange: [0, HERO_HEIGHT / 3],
+    extrapolate: 'clamp' as const,
+  });
+
   const heroStretch = {
+    opacity: scrollY.interpolate({
+      inputRange: [0, HERO_HEIGHT * 0.55, HERO_HEIGHT * 0.9],
+      outputRange: [1, 1, 0],
+      extrapolate: 'clamp' as const,
+    }),
     transform: [
       {
-        translateY: scrollY.interpolate({
-          inputRange: [-HERO_HEIGHT, 0],
-          outputRange: [-HERO_HEIGHT / 2, 0],
-          extrapolateLeft: 'extend' as const,
-          extrapolateRight: 'clamp' as const,
-        }),
+        translateY: Animated.add(heroRubberBand, heroDrift),
       },
       {
         scale: scrollY.interpolate({
@@ -301,15 +321,18 @@ export default function ItemScreen() {
             )}
           </Animated.View>
           {/* Flat shade so a bright backdrop does not wash out the title,
-              matching the library hero. */}
-          <View style={styles.heroShade} />
+              matching the library hero. Fades with the artwork underneath it -
+              left behind, it became a grey panel over the text. */}
+          <Animated.View style={[styles.heroShade, { opacity: heroStretch.opacity }]} />
           {/* Near-black under the status bar so the Dynamic Island cutout does
               not sit against a bright frame. */}
-          <LinearGradient
-            colors={['rgba(0,0,0,0.92)', 'rgba(0,0,0,0.45)', 'transparent']}
-            locations={[0, 0.55, 1]}
-            style={[StyleSheet.absoluteFill, { top: HERO_BLEED, height: 130, bottom: undefined }]}
-          />
+          <Animated.View style={[StyleSheet.absoluteFill, { opacity: heroStretch.opacity }]} pointerEvents="none">
+            <LinearGradient
+              colors={['rgba(0,0,0,0.92)', 'rgba(0,0,0,0.45)', 'transparent']}
+              locations={[0, 0.55, 1]}
+              style={[StyleSheet.absoluteFill, { top: HERO_BLEED, height: 130, bottom: undefined }]}
+            />
+          </Animated.View>
           <LinearGradient
             colors={[colors.scrimTop, colors.bg]}
             locations={[0, 1]}
@@ -1054,6 +1077,7 @@ function VlcSubsModal({
   onOff: () => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const isOff = activeExternalIndex == null && activeInternalId === -1;
   return (
     <Modal
@@ -1066,14 +1090,14 @@ function VlcSubsModal({
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
         <Pressable style={[styles.modalSheet, styles.modalSheetTall]} onPress={() => {}}>
           <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>Subtitles</Text>
+          <Text style={styles.modalTitle}>{t('player.subtitles')}</Text>
           <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
             {externalSubs.length === 0 && internalTracks.length === 0 ? (
-              <Text style={styles.modalEmpty}>No subtitle tracks available</Text>
+              <Text style={styles.modalEmpty}>{t('player.noSubtitles')}</Text>
             ) : (
               <>
-                <TrackRow label="Off" selected={isOff} onPress={onOff} />
-                {internalTracks.length > 0 ? <SubGroupLabel>Embedded</SubGroupLabel> : null}
+                <TrackRow label={t('player.off')} selected={isOff} onPress={onOff} />
+                {internalTracks.length > 0 ? <SubGroupLabel>{t('player.embedded')}</SubGroupLabel> : null}
                 {internalTracks.map(t => (
                   <TrackRow
                     key={`int-${t.id}`}
@@ -1082,7 +1106,7 @@ function VlcSubsModal({
                     onPress={() => onPickInternal(t.id)}
                   />
                 ))}
-                {externalSubs.length > 0 ? <SubGroupLabel>External</SubGroupLabel> : null}
+                {externalSubs.length > 0 ? <SubGroupLabel>{t('player.external')}</SubGroupLabel> : null}
                 {externalSubs.map(s => (
                   <TrackRow
                     key={`ext-${s.index}`}
@@ -1097,7 +1121,7 @@ function VlcSubsModal({
 
           <View style={styles.delayBlock}>
             <View style={styles.delayHeader}>
-              <Text style={styles.delayLabel}>Timing</Text>
+              <Text style={styles.delayLabel}>{t('player.timing')}</Text>
               <Text style={styles.delayValue}>
                 {subDelayMs === 0 ? 'In sync' : `${subDelayMs > 0 ? '+' : ''}${(subDelayMs / 1000).toFixed(1)}s`}
               </Text>
@@ -1105,7 +1129,7 @@ function VlcSubsModal({
             <View style={styles.delayRow}>
               <DelayButton label="-0.5s" disabled={!delayEnabled} onPress={() => onDelayChange(subDelayMs - 500)} />
               <DelayButton label="-0.1s" disabled={!delayEnabled} onPress={() => onDelayChange(subDelayMs - 100)} />
-              <DelayButton label="Reset" disabled={!delayEnabled || subDelayMs === 0} onPress={() => onDelayChange(0)} />
+              <DelayButton label={t('player.reset')} disabled={!delayEnabled || subDelayMs === 0} onPress={() => onDelayChange(0)} />
               <DelayButton label="+0.1s" disabled={!delayEnabled} onPress={() => onDelayChange(subDelayMs + 100)} />
               <DelayButton label="+0.5s" disabled={!delayEnabled} onPress={() => onDelayChange(subDelayMs + 500)} />
             </View>
@@ -1117,7 +1141,7 @@ function VlcSubsModal({
           </View>
 
           <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.modalCloseText}>Close</Text>
+            <Text style={styles.modalCloseText}>{t('player.close')}</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>
@@ -1156,6 +1180,7 @@ function AudioTracksModal({
   onPick: (id: number) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Modal
       visible={visible}
@@ -1167,10 +1192,10 @@ function AudioTracksModal({
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
         <Pressable style={[styles.modalSheet, styles.modalSheetTall]} onPress={() => {}}>
           <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>Audio</Text>
+          <Text style={styles.modalTitle}>{t('player.audio')}</Text>
           <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
             {tracks.length === 0 ? (
-              <Text style={styles.modalEmpty}>No audio tracks available</Text>
+              <Text style={styles.modalEmpty}>{t('player.noAudio')}</Text>
             ) : (
               tracks.map(t => (
                 <TrackRow
@@ -1189,7 +1214,7 @@ function AudioTracksModal({
             </Text>
           ) : null}
           <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.modalCloseText}>Close</Text>
+            <Text style={styles.modalCloseText}>{t('player.close')}</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>
@@ -1210,6 +1235,7 @@ function ExternalSubsModal({
   onPick: (index: number | null) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Modal
       visible={visible}
@@ -1221,12 +1247,12 @@ function ExternalSubsModal({
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
         <Pressable style={styles.modalSheet} onPress={() => {}}>
           <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>Subtitles</Text>
+          <Text style={styles.modalTitle}>{t('player.subtitles')}</Text>
           {externalSubs.length === 0 ? (
-            <Text style={styles.modalEmpty}>No external subtitle tracks available</Text>
+            <Text style={styles.modalEmpty}>{t('player.noExternalSubtitles')}</Text>
           ) : (
             <>
-              <TrackRow label="Off" selected={activeIndex == null} onPress={() => onPick(null)} />
+              <TrackRow label={t('player.off')} selected={activeIndex == null} onPress={() => onPick(null)} />
               {externalSubs.map(s => (
                 <TrackRow
                   key={`ext-vlc-${s.index}`}
@@ -1238,7 +1264,7 @@ function ExternalSubsModal({
             </>
           )}
           <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.modalCloseText}>Close</Text>
+            <Text style={styles.modalCloseText}>{t('player.close')}</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>
@@ -1247,6 +1273,7 @@ function ExternalSubsModal({
 }
 
 function CastPickerModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
   const castState = useCastState();
   const [devices, setDevices] = useState<any[]>([]);
   const [scanning, setScanning] = useState(false);
@@ -1311,20 +1338,20 @@ function CastPickerModal({ visible, onClose }: { visible: boolean; onClose: () =
         <Pressable style={styles.modalSheet} onPress={() => {}}>
           <View style={styles.modalHandle} />
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Cast to</Text>
+            <Text style={styles.modalTitle}>{t('player.castTo')}</Text>
             {scanning ? <ActivityIndicator color={colors.text} /> : null}
           </View>
           <Text style={styles.modalSub}>State: {castState ?? 'unknown'}</Text>
 
           {castState === 'connected' ? (
             <TouchableOpacity style={styles.disconnectBtn} onPress={disconnect} activeOpacity={0.8}>
-              <Text style={styles.disconnectText}>Disconnect current session</Text>
+              <Text style={styles.disconnectText}>{t('player.disconnect')}</Text>
             </TouchableOpacity>
           ) : null}
 
           <View style={{ marginTop: spacing.md }}>
             {devices.length === 0 && !scanning ? (
-              <Text style={styles.modalEmpty}>No devices found on this network.</Text>
+              <Text style={styles.modalEmpty}>{t('player.noDevices')}</Text>
             ) : null}
             {devices.map((d) => (
               <TouchableOpacity
@@ -1349,7 +1376,7 @@ function CastPickerModal({ visible, onClose }: { visible: boolean; onClose: () =
           </View>
 
           <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.modalCloseText}>Close</Text>
+            <Text style={styles.modalCloseText}>{t('player.close')}</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>
@@ -1959,6 +1986,7 @@ function TrackPickerModal({
   onPickExternal: (index: number | null) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [subtitles, setSubtitles] = useState<any[]>([]);
   const [audios, setAudios] = useState<any[]>([]);
   const [activeSub, setActiveSub] = useState<any>(null);
@@ -2005,13 +2033,13 @@ function TrackPickerModal({
         <Pressable style={styles.modalSheet} onPress={() => {}}>
           <View style={styles.modalHandle} />
 
-          <Text style={styles.modalTitle}>Subtitles</Text>
+          <Text style={styles.modalTitle}>{t('player.subtitles')}</Text>
           {!hasAnySub ? (
-            <Text style={styles.modalEmpty}>No subtitle tracks available</Text>
+            <Text style={styles.modalEmpty}>{t('player.noSubtitles')}</Text>
           ) : (
             <>
               <TrackRow
-                label="Off"
+                label={t('player.off')}
                 selected={!activeSub && activeExternalSubIndex == null}
                 onPress={() => {
                   pickEmbedded(null);
@@ -2040,9 +2068,9 @@ function TrackPickerModal({
             </>
           )}
 
-          <Text style={[styles.modalTitle, { marginTop: spacing.lg }]}>Audio</Text>
+          <Text style={[styles.modalTitle, { marginTop: spacing.lg }]}>{t('player.audio')}</Text>
           {audios.length === 0 ? (
-            <Text style={styles.modalEmpty}>No alternate audio tracks</Text>
+            <Text style={styles.modalEmpty}>{t('player.noAlternateAudio')}</Text>
           ) : (
             audios.map((t, i) => (
               <TrackRow
@@ -2055,7 +2083,7 @@ function TrackPickerModal({
           )}
 
           <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.modalCloseText}>Close</Text>
+            <Text style={styles.modalCloseText}>{t('player.close')}</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>
@@ -2130,6 +2158,7 @@ function SpeedPickerModal({
 }: {
   visible: boolean; current: number; onClose: () => void; onPick: (r: number) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Modal
       visible={visible}
@@ -2141,7 +2170,7 @@ function SpeedPickerModal({
       <Pressable style={styles.modalBackdrop} onPress={onClose}>
         <Pressable style={styles.modalSheet} onPress={() => {}}>
           <View style={styles.modalHandle} />
-          <Text style={styles.modalTitle}>Playback speed</Text>
+          <Text style={styles.modalTitle}>{t('player.speed')}</Text>
           {SPEEDS.map(rate => (
             <TrackRow
               key={rate}
@@ -2151,7 +2180,7 @@ function SpeedPickerModal({
             />
           ))}
           <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.modalCloseText}>Close</Text>
+            <Text style={styles.modalCloseText}>{t('player.close')}</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>

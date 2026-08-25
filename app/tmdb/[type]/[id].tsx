@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, AppState, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -21,6 +21,33 @@ const HERO_SHADE = 0.3;
 export default function TmdbDetailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  /**
+   * The hero drifts and fades as the page moves, the same way the library and
+   * item heroes do.
+   *
+   * Scrolling it away at the speed of the text dragged the dark shade across
+   * the screen with it - a moving band rather than something that belonged to
+   * the artwork. A third of the speed, and gone by the time the content has
+   * covered where it was.
+   */
+  const heroFade = {
+    opacity: scrollY.interpolate({
+      inputRange: [0, HERO_HEIGHT * 0.55, HERO_HEIGHT * 0.9],
+      outputRange: [1, 1, 0],
+      extrapolate: 'clamp' as const,
+    }),
+    transform: [
+      {
+        translateY: scrollY.interpolate({
+          inputRange: [0, HERO_HEIGHT],
+          outputRange: [0, HERO_HEIGHT / 3],
+          extrapolate: 'clamp' as const,
+        }),
+      },
+    ],
+  };
   const { type, id } = useLocalSearchParams<{ type: MediaType; id: string }>();
   const tmdbId = Number(id);
   const [details, setDetails] = useState<Jellyseerr.TmdbFullDetails | null>(null);
@@ -226,8 +253,13 @@ export default function TmdbDetailScreen() {
     <View style={styles.root}>
       <Stack.Screen options={{ title: '', headerTransparent: true,
           headerStyle: { backgroundColor: 'transparent' }, headerTintColor: colors.text }} />
-      <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
+      <Animated.ScrollView
+        contentContainerStyle={{ paddingBottom: spacing.xxl }}
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        scrollEventThrottle={16}
+      >
+        <Animated.View style={[styles.hero, heroFade]}>
           {backdrop ? (
             <Image source={{ uri: backdrop }} style={StyleSheet.absoluteFill} contentFit="cover" transition={300} />
           ) : (
@@ -246,7 +278,7 @@ export default function TmdbDetailScreen() {
             locations={[0.35, 1]}
             style={StyleSheet.absoluteFill}
           />
-        </View>
+        </Animated.View>
 
         <View style={styles.body}>
           <View style={styles.headerRow}>
@@ -341,8 +373,11 @@ export default function TmdbDetailScreen() {
 
           <View style={styles.card}>
             <Text style={styles.sectionLabel}>{t('detail.details')}</Text>
-            {details.status ? <MetaRow k={t('request.status')} v={details.status} /> : null}
-            <MetaRow k={t('request.onJellyfin')} v={mediaStatus ? (MEDIA_STATUS[mediaStatus] ?? '—') : t('request.notRequested')} />
+            {details.status ? <MetaRow k={t('request.status')} v={t(`tmdbStatus.${details.status}`, { defaultValue: details.status })} /> : null}
+            <MetaRow
+              k={t('request.onJellyfin')}
+              v={mediaStatus ? t(`mediaStatus.${mediaStatus}`, { defaultValue: MEDIA_STATUS[mediaStatus] ?? '—' }) : t('request.notRequested')}
+            />
             {details.releaseDate ? <MetaRow k={t('request.released')} v={formatDate(details.releaseDate)} /> : null}
             {details.originalLanguage ? <MetaRow k={t('request.language')} v={details.originalLanguage.toUpperCase()} /> : null}
             {details.numberOfSeasons != null ? <MetaRow k={t('request.seasonCount')} v={String(details.numberOfSeasons)} /> : null}
@@ -376,7 +411,7 @@ export default function TmdbDetailScreen() {
             </View>
           ) : null}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       <SeasonPickerModal
         visible={seasonPickerOpen}
@@ -406,12 +441,13 @@ function SeasonPickerModal({
   onClose: () => void;
   onConfirm: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={styles.sheet}>
         <View style={styles.sheetHeader}>
-          <TouchableOpacity onPress={onClose}><Text style={styles.sheetCancel}>Cancel</Text></TouchableOpacity>
-          <Text style={styles.sheetTitle}>Seasons</Text>
+          <TouchableOpacity onPress={onClose}><Text style={styles.sheetCancel}>{t('request.cancel')}</Text></TouchableOpacity>
+          <Text style={styles.sheetTitle}>{t('request.seasons')}</Text>
           <TouchableOpacity onPress={onConfirm} disabled={picked.size === 0}>
             <Text style={[styles.sheetDone, picked.size === 0 && styles.sheetDoneOff]}>
               Request{picked.size > 0 ? ` (${picked.size})` : ''}
@@ -465,6 +501,7 @@ function PrimaryAction({
   onPlay: () => void;
   onRequest: () => void;
 }) {
+  const { t } = useTranslation();
   // Every branch renders the same button, so only the label, the glyph and
   // whether it does anything actually differ. Deciding those up front keeps
   // six near-identical blocks of JSX from drifting apart.
@@ -482,17 +519,17 @@ function PrimaryAction({
     <PrimaryButton label={label} onPress={() => {}} disabled style={styles.primaryAction} />
   );
 
-  if (available) return hasJellyfinId ? play('Play on Jellyfin') : state('Available on Jellyfin');
-  if (processing) return state('Processing…');
+  if (available) return hasJellyfinId ? play(t('action.playOnJellyfin')) : state(t('action.availableOnJellyfin'));
+  if (processing) return state(t('action.processing'));
   // Partially available means some seasons are there and some are not, which
   // is exactly when you want to ask for the rest. It used to render a disabled
   // "Partially Available" label, so a series like this could never be topped
   // up. Play what exists; the Request seasons button below covers the gap.
-  if (partiallyAvailable) return hasJellyfinId ? play("Play what's available") : state('Partially Available');
-  if (requested) return state('Requested');
+  if (partiallyAvailable) return hasJellyfinId ? play(t('action.playAvailable')) : state(t('action.partiallyAvailable'));
+  if (requested) return state(t('action.requested'));
   return (
     <PrimaryButton
-      label={acting ? 'Requesting…' : 'Request'}
+      label={acting ? t('action.requesting') : t('action.request')}
       icon={acting ? undefined : { ios: 'plus', android: 'add', web: 'add' }}
       onPress={onRequest}
       disabled={acting}

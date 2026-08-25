@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Stack } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import { DEFAULT_PREFS, loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
@@ -23,6 +24,7 @@ const SIZES: { value: Prefs['subtitleSize']; label: string }[] = [
 ];
 
 export default function SubtitlesSettings() {
+  const { t } = useTranslation();
   const [prefs, setPrefs] = useState<Prefs | null>(null);
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function SubtitlesSettings() {
       <Stack.Screen options={{ title: 'Subtitles', headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text } }} />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>Preferred language</Text>
+          <Text style={styles.cardLabel}>{t('settings.labels.preferredSubs')}</Text>
           {LANGS.map(l => (
             <OptionRow
               key={l.code}
@@ -57,7 +59,7 @@ export default function SubtitlesSettings() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardLabel}>Text size</Text>
+          <Text style={styles.cardLabel}>{t('settings.labels.textSize')}</Text>
           {SIZES.map(s => (
             <OptionRow
               key={s.value}
