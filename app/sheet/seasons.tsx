@@ -64,9 +64,8 @@ export default function SeasonSheet() {
   return (
     // The card ends at the home indicator, not a guessed distance from it.
     <View style={[styles.root, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
-      <Text style={styles.title}>{t('request.seasons')}</Text>
-
       <ScrollView style={styles.scroll} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>{t('request.seasons')}</Text>
         {request.seasons.map(s => {
           const selectable = Jellyseerr.isSeasonRequestable(s);
           const on = picked.has(s.seasonNumber);

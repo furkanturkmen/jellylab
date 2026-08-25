@@ -61,8 +61,8 @@ function VlcSubtitles({ request, close }: { request: Of<'vlcSubtitles'>; close: 
 
   return (
     <>
-      <Text style={styles.title}>{t('player.subtitles')}</Text>
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>{t('player.subtitles')}</Text>
         {request.externalSubs.length === 0 && request.internalTracks.length === 0 ? (
           <Text style={styles.empty}>{t('player.noSubtitles')}</Text>
         ) : (
@@ -116,8 +116,8 @@ function VlcAudio({ request, close }: { request: Of<'vlcAudio'>; close: () => vo
   const { t } = useTranslation();
   return (
     <>
-      <Text style={styles.title}>{t('player.audio')}</Text>
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>{t('player.audio')}</Text>
         {request.tracks.length === 0 ? (
           <Text style={styles.empty}>{t('player.noAudio')}</Text>
         ) : (
@@ -130,10 +130,10 @@ function VlcAudio({ request, close }: { request: Of<'vlcAudio'>; close: () => vo
             />
           ))
         )}
+        {request.declaredCount > request.tracks.length && request.tracks.length > 0 ? (
+          <Text style={styles.hint}>{t('player.transcodedAudio', { tracks: request.declaredCount })}</Text>
+        ) : null}
       </ScrollView>
-      {request.declaredCount > request.tracks.length && request.tracks.length > 0 ? (
-        <Text style={styles.hint}>{t('player.transcodedAudio', { tracks: request.declaredCount })}</Text>
-      ) : null}
     </>
   );
 }
