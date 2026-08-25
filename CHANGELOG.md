@@ -8,6 +8,15 @@ Pre-1.0 on purpose: Downloads works per item but has no eviction and no way to
 take a whole season (`docs/downloads.md`), and 1.0 should mean the tabs all do
 what they say.
 
+## 0.15.1 — picture in picture, found
+
+- Leaving the app during an AVPlayer film now keeps it playing in a corner,
+  which is what people mean by picture in picture. The button was only ever the
+  explicit version of it.
+- VLC has none, so the VLC overlay had no such button - which reads as broken
+  rather than absent on a library that is mostly mkv. There is a dimmed one
+  now, and it says what it needs: AVPlayer, which Settings can force.
+
 ## 0.15.0 — a season at a time, and a build that builds
 
 - **Download a whole season.** One button above the episode list: it counts
