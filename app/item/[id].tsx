@@ -23,6 +23,7 @@ import { getDeviceId } from '@/store/auth';
 import { cleanSubLabel } from '@/components/TrackRow';
 import { openPlayerSheet } from '@/store/playerSheet';
 import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/prefs';
+import { logRequestFailure } from '@/lib/errorLog';
 import { formatDate } from '@/lib/date';
 import { jellyfinKind, kindKey } from '@/lib/kind';
 import { metadataLanguage, plainText, oneLine } from '@/lib/text';
@@ -718,7 +719,12 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       if (!auth) return;
       const url = Jellyfin.subtitleUrl(itemId, mediaSourceId, streamIndex, auth.accessToken, 'vtt');
       const vtt = await Jellyfin.fetchSubtitleVtt(url);
-      setExternalCues(parseVtt(vtt));
+      const cues = parseVtt(vtt);
+      setExternalCues(cues);
+      // A track that fetches fine and parses to nothing looks exactly like one
+      // that failed to fetch, and the two have different causes - so the log
+      // says which happened, and how much came back.
+      console.log(`[jellylab] player:externalSub index=${streamIndex} bytes=${vtt.length} cues=${cues.length}`);
       if (persistPref) {
         const picked = externalSubs.find(s => s.index === streamIndex);
         if (picked) {
@@ -729,7 +735,8 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
           } catch {}
         }
       }
-    } catch {
+    } catch (e) {
+      logRequestFailure(`player:externalSub index=${streamIndex}`, e);
       setExternalCues([]);
     }
   }
@@ -874,6 +881,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
 
     // Capture available internal text tracks from VLC.
     const rawTracks = Array.isArray(e?.textTracks) ? e.textTracks : [];
+    console.log(`[jellylab] player:vlcTextTracks ${JSON.stringify(rawTracks)}`);
     const tracks = rawTracks.filter((t: any) => t && t.id != null && t.id !== -1);
     setVlcTextTracks(tracks);
 
