@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
-import { ItemLink } from '@/components/ItemLink';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/lib/date';
 import { groupByDay, historyTitle, type HistorySection } from '@/lib/history';
@@ -42,6 +41,7 @@ function flatten(sections: HistorySection[]): Row[] {
 export default function HistoryScreen() {
   const { t } = useTranslation();
   const { state } = useAuth();
+  const router = useRouter();
 
   const [items, setItems] = useState<JellyfinItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -108,7 +108,21 @@ export default function HistoryScreen() {
           renderItem={({ item: row }) =>
             row.kind === 'day'
               ? <Text style={styles.day}>{formatDate(row.day)}</Text>
-              : <HistoryRow item={row.item} onChanged={() => loadPage(0)} />
+              : (
+                <HistoryRow
+                  item={row.item}
+                  onOpen={() => router.push(`/item/${row.item.Id}`)}
+                  onUnwatch={async () => {
+                    if (state.status !== 'signed-in') return;
+                    try {
+                      await Jellyfin.setPlayed(state.auth.userId, row.item.Id, false);
+                      loadPage(0);
+                    } catch (e) {
+                      logRequestFailure('history:unwatch', e);
+                    }
+                  }}
+                />
+              )
           }
           ListFooterComponent={
             more ? <ActivityIndicator color={colors.textMuted} style={{ marginVertical: spacing.lg }} /> : null
@@ -119,12 +133,35 @@ export default function HistoryScreen() {
   );
 }
 
-function HistoryRow({ item, onChanged }: { item: JellyfinItem; onChanged: () => void }) {
+/**
+ * A plain row, deliberately - no `ItemLink` here.
+ *
+ * Everywhere else a poster is an ItemLink, which wraps it in a native context
+ * menu with a peek at the destination. This screen is reached from Profile,
+ * which is presented modally, and a UIKit context menu that pushes a route
+ * from inside a modal presentation took the whole app down - a native crash,
+ * with nothing in the JS log but the runtime shutting down afterwards.
+ *
+ * So: tap opens, long press offers the one action worth having here.
+ */
+function HistoryRow({ item, onOpen, onUnwatch }: {
+  item: JellyfinItem;
+  onOpen: () => void;
+  onUnwatch: () => void;
+}) {
+  const { t } = useTranslation();
   const tag = item.ImageTags?.Primary;
   const runtimeMin = item.RunTimeTicks ? Math.round(item.RunTimeTicks / 600_000_000) : null;
 
+  function askUnwatch() {
+    Alert.alert(historyTitle(item), '', [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('menu.markUnwatched'), onPress: onUnwatch },
+    ]);
+  }
+
   return (
-    <ItemLink item={item} onChanged={onChanged}>
+    <TouchableOpacity onPress={onOpen} onLongPress={askUnwatch} activeOpacity={0.7} accessibilityRole="button">
       <View style={styles.row}>
         {tag ? (
           <Image
@@ -141,7 +178,7 @@ function HistoryRow({ item, onChanged }: { item: JellyfinItem; onChanged: () => 
           {runtimeMin ? <Text style={styles.meta}>{runtimeMin}m</Text> : null}
         </View>
       </View>
-    </ItemLink>
+    </TouchableOpacity>
   );
 }
 
