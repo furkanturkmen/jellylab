@@ -145,15 +145,15 @@ function RootLayoutNav() {
         {/* Title comes from the screen itself - it is the library's own name. */}
         <Stack.Screen name="library/[id]" options={{ title: '' }} />
         <Stack.Screen name="tmdb/[type]/[id]" options={{ title: '' }} />
-        <Stack.Screen name="profile" options={{ title: 'Profile', presentation: 'modal' }} />
-        <Stack.Screen name="servers" options={{ title: 'Servers', presentation: 'modal' }} />
-        <Stack.Screen name="server-edit" options={{ title: 'Server', presentation: 'modal' }} />
-        <Stack.Screen name="settings/subtitles" options={{ title: 'Subtitles' }} />
-        <Stack.Screen name="settings/playback" options={{ title: 'Playback' }} />
-        <Stack.Screen name="settings/content" options={{ title: 'Content' }} />
-        <Stack.Screen name="settings/language" options={{ title: 'Language' }} />
-        <Stack.Screen name="settings/password" options={{ title: 'Password' }} />
-        <Stack.Screen name="settings/about" options={{ title: 'About' }} />
+        <Stack.Screen name="profile" options={{ title: t('nav.profile'), presentation: 'modal' }} />
+        <Stack.Screen name="servers" options={{ title: t('nav.servers'), presentation: 'modal' }} />
+        <Stack.Screen name="server-edit" options={{ title: t('nav.server'), presentation: 'modal' }} />
+        <Stack.Screen name="settings/subtitles" options={{ title: t('nav.subtitles') }} />
+        <Stack.Screen name="settings/playback" options={{ title: t('nav.playback') }} />
+        <Stack.Screen name="settings/content" options={{ title: t('nav.content') }} />
+        <Stack.Screen name="settings/language" options={{ title: t('nav.language') }} />
+        <Stack.Screen name="settings/password" options={{ title: t('nav.password') }} />
+        <Stack.Screen name="settings/about" options={{ title: t('nav.about') }} />
       </Stack>
     </ThemeProvider>
   );

@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
 import * as Jellyseerr from '@/api/jellyseerr';
+import { jellyfinKind, kindKey } from '@/lib/kind';
 import { useAuth } from '@/hooks/useAuth';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { colors, radius, spacing, type } from '@/theme';
@@ -509,7 +510,7 @@ function HeroOverlay({ items, height, index, onIndex }: {
                 {item.ProductionYear ? (
                   <View style={styles.heroPill}><Text style={styles.heroPillText}>{item.ProductionYear}</Text></View>
                 ) : null}
-                <View style={styles.heroPill}><Text style={styles.heroPillText}>{item.Type}</Text></View>
+                <View style={styles.heroPill}><Text style={styles.heroPillText}>{t(kindKey(jellyfinKind(item)))}</Text></View>
               </View>
             </View>
           </TouchableOpacity>

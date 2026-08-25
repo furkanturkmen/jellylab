@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import * as Jellyseerr from '@/api/jellyseerr';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
+import { formatDate } from '@/lib/date';
 import { getSeerrError } from '@/store/seerrStatus';
 import { type JellyseerrRequest } from '@/types';
 import { colors, radius, spacing, type as t } from '@/theme';
@@ -270,7 +271,7 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
             </View>
           ) : (
             <Text style={styles.by}>
-              {r.requestedBy.displayName} · {new Date(r.createdAt).toLocaleDateString()}
+              {r.requestedBy.displayName} · {formatDate(r.createdAt)}
             </Text>
           )}
         </View>

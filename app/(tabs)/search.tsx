@@ -209,7 +209,7 @@ function DiscoverCard({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: 
       accessibilityLabel={[
         title,
         kind,
-        available ? 'Available' : requested ? 'Requested' : '',
+        available ? t('badge.available') : requested ? t('badge.requested') : '',
       ].filter(Boolean).join(', ')}
     >
       <View style={styles.posterWrap}>
@@ -219,9 +219,9 @@ function DiscoverCard({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: 
           <View style={[styles.poster, styles.posterEmpty]} />
         )}
         {available ? (
-          <View style={[styles.badgeOverlay, styles.badgeAvailable]}><Text style={styles.badgeOverlayText}>Available</Text></View>
+          <View style={[styles.badgeOverlay, styles.badgeAvailable]}><Text style={styles.badgeOverlayText}>{t('badge.available')}</Text></View>
         ) : requested ? (
-          <View style={styles.badgeOverlay}><Text style={styles.badgeOverlayText}>Requested</Text></View>
+          <View style={styles.badgeOverlay}><Text style={styles.badgeOverlayText}>{t('badge.requested')}</Text></View>
         ) : null}
       </View>
       <Text style={styles.cardTitle} numberOfLines={1}>{title}</Text>
@@ -245,7 +245,7 @@ function LibraryRow({ item, onOpen }: { item: JellyfinItem; onOpen: () => void }
       accessibilityRole="button"
       // This row is the one that plays rather than requests, which is the whole
       // difference between it and the row below - so the label says so.
-      accessibilityLabel={[item.Name, kind, year, 'Play'].filter(Boolean).join(', ')}
+      accessibilityLabel={[item.Name, kind, year, t('badge.play')].filter(Boolean).join(', ')}
     >
       {poster ? (
         <Image source={{ uri: poster }} style={styles.thumb} contentFit="cover" transition={150} />
@@ -257,7 +257,7 @@ function LibraryRow({ item, onOpen }: { item: JellyfinItem; onOpen: () => void }
         <Text style={styles.rowMeta}>{kind} {year ? `· ${year}` : ''}</Text>
         {item.Overview ? <Text style={styles.rowOverview} numberOfLines={2}>{oneLine(item.Overview)}</Text> : null}
       </View>
-      <View style={[styles.badge, styles.badgeAvailable]}><Text style={styles.badgeText}>Play</Text></View>
+      <View style={[styles.badge, styles.badgeAvailable]}><Text style={styles.badgeText}>{t('badge.play')}</Text></View>
     </TouchableOpacity>
   );
 }
@@ -281,7 +281,7 @@ function ResultRow({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: () 
         title,
         kind,
         year,
-        available ? 'Available' : requested ? 'Requested' : '',
+        available ? t('badge.available') : requested ? t('badge.requested') : '',
       ].filter(Boolean).join(', ')}
     >
       {poster ? (
@@ -295,9 +295,9 @@ function ResultRow({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: () 
         {item.overview ? <Text style={styles.rowOverview} numberOfLines={2}>{oneLine(item.overview)}</Text> : null}
       </View>
       {available ? (
-        <View style={[styles.badge, styles.badgeAvailable]}><Text style={styles.badgeText}>Available</Text></View>
+        <View style={[styles.badge, styles.badgeAvailable]}><Text style={styles.badgeText}>{t('badge.available')}</Text></View>
       ) : requested ? (
-        <View style={styles.badge}><Text style={styles.badgeText}>Requested</Text></View>
+        <View style={styles.badge}><Text style={styles.badgeText}>{t('badge.requested')}</Text></View>
       ) : null}
     </TouchableOpacity>
   );

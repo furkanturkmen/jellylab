@@ -157,7 +157,9 @@
     "seasons_one": "1 season",
     "perEpisode": "{{minutes}}m per ep",
     "showMore": "More",
-    "showLess": "Less"
+    "showLess": "Less",
+    "resume": "Resume",
+    "play": "Play"
   },
   "profile": {
     "title": "Profile",
@@ -260,5 +262,59 @@
     "nl": "Nederlands",
     "tr": "Türkçe",
     "de": "Deutsch"
+  },
+  "nav": {
+    "profile": "Profile",
+    "servers": "Servers",
+    "server": "Server",
+    "subtitles": "Subtitles",
+    "playback": "Playback",
+    "content": "Content",
+    "language": "Language",
+    "password": "Password",
+    "about": "About",
+    "notFound": "Oops!",
+    "goHome": "Go to home screen"
+  },
+  "player": {
+    "subtitles": "Subtitles",
+    "audio": "Audio",
+    "off": "Off",
+    "close": "Close",
+    "reset": "Reset",
+    "timing": "Timing",
+    "embedded": "Embedded",
+    "external": "External",
+    "speed": "Playback speed",
+    "noSubtitles": "No subtitle tracks available",
+    "noExternalSubtitles": "No external subtitle tracks available",
+    "noAudio": "No audio tracks available",
+    "noAlternateAudio": "No alternate audio tracks",
+    "castTo": "Cast to",
+    "disconnect": "Disconnect current session",
+    "noDevices": "No devices found on this network.",
+    "castLabel": "Cast to a device"
+  },
+  "request": {
+    "failed": "Failed to load details",
+    "downloading": "Downloading",
+    "notDownloading": "Not downloading yet",
+    "deleteRequest": "Delete request",
+    "removeFromJellyfin": "Remove from Jellyfin",
+    "seasons": "Seasons",
+    "cancel": "Cancel",
+    "status": "Status",
+    "onJellyfin": "On Jellyfin",
+    "notRequested": "Not requested",
+    "released": "Released",
+    "language": "Language",
+    "seasonCount": "Seasons",
+    "episodeCount": "Episodes",
+    "countries": "Countries"
+  },
+  "badge": {
+    "available": "Available",
+    "requested": "Requested",
+    "play": "Play"
   }
 }

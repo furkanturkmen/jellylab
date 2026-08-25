@@ -21,6 +21,7 @@ import { matchesLanguage } from '@/player/lang';
 import { useAuth } from '@/hooks/useAuth';
 import { getDeviceId } from '@/store/auth';
 import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/prefs';
+import { formatDate } from '@/lib/date';
 import { jellyfinKind, kindKey } from '@/lib/kind';
 import { metadataLanguage, plainText, oneLine } from '@/lib/text';
 import { colors, radius, spacing, type } from '@/theme';
@@ -335,7 +336,7 @@ export default function ItemScreen() {
                 {/* Apple names the button after what it will do, so a part-watched
                     item offers Resume rather than Play. */}
                 <PrimaryButton
-                  label={(item.UserData?.PlaybackPositionTicks ?? 0) > 0 ? 'Resume' : 'Play'}
+                  label={(item.UserData?.PlaybackPositionTicks ?? 0) > 0 ? t('detail.resume') : t('detail.play')}
                   icon={{ ios: 'play.fill', android: 'play_arrow', web: 'play_arrow' }}
                   onPress={play}
                   style={styles.playAction}
@@ -343,7 +344,7 @@ export default function ItemScreen() {
                 <CircleButton
                   icon={{ ios: 'tv.badge.wifi', android: 'cast', web: 'cast' }}
                   onPress={() => setCastPickerOpen(true)}
-                  accessibilityLabel="Cast to a device"
+                  accessibilityLabel={t('player.castLabel')}
                   tint={castState === 'connected' ? colors.pink : undefined}
                 />
               </ButtonRow>
@@ -1462,7 +1463,7 @@ function SeriesEpisodes({ seriesId, userId, tmdbId }: {
                   </Text>
                   <Text style={styles.epMeta}>
                     {runtimeMin ? `${runtimeMin}m` : ''}
-                    {ep.PremiereDate ? ` · ${ep.PremiereDate.slice(0, 10)}` : ''}
+                    {ep.PremiereDate ? ` · ${formatDate(ep.PremiereDate)}` : ''}
                   </Text>
                   {/* TMDB's copy in the app's language when it has one, the
                       server's otherwise - the anime library is scraped in

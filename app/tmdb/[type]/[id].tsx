@@ -3,9 +3,12 @@ import { ActivityIndicator, Alert, AppState, Modal, ScrollView, StyleSheet, Text
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import * as Jellyseerr from '@/api/jellyseerr';
 import { GlassButton, PrimaryButton } from '@/components/AppleButton';
+import { formatDate } from '@/lib/date';
+import { kindKey, tmdbKind } from '@/lib/kind';
 import { plainText } from '@/lib/text';
 import { colors, radius, spacing, type } from '@/theme';
 import { MEDIA_STATUS } from '@/types';
@@ -17,6 +20,7 @@ const HERO_SHADE = 0.3;
 
 export default function TmdbDetailScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { type, id } = useLocalSearchParams<{ type: MediaType; id: string }>();
   const tmdbId = Number(id);
   const [details, setDetails] = useState<Jellyseerr.TmdbFullDetails | null>(null);
@@ -184,7 +188,7 @@ export default function TmdbDetailScreen() {
       <View style={styles.center}>
         <Stack.Screen options={{ title: '', headerTransparent: true,
           headerStyle: { backgroundColor: 'transparent' }, headerTintColor: colors.text }} />
-        <Text style={styles.errorText}>Failed to load details</Text>
+        <Text style={styles.errorText}>{t('request.failed')}</Text>
       </View>
     );
   }
@@ -212,7 +216,7 @@ export default function TmdbDetailScreen() {
     if (!processing || activeDownloads.length > 0) return null;
     const digital = type === 'movie' ? Jellyseerr.digitalReleaseDate(details) : null;
     if (digital && digital.getTime() > Date.now()) {
-      const when = digital.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+      const when = formatDate(digital);
       return `Still in cinemas. Nothing to download until the digital release on ${when} — your server will pick it up automatically then.`;
     }
     return 'Approved and waiting for a match. Your server keeps searching, so this can take a while if nothing good is available yet.';
@@ -258,7 +262,7 @@ export default function TmdbDetailScreen() {
                 {year ? <Pill>{year}</Pill> : null}
                 {details.runtime ? <Pill>{details.runtime}m</Pill> : null}
                 {rating != null ? <Pill>{rating}%</Pill> : null}
-                <Pill>{type === 'movie' ? 'Movie' : 'TV'}</Pill>
+                <Pill>{t(kindKey(tmdbKind({ mediaType: type, genreIds: details.genres?.map(g => g.id), originalLanguage: details.originalLanguage })))}</Pill>
               </View>
             </View>
           </View>
@@ -291,7 +295,7 @@ export default function TmdbDetailScreen() {
 
           {processing && activeDownloads.length > 0 ? (
             <View style={styles.card}>
-              <Text style={styles.sectionLabel}>Downloading</Text>
+              <Text style={styles.sectionLabel}>{t('request.downloading')}</Text>
               {activeDownloads.map((d, i) => (
                 <DownloadRow key={`${d.downloadId ?? 'dl'}-${i}`} d={d} />
               ))}
@@ -300,7 +304,7 @@ export default function TmdbDetailScreen() {
             /* Approved with nothing downloading looks identical to broken.
                Say why rather than showing an empty card. */
             <View style={styles.card}>
-              <Text style={styles.sectionLabel}>Not downloading yet</Text>
+              <Text style={styles.sectionLabel}>{t('request.notDownloading')}</Text>
               <Text style={styles.waitingText}>{waitingReason}</Text>
             </View>
           ) : null}
@@ -309,12 +313,12 @@ export default function TmdbDetailScreen() {
             <View style={styles.adminRow}>
               {requested ? (
                 <TouchableOpacity style={styles.adminBtn} onPress={onDeleteRequest} disabled={acting} activeOpacity={0.85}>
-                  <Text style={styles.adminBtnText}>Delete Request</Text>
+                  <Text style={styles.adminBtnText}>{t('request.deleteRequest')}</Text>
                 </TouchableOpacity>
               ) : null}
               {(available || partiallyAvailable) && details.mediaInfo?.id ? (
                 <TouchableOpacity style={styles.adminBtn} onPress={onRemoveFromJellyfin} disabled={acting} activeOpacity={0.85}>
-                  <Text style={styles.adminBtnText}>Remove from Jellyfin</Text>
+                  <Text style={styles.adminBtnText}>{t('request.removeFromJellyfin')}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -330,27 +334,27 @@ export default function TmdbDetailScreen() {
 
           {details.overview ? (
             <View style={styles.card}>
-              <Text style={styles.sectionLabel}>Overview</Text>
+              <Text style={styles.sectionLabel}>{t('detail.overview')}</Text>
               <Text style={styles.overview}>{plainText(details.overview)}</Text>
             </View>
           ) : null}
 
           <View style={styles.card}>
-            <Text style={styles.sectionLabel}>Details</Text>
-            {details.status ? <MetaRow k="Status" v={details.status} /> : null}
-            <MetaRow k="On Jellyfin" v={mediaStatus ? (MEDIA_STATUS[mediaStatus] ?? '—') : 'Not requested'} />
-            {details.releaseDate ? <MetaRow k="Released" v={details.releaseDate} /> : null}
-            {details.originalLanguage ? <MetaRow k="Language" v={details.originalLanguage.toUpperCase()} /> : null}
-            {details.numberOfSeasons != null ? <MetaRow k="Seasons" v={String(details.numberOfSeasons)} /> : null}
-            {details.numberOfEpisodes != null ? <MetaRow k="Episodes" v={String(details.numberOfEpisodes)} /> : null}
+            <Text style={styles.sectionLabel}>{t('detail.details')}</Text>
+            {details.status ? <MetaRow k={t('request.status')} v={details.status} /> : null}
+            <MetaRow k={t('request.onJellyfin')} v={mediaStatus ? (MEDIA_STATUS[mediaStatus] ?? '—') : t('request.notRequested')} />
+            {details.releaseDate ? <MetaRow k={t('request.released')} v={formatDate(details.releaseDate)} /> : null}
+            {details.originalLanguage ? <MetaRow k={t('request.language')} v={details.originalLanguage.toUpperCase()} /> : null}
+            {details.numberOfSeasons != null ? <MetaRow k={t('request.seasonCount')} v={String(details.numberOfSeasons)} /> : null}
+            {details.numberOfEpisodes != null ? <MetaRow k={t('request.episodeCount')} v={String(details.numberOfEpisodes)} /> : null}
             {details.productionCountries && details.productionCountries.length > 0 ? (
-              <MetaRow k="Countries" v={details.productionCountries.map(c => c.name).join(', ')} />
+              <MetaRow k={t('request.countries')} v={details.productionCountries.map(c => c.name).join(', ')} />
             ) : null}
           </View>
 
           {details.credits?.cast && details.credits.cast.length > 0 ? (
             <View style={styles.card}>
-              <Text style={styles.sectionLabel}>Cast</Text>
+              <Text style={styles.sectionLabel}>{t('detail.cast')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md, paddingRight: spacing.md }}>
                 {details.credits.cast.slice(0, 15).map(person => (
                   <View key={person.id} style={styles.castCard}>

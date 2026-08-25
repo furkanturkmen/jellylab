@@ -157,7 +157,9 @@
     "seasons_one": "1 Staffel",
     "perEpisode": "{{minutes}}m pro Folge",
     "showMore": "Mehr",
-    "showLess": "Weniger"
+    "showLess": "Weniger",
+    "resume": "Fortsetzen",
+    "play": "Abspielen"
   },
   "profile": {
     "title": "Profil",
@@ -260,5 +262,59 @@
     "nl": "Nederlands",
     "tr": "Türkçe",
     "de": "Deutsch"
+  },
+  "nav": {
+    "profile": "Profil",
+    "servers": "Server",
+    "server": "Server",
+    "subtitles": "Untertitel",
+    "playback": "Wiedergabe",
+    "content": "Inhalt",
+    "language": "Sprache",
+    "password": "Passwort",
+    "about": "Über",
+    "notFound": "Hoppla!",
+    "goHome": "Zum Startbildschirm"
+  },
+  "player": {
+    "subtitles": "Untertitel",
+    "audio": "Audio",
+    "off": "Aus",
+    "close": "Schließen",
+    "reset": "Zurücksetzen",
+    "timing": "Timing",
+    "embedded": "Eingebettet",
+    "external": "Extern",
+    "speed": "Wiedergabegeschwindigkeit",
+    "noSubtitles": "Keine Untertitelspuren verfügbar",
+    "noExternalSubtitles": "Keine externen Untertitelspuren verfügbar",
+    "noAudio": "Keine Audiospuren verfügbar",
+    "noAlternateAudio": "Keine weiteren Audiospuren",
+    "castTo": "Streamen auf",
+    "disconnect": "Aktuelle Sitzung trennen",
+    "noDevices": "Keine Geräte in diesem Netzwerk gefunden.",
+    "castLabel": "Auf ein Gerät streamen"
+  },
+  "request": {
+    "failed": "Details konnten nicht geladen werden",
+    "downloading": "Wird geladen",
+    "notDownloading": "Noch kein Download",
+    "deleteRequest": "Anfrage löschen",
+    "removeFromJellyfin": "Aus Jellyfin entfernen",
+    "seasons": "Staffeln",
+    "cancel": "Abbrechen",
+    "status": "Status",
+    "onJellyfin": "Auf Jellyfin",
+    "notRequested": "Nicht angefragt",
+    "released": "Veröffentlicht",
+    "language": "Sprache",
+    "seasonCount": "Staffeln",
+    "episodeCount": "Folgen",
+    "countries": "Länder"
+  },
+  "badge": {
+    "available": "Verfügbar",
+    "requested": "Angefragt",
+    "play": "Abspielen"
   }
 }

@@ -157,7 +157,9 @@
     "seasons_one": "1 sezon",
     "perEpisode": "bölüm başına {{minutes}}dk",
     "showMore": "Daha fazla",
-    "showLess": "Daha az"
+    "showLess": "Daha az",
+    "resume": "Devam et",
+    "play": "Oynat"
   },
   "profile": {
     "title": "Profil",
@@ -260,5 +262,59 @@
     "nl": "Nederlands",
     "tr": "Türkçe",
     "de": "Deutsch"
+  },
+  "nav": {
+    "profile": "Profil",
+    "servers": "Sunucular",
+    "server": "Sunucu",
+    "subtitles": "Altyazılar",
+    "playback": "Oynatma",
+    "content": "İçerik",
+    "language": "Dil",
+    "password": "Parola",
+    "about": "Hakkında",
+    "notFound": "Hop!",
+    "goHome": "Ana ekrana git"
+  },
+  "player": {
+    "subtitles": "Altyazılar",
+    "audio": "Ses",
+    "off": "Kapalı",
+    "close": "Kapat",
+    "reset": "Sıfırla",
+    "timing": "Zamanlama",
+    "embedded": "Gömülü",
+    "external": "Harici",
+    "speed": "Oynatma hızı",
+    "noSubtitles": "Altyazı parçası yok",
+    "noExternalSubtitles": "Harici altyazı parçası yok",
+    "noAudio": "Ses parçası yok",
+    "noAlternateAudio": "Başka ses parçası yok",
+    "castTo": "Şuraya yayınla",
+    "disconnect": "Geçerli oturumu kes",
+    "noDevices": "Bu ağda cihaz bulunamadı.",
+    "castLabel": "Bir cihaza yayınla"
+  },
+  "request": {
+    "failed": "Ayrıntılar yüklenemedi",
+    "downloading": "İndiriliyor",
+    "notDownloading": "Henüz indirilmiyor",
+    "deleteRequest": "İsteği sil",
+    "removeFromJellyfin": "Jellyfin'den kaldır",
+    "seasons": "Sezonlar",
+    "cancel": "İptal",
+    "status": "Durum",
+    "onJellyfin": "Jellyfin'de",
+    "notRequested": "İstenmedi",
+    "released": "Yayın tarihi",
+    "language": "Dil",
+    "seasonCount": "Sezon",
+    "episodeCount": "Bölüm",
+    "countries": "Ülkeler"
+  },
+  "badge": {
+    "available": "Mevcut",
+    "requested": "İstendi",
+    "play": "Oynat"
   }
 }

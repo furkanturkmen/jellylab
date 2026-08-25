@@ -157,7 +157,9 @@
     "seasons_one": "1 seizoen",
     "perEpisode": "{{minutes}}m per afl",
     "showMore": "Meer",
-    "showLess": "Minder"
+    "showLess": "Minder",
+    "resume": "Hervatten",
+    "play": "Afspelen"
   },
   "profile": {
     "title": "Profiel",
@@ -260,5 +262,59 @@
     "nl": "Nederlands",
     "tr": "Türkçe",
     "de": "Deutsch"
+  },
+  "nav": {
+    "profile": "Profiel",
+    "servers": "Servers",
+    "server": "Server",
+    "subtitles": "Ondertiteling",
+    "playback": "Afspelen",
+    "content": "Inhoud",
+    "language": "Taal",
+    "password": "Wachtwoord",
+    "about": "Over",
+    "notFound": "Oeps!",
+    "goHome": "Ga naar het startscherm"
+  },
+  "player": {
+    "subtitles": "Ondertiteling",
+    "audio": "Audio",
+    "off": "Uit",
+    "close": "Sluiten",
+    "reset": "Herstellen",
+    "timing": "Timing",
+    "embedded": "Ingebouwd",
+    "external": "Extern",
+    "speed": "Afspeelsnelheid",
+    "noSubtitles": "Geen ondertitelsporen beschikbaar",
+    "noExternalSubtitles": "Geen externe ondertitelsporen beschikbaar",
+    "noAudio": "Geen audiosporen beschikbaar",
+    "noAlternateAudio": "Geen andere audiosporen",
+    "castTo": "Casten naar",
+    "disconnect": "Huidige sessie verbreken",
+    "noDevices": "Geen apparaten gevonden op dit netwerk.",
+    "castLabel": "Casten naar een apparaat"
+  },
+  "request": {
+    "failed": "Details konden niet worden geladen",
+    "downloading": "Bezig met downloaden",
+    "notDownloading": "Nog niet aan het downloaden",
+    "deleteRequest": "Aanvraag verwijderen",
+    "removeFromJellyfin": "Verwijderen uit Jellyfin",
+    "seasons": "Seizoenen",
+    "cancel": "Annuleer",
+    "status": "Status",
+    "onJellyfin": "Op Jellyfin",
+    "notRequested": "Niet aangevraagd",
+    "released": "Uitgebracht",
+    "language": "Taal",
+    "seasonCount": "Seizoenen",
+    "episodeCount": "Afleveringen",
+    "countries": "Landen"
+  },
+  "badge": {
+    "available": "Beschikbaar",
+    "requested": "Aangevraagd",
+    "play": "Afspelen"
   }
 }
