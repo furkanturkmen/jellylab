@@ -83,7 +83,10 @@
     "seasonTitle_one": "{{count}} Folge laden?",
     "seasonTitle_other": "{{count}} Folgen laden?",
     "seasonBody": "Etwa {{size}} insgesamt. Sie kommen nacheinander, die erste ist also sehbar, während der Rest noch lädt.",
-    "seasonNone": "Jede Folge dieser Staffel ist bereits auf diesem Gerät."
+    "seasonNone": "Jede Folge dieser Staffel ist bereits auf diesem Gerät.",
+    "stopTitle": "Download stoppen?",
+    "stopBody": "Was von {{title}} da ist, wird gelöscht.",
+    "stop": "Stoppen"
   },
   "library": {
     "welcomeBack": "Willkommen zurück",

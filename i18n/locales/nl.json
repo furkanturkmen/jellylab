@@ -83,7 +83,10 @@
     "seasonTitle_one": "{{count}} aflevering downloaden?",
     "seasonTitle_other": "{{count}} afleveringen downloaden?",
     "seasonBody": "Ongeveer {{size}} in totaal. Ze komen een voor een binnen, dus de eerste is te kijken terwijl de rest nog laadt.",
-    "seasonNone": "Elke aflevering van dit seizoen staat al op dit apparaat."
+    "seasonNone": "Elke aflevering van dit seizoen staat al op dit apparaat.",
+    "stopTitle": "Downloaden stoppen?",
+    "stopBody": "Wat er van {{title}} binnen is wordt verwijderd.",
+    "stop": "Stoppen"
   },
   "library": {
     "welcomeBack": "Welkom terug",
