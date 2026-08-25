@@ -336,7 +336,9 @@
     "partiallyAvailable": "Partially available",
     "requested": "Requested",
     "requesting": "Requesting…",
-    "request": "Request"
+    "request": "Request",
+    "requestMoreSeasons": "Request more seasons",
+    "checkingSeasons": "Checking seasons…"
   },
   "mediaStatus": {
     "1": "Unknown",

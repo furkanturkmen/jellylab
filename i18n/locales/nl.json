@@ -336,7 +336,9 @@
     "partiallyAvailable": "Deels beschikbaar",
     "requested": "Aangevraagd",
     "requesting": "Aanvragen…",
-    "request": "Aanvragen"
+    "request": "Aanvragen",
+    "requestMoreSeasons": "Meer seizoenen aanvragen",
+    "checkingSeasons": "Seizoenen controleren…"
   },
   "mediaStatus": {
     "1": "Onbekend",

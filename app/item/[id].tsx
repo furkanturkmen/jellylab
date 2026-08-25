@@ -308,6 +308,12 @@ export default function ItemScreen() {
             footprint, so the poster's negative marginTop is unaffected. There
             is no RefreshControl on this screen, so nothing is hidden by it. */}
         <View style={styles.hero}>
+          {/* Everything that darkens the artwork lives inside the transform
+              with it, the way the library hero does.
+              Outside it, the shade and the gradients stayed at a fixed offset
+              while the picture stretched and drifted underneath - so the image
+              slid out from under its own darkening and left a bright band above
+              a hard horizontal line. */}
           <Animated.View style={[styles.heroBackdrop, heroStretch]}>
             {backdrop || tmdbArt.backdrop ? (
               <Image
@@ -319,25 +325,21 @@ export default function ItemScreen() {
             ) : (
               <View style={[styles.backdrop, { backgroundColor: colors.bgElevated }]} />
             )}
-          </Animated.View>
-          {/* Flat shade so a bright backdrop does not wash out the title,
-              matching the library hero. Fades with the artwork underneath it -
-              left behind, it became a grey panel over the text. */}
-          <Animated.View style={[styles.heroShade, { opacity: heroStretch.opacity }]} />
-          {/* Near-black under the status bar so the Dynamic Island cutout does
-              not sit against a bright frame. */}
-          <Animated.View style={[StyleSheet.absoluteFill, { opacity: heroStretch.opacity }]} pointerEvents="none">
+            {/* Flat shade so a bright backdrop does not wash out the title. */}
+            <View style={styles.heroShadeFill} />
+            {/* Near-black under the status bar so the Dynamic Island cutout
+                does not sit against a bright frame. */}
             <LinearGradient
               colors={['rgba(0,0,0,0.92)', 'rgba(0,0,0,0.45)', 'transparent']}
               locations={[0, 0.55, 1]}
-              style={[StyleSheet.absoluteFill, { top: HERO_BLEED, height: 130, bottom: undefined }]}
+              style={[StyleSheet.absoluteFill, { height: 130, bottom: undefined }]}
+            />
+            <LinearGradient
+              colors={[colors.scrimTop, colors.bg]}
+              locations={[0, 1]}
+              style={StyleSheet.absoluteFill}
             />
           </Animated.View>
-          <LinearGradient
-            colors={[colors.scrimTop, colors.bg]}
-            locations={[0, 1]}
-            style={[StyleSheet.absoluteFill, { top: HERO_BLEED }]}
-          />
         </View>
 
         <View style={styles.body}>
@@ -2220,7 +2222,7 @@ const styles = StyleSheet.create({
   // sits below the bleed at rest; the stretch transform grows it into that space
   heroBackdrop: { position: 'absolute', top: HERO_BLEED, left: 0, right: 0, bottom: 0 },
   backdrop: { width: '100%', height: '100%' },
-  heroShade: { position: 'absolute', top: HERO_BLEED, left: 0, right: 0, bottom: 0, backgroundColor: `rgba(0,0,0,${HERO_SHADE})` },
+  heroShadeFill: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: `rgba(0,0,0,${HERO_SHADE})` },
   body: { paddingHorizontal: spacing.xl, marginTop: POSTER_OFFSET },
   headerRow: { flexDirection: 'row', gap: spacing.lg, alignItems: 'flex-end' },
   poster: {

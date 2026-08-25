@@ -538,11 +538,37 @@ export type DownloadStatus = {
   episode?: { seasonNumber: number; episodeNumber: number };
 };
 
-export async function getTmdbDetails(mediaType: 'movie' | 'tv', tmdbId: number): Promise<TmdbFullDetails | null> {
+/**
+ * The full record behind a request screen, in the app's language where TMDB
+ * has one.
+ *
+ * TMDB translates unevenly and does not fall back: asking in Dutch returns
+ * "Animatie" but leaves "Action & Adventure" in English, and drops the tagline
+ * altogether rather than giving the English one. So the English copy is fetched
+ * alongside and used to fill the holes - one extra request, cached, and only
+ * when the app is not already in English.
+ */
+export async function getTmdbDetails(
+  mediaType: 'movie' | 'tv',
+  tmdbId: number,
+  language: string = currentLanguage(),
+): Promise<TmdbFullDetails | null> {
   try {
     const client = await authClient();
-    const res = await client.get(`/${mediaType}/${tmdbId}`);
+    const res = await client.get(`/${mediaType}/${tmdbId}`, { params: { language } });
+    const fallback = language === 'en'
+      ? null
+      : await client.get(`/${mediaType}/${tmdbId}`, { params: { language: 'en' } })
+          .then(r => r.data)
+          .catch(() => null);
     const d = res.data;
+    if (fallback) {
+      // Field by field: a translated overview is better than an English one,
+      // an English tagline is better than none.
+      d.tagline = d.tagline || fallback.tagline;
+      d.overview = d.overview || fallback.overview;
+      d.status = d.status || fallback.status;
+    }
     return {
       id: d.id,
       title: d.title ?? d.name ?? '',

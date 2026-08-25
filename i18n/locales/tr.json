@@ -336,7 +336,9 @@
     "partiallyAvailable": "Kısmen mevcut",
     "requested": "İstendi",
     "requesting": "İsteniyor…",
-    "request": "İste"
+    "request": "İste",
+    "requestMoreSeasons": "Daha fazla sezon iste",
+    "checkingSeasons": "Sezonlar kontrol ediliyor…"
   },
   "mediaStatus": {
     "1": "Bilinmiyor",

@@ -317,7 +317,7 @@ export default function TmdbDetailScreen() {
               left to ask for, rather than this having to predict it. */}
           {type === 'tv' && (available || partiallyAvailable || processing || requested) ? (
             <GlassButton
-              label={acting ? 'Checking seasons…' : 'Request more seasons'}
+              label={acting ? t('action.checkingSeasons') : t('action.requestMoreSeasons')}
               icon={{ ios: 'plus', android: 'add', web: 'add' }}
               onPress={onRequest}
               disabled={acting}

@@ -336,7 +336,9 @@
     "partiallyAvailable": "Teilweise verfügbar",
     "requested": "Angefragt",
     "requesting": "Wird angefragt…",
-    "request": "Anfragen"
+    "request": "Anfragen",
+    "requestMoreSeasons": "Weitere Staffeln anfragen",
+    "checkingSeasons": "Staffeln werden geprüft…"
   },
   "mediaStatus": {
     "1": "Unbekannt",
