@@ -3,7 +3,7 @@
     "name": "JellyLab",
     "slug": "jellylab",
     "version": "0.14.0",
-    "orientation": "default",
+    "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "jellylab",
     "userInterfaceStyle": "automatic",

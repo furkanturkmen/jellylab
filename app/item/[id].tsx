@@ -359,7 +359,16 @@ export default function ItemScreen() {
   if (playback) {
     return (
       <>
-        <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
+        {/*
+          * The screen has to allow rotation before anything can rotate it.
+          *
+          * A native stack screen declares its own supported orientations, and
+          * that beats an app-level lock - so `ScreenOrientation.lockAsync` was
+          * being ignored rather than failing, which is why the fullscreen
+          * button did nothing and nothing was logged. The plist has listed
+          * both landscapes all along; it was this that said no.
+          */}
+        <Stack.Screen options={{ headerShown: false, gestureEnabled: false, orientation: 'all' }} />
         <Player
           config={playback}
           itemId={item.Id}
