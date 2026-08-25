@@ -580,7 +580,13 @@ export default function ItemScreen() {
                   tint={download?.status === 'done' ? colors.successBorder : undefined}
                 />
               </ButtonRow>
-              <Text style={styles.castHint}>{t('player.castHint')}</Text>
+              {/* Otherwise there is no way to tell: play() prefers the stored
+                  file silently, and the only trace was a line in the log. */}
+              {download?.status === 'done' ? (
+                <Text style={styles.castHint}>{t('downloads.playingOffline')}</Text>
+              ) : (
+                <Text style={styles.castHint}>{t('player.castHint')}</Text>
+              )}
             </>
           ) : null}
 
