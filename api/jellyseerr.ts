@@ -458,6 +458,13 @@ export type MediaDetails = {
   backdropPath?: string;
   year?: string;
   overview?: string;
+  /**
+   * The language it was made in, two letters - "ja" for anime.
+   *
+   * Not translated and not affected by the language parameter, which is the
+   * point: it is what "original audio" resolves to.
+   */
+  originalLanguage?: string;
 };
 
 /**
@@ -487,6 +494,7 @@ export async function getMediaDetails(
       backdropPath: d.backdropPath ?? d.backdrop_path,
       year: (d.releaseDate ?? d.firstAirDate ?? '').slice(0, 4) || undefined,
       overview: d.overview,
+      originalLanguage: d.originalLanguage ?? d.original_language,
     };
     detailsCache.set(cacheKey, details);
     return details;

@@ -1,4 +1,4 @@
-import { languageNeedles, matchesLanguage, preferredAudioIndex } from '../lang';
+import { audioLanguageKey, languageNeedles, matchesLanguage, preferredAudioIndex } from '../lang';
 
 /**
  * Track labels are written by whoever released the file, so matching them is
@@ -51,9 +51,11 @@ describe('matchesLanguage', () => {
   });
 
   it('falls back to the code itself for a language with no alias list', () => {
-    expect(languageNeedles('kor')).toEqual(['kor']);
-    expect(matchesLanguage('kor', 'kor')).toBe(true);
-    expect(matchesLanguage('Korean', 'kor')).toBe(false);
+    // Swedish, because Korean has an alias list now and this case is about
+    // what happens without one.
+    expect(languageNeedles('swe')).toEqual(['swe']);
+    expect(matchesLanguage('swe', 'swe')).toBe(true);
+    expect(matchesLanguage('Swedish', 'swe')).toBe(false);
   });
 });
 
@@ -88,5 +90,23 @@ describe('preferredAudioIndex', () => {
       { Index: 2, DisplayTitle: 'Japanese 2.0' },
     ];
     expect(preferredAudioIndex(labelled, 'jpn')).toBe(2);
+  });
+});
+
+describe('audioLanguageKey', () => {
+  // TMDB says "ja" for Jujutsu Kaisen; the container says "jpn".
+  it('turns TMDB two-letter codes into what tracks are labelled with', () => {
+    expect(audioLanguageKey('ja')).toBe('jpn');
+    expect(audioLanguageKey('fr')).toBe('fre');
+    expect(audioLanguageKey('EN')).toBe('eng');
+  });
+
+  it('passes a three-letter code through untouched', () => {
+    expect(audioLanguageKey('jpn')).toBe('jpn');
+  });
+
+  it('has nothing to say about nothing', () => {
+    expect(audioLanguageKey(undefined)).toBeNull();
+    expect(audioLanguageKey('')).toBeNull();
   });
 });
