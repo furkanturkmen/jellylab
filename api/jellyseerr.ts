@@ -323,14 +323,22 @@ export function digitalReleaseDate(d: TmdbFullDetails): Date | null {
   return new Date(Math.min(...dates.map(dt => dt.getTime())));
 }
 
-export function seasonStatusLabel(s: SeerrSeason): string {
-  if (s.episodeCount === 0) return 'Not aired';
+/**
+ * What to say under a season's name - as a key, not a sentence.
+ *
+ * This is the API layer, where t() does not belong and the app's language is
+ * not known; returning English from here was how "1 episodes" got on screen in
+ * a Dutch app. The caller translates, and the count carries so i18next can
+ * pick the singular.
+ */
+export function seasonStatus(s: SeerrSeason): { key: string; count?: number } {
+  if (s.episodeCount === 0) return { key: 'seasonStatus.notAired' };
   switch (s.status) {
-    case SEERR_STATUS.AVAILABLE: return 'Available';
-    case SEERR_STATUS.PARTIALLY_AVAILABLE: return 'Partly available';
-    case SEERR_STATUS.PROCESSING: return 'Downloading';
-    case SEERR_STATUS.PENDING: return 'Requested';
-    default: return `${s.episodeCount} episodes`;
+    case SEERR_STATUS.AVAILABLE: return { key: 'seasonStatus.available' };
+    case SEERR_STATUS.PARTIALLY_AVAILABLE: return { key: 'seasonStatus.partly' };
+    case SEERR_STATUS.PROCESSING: return { key: 'seasonStatus.downloading' };
+    case SEERR_STATUS.PENDING: return { key: 'seasonStatus.requested' };
+    default: return { key: 'seasonStatus.episodes', count: s.episodeCount };
   }
 }
 

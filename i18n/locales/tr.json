@@ -402,5 +402,14 @@
   "menu": {
     "markWatched": "İzlendi olarak işaretle",
     "markUnwatched": "İzlenmedi olarak işaretle"
+  },
+  "seasonStatus": {
+    "notAired": "Henüz yayınlanmadı",
+    "available": "Mevcut",
+    "partly": "Kısmen mevcut",
+    "downloading": "İndiriliyor",
+    "requested": "İstendi",
+    "episodes_one": "{{count}} bölüm",
+    "episodes_other": "{{count}} bölüm"
   }
 }

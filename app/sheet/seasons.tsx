@@ -37,6 +37,11 @@ export default function SeasonSheet() {
 
   if (!request) return null;
 
+  function seasonStatusText(season: Jellyseerr.SeerrSeason): string {
+    const status = Jellyseerr.seasonStatus(season);
+    return t(status.key, { count: status.count ?? 0 });
+  }
+
   function toggle(seasonNumber: number) {
     setPicked(prev => {
       const next = new Set(prev);
@@ -76,7 +81,7 @@ export default function SeasonSheet() {
                 <Text style={styles.seasonName}>
                   {s.name || t('request.seasonNumber', { number: s.seasonNumber })}
                 </Text>
-                <Text style={styles.seasonMeta}>{Jellyseerr.seasonStatusLabel(s)}</Text>
+                <Text style={styles.seasonMeta}>{seasonStatusText(s)}</Text>
               </View>
               {selectable ? (
                 <View style={[styles.check, on && styles.checkOn]}>

@@ -402,5 +402,14 @@
   "menu": {
     "markWatched": "Mark as watched",
     "markUnwatched": "Mark as unwatched"
+  },
+  "seasonStatus": {
+    "notAired": "Not aired",
+    "available": "Available",
+    "partly": "Partly available",
+    "downloading": "Downloading",
+    "requested": "Requested",
+    "episodes_one": "{{count}} episode",
+    "episodes_other": "{{count}} episodes"
   }
 }

@@ -402,5 +402,14 @@
   "menu": {
     "markWatched": "Als gesehen markieren",
     "markUnwatched": "Als ungesehen markieren"
+  },
+  "seasonStatus": {
+    "notAired": "Noch nicht ausgestrahlt",
+    "available": "Verfügbar",
+    "partly": "Teilweise verfügbar",
+    "downloading": "Wird geladen",
+    "requested": "Angefragt",
+    "episodes_one": "{{count}} Folge",
+    "episodes_other": "{{count}} Folgen"
   }
 }

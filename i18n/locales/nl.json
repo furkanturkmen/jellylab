@@ -402,5 +402,14 @@
   "menu": {
     "markWatched": "Markeer als bekeken",
     "markUnwatched": "Markeer als niet bekeken"
+  },
+  "seasonStatus": {
+    "notAired": "Nog niet uitgezonden",
+    "available": "Beschikbaar",
+    "partly": "Deels beschikbaar",
+    "downloading": "Wordt gedownload",
+    "requested": "Aangevraagd",
+    "episodes_one": "{{count}} aflevering",
+    "episodes_other": "{{count}} afleveringen"
   }
 }

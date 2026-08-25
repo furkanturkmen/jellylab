@@ -172,7 +172,10 @@ function RootLayoutNav() {
           options={{
             presentation: 'formSheet',
             headerShown: false,
-            sheetAllowedDetents: [0.65, 0.95],
+            // Sized to the seasons it lists: three of them should not open a
+            // card two thirds of the screen tall with the button stranded at
+            // the bottom of it. A long list is clamped and scrolls inside.
+            sheetAllowedDetents: 'fitToContents',
             sheetGrabberVisible: true,
             sheetCornerRadius: 28,
             contentStyle: { backgroundColor: colors.bgElevated },
