@@ -162,12 +162,28 @@ theme/                  Abyss design tokens (colors, spacing, type)
 types/                  Shared TypeScript types
 ```
 
+## Rebuilding the native project
+
+```bash
+npm run prebuild     # expo prebuild -p ios
+npm run ios
+```
+
+iOS only, and deliberately: `react-native-vlc-media-player`'s Android config
+plugin patches `app/build.gradle` by matching
+`applyNativeModulesAppBuildGradle(project)`, a line React Native 0.86 no longer
+generates — autolinking moved to `autolinkLibrariesWithApp()`. A two-platform
+`npx expo prebuild` therefore fails on the Android mod before it finishes
+writing `ios/`. Android needs that plugin fixed upstream, or dropping VLC.
+
 ## Known limitations
 
 - **Direct-play depends on your server.** If your Jellyfin host can't transcode, VLC fallback handles most codec issues but corrupt/exotic files can still fail with no auto-recovery.
 - **Downloads are per item.** No whole-season download and no eviction policy yet: what you store stays until you delete it.
 - **Plain HTTP allowed by default.** `NSAllowsArbitraryLoads` is enabled in `app.json` because most homelabs run HTTP behind a reverse proxy on the LAN. If you only connect to HTTPS servers, tighten it.
 - **iPhone-only layout.** iPad renders as a stretched iPhone.
+- **Android cannot be prebuilt** while the VLC plugin's Gradle mod targets a
+  React Native version this project has moved past — see above.
 - **No live TV / no music library** (Jellyfin has them, jellylab doesn't surface them).
 - **Push notifications need a paid Apple Developer account.** Apple only issues
   the `aps-environment` entitlement to Developer Program members, and all iOS
