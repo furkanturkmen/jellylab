@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, AppState, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, AppState, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -10,6 +10,7 @@ import { GlassButton, PrimaryButton } from '@/components/AppleButton';
 import { formatDate } from '@/lib/date';
 import { kindKey, tmdbKind } from '@/lib/kind';
 import { plainText } from '@/lib/text';
+import { openSeasonSheet } from '@/store/sheet';
 import { colors, radius, spacing, type } from '@/theme';
 import { MEDIA_STATUS } from '@/types';
 
@@ -70,9 +71,6 @@ export default function TmdbDetailScreen() {
   const [details, setDetails] = useState<Jellyseerr.TmdbFullDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
-  const [seasons, setSeasons] = useState<Jellyseerr.SeerrSeason[]>([]);
-  const [picked, setPicked] = useState<Set<number>>(new Set());
-  const [seasonPickerOpen, setSeasonPickerOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     const d = await Jellyseerr.getTmdbDetails(type, tmdbId);
@@ -135,9 +133,14 @@ export default function TmdbDetailScreen() {
         );
         return;
       }
-      setSeasons(all);
-      setPicked(new Set(requestable.map(s => s.seasonNumber)));
-      setSeasonPickerOpen(true);
+      // The sheet is a route: it is handed the list and the callback through
+      // the store, then pushed.
+      openSeasonSheet({
+        seasons: all,
+        initial: requestable.map(s => s.seasonNumber),
+        onConfirm: submitSeasons,
+      });
+      router.push('/sheet/seasons');
     } catch (e: any) {
       Alert.alert('Could not load seasons', e?.response?.data?.message ?? e?.message ?? 'Unknown error');
     } finally {
@@ -145,12 +148,11 @@ export default function TmdbDetailScreen() {
     }
   }
 
-  async function submitSeasons() {
-    if (!details || picked.size === 0) return;
-    setSeasonPickerOpen(false);
+  async function submitSeasons(seasons: number[]) {
+    if (!details || seasons.length === 0) return;
     setActing(true);
     try {
-      await Jellyseerr.createRequest('tv', details.id, [...picked].sort((a, b) => a - b));
+      await Jellyseerr.createRequest('tv', details.id, seasons);
       await refresh();
     } catch (e: any) {
       Alert.alert('Request failed', e?.response?.data?.message ?? e?.message ?? 'Unknown error');
@@ -435,79 +437,7 @@ export default function TmdbDetailScreen() {
         </View>
       </Animated.ScrollView>
 
-      <SeasonPickerModal
-        visible={seasonPickerOpen}
-        seasons={seasons}
-        picked={picked}
-        onToggle={n => {
-          setPicked(prev => {
-            const next = new Set(prev);
-            next.has(n) ? next.delete(n) : next.add(n);
-            return next;
-          });
-        }}
-        onClose={() => setSeasonPickerOpen(false)}
-        onConfirm={submitSeasons}
-      />
     </View>
-  );
-}
-
-function SeasonPickerModal({
-  visible, seasons, picked, onToggle, onClose, onConfirm,
-}: {
-  visible: boolean;
-  seasons: Jellyseerr.SeerrSeason[];
-  picked: Set<number>;
-  onToggle: (seasonNumber: number) => void;
-  onClose: () => void;
-  onConfirm: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={styles.sheet}>
-        <View style={styles.sheetHeader}>
-          <TouchableOpacity onPress={onClose}><Text style={styles.sheetCancel}>{t('request.cancel')}</Text></TouchableOpacity>
-          <Text style={styles.sheetTitle}>{t('request.seasons')}</Text>
-          <TouchableOpacity onPress={onConfirm} disabled={picked.size === 0}>
-            <Text style={[styles.sheetDone, picked.size === 0 && styles.sheetDoneOff]}>
-              Request{picked.size > 0 ? ` (${picked.size})` : ''}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
-          {seasons.map(s => {
-            const selectable = Jellyseerr.isSeasonRequestable(s);
-            const on = picked.has(s.seasonNumber);
-            return (
-              <TouchableOpacity
-                key={s.seasonNumber}
-                style={[styles.seasonRow, !selectable && styles.seasonRowOff]}
-                onPress={() => selectable && onToggle(s.seasonNumber)}
-                activeOpacity={selectable ? 0.7 : 1}
-                disabled={!selectable}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.seasonName}>{s.name || `Season ${s.seasonNumber}`}</Text>
-                  <Text style={styles.seasonMeta}>{Jellyseerr.seasonStatusLabel(s)}</Text>
-                </View>
-                {selectable ? (
-                  <View style={[styles.check, on && styles.checkOn]}>
-                    {on ? <Text style={styles.checkMark}>✓</Text> : null}
-                  </View>
-                ) : null}
-              </TouchableOpacity>
-            );
-          })}
-          <Text style={styles.seasonNote}>
-            Seasons already available, downloading or not yet aired cannot be
-            requested — that is why they are greyed out rather than hidden.
-          </Text>
-        </ScrollView>
-      </View>
-    </Modal>
   );
 }
 
@@ -611,40 +541,7 @@ const POSTER_OFFSET = -80;
 const styles = StyleSheet.create({
   heroShade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: `rgba(0,0,0,${HERO_SHADE})` },
   secondaryAction: { marginTop: spacing.md },
-  sheet: { flex: 1, backgroundColor: colors.bg },
-  sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  sheetTitle: { ...type.bodyStrong, color: colors.text },
-  sheetCancel: { ...type.body, color: colors.textMuted },
-  sheetDone: { ...type.bodyStrong, color: colors.text },
-  sheetDoneOff: { color: colors.textDim },
-  seasonRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  seasonRowOff: { opacity: 0.4 },
-  seasonName: { ...type.body, color: colors.text },
-  seasonMeta: { ...type.caption, color: colors.textMuted, marginTop: 2 },
-  check: {
-    width: 24, height: 24, borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  checkOn: { backgroundColor: colors.text, borderColor: colors.text },
-  checkMark: { color: colors.bg, fontSize: 14, fontWeight: '700' },
   waitingText: { ...type.body, color: colors.textMuted, lineHeight: 20 },
-  seasonNote: { ...type.small, color: colors.textDim, marginTop: spacing.lg, lineHeight: 18 },
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   errorText: { ...type.body, color: colors.textDim },

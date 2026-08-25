@@ -154,6 +154,41 @@ function RootLayoutNav() {
         <Stack.Screen name="settings/language" options={{ title: t('nav.language') }} />
         <Stack.Screen name="settings/password" options={{ title: t('nav.password') }} />
         <Stack.Screen name="settings/about" options={{ title: t('nav.about') }} />
+
+        {/*
+          * Sheets, drawn by iOS rather than by us.
+          *
+          * `formSheet` is the card that slides up over the screen it came from:
+          * the corner radius, the dimming, the grabber and drag-to-dismiss all
+          * belong to UIKit, and the detents decide how tall it may be. The
+          * seasons list can be long, so it opens at two thirds and pulls up to
+          * full; the cast sheet is as tall as the devices it found.
+          *
+          * Both are headerless - each draws its own title, the way the modals
+          * they replaced did.
+          */}
+        <Stack.Screen
+          name="sheet/seasons"
+          options={{
+            presentation: 'formSheet',
+            headerShown: false,
+            sheetAllowedDetents: [0.65, 0.95],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 28,
+            contentStyle: { backgroundColor: colors.bgElevated },
+          }}
+        />
+        <Stack.Screen
+          name="sheet/cast"
+          options={{
+            presentation: 'formSheet',
+            headerShown: false,
+            sheetAllowedDetents: 'fitToContents',
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 28,
+            contentStyle: { backgroundColor: colors.bgElevated },
+          }}
+        />
       </Stack>
     </ThemeProvider>
   );

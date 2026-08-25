@@ -304,7 +304,8 @@
     "castTo": "Casten naar",
     "disconnect": "Huidige sessie verbreken",
     "noDevices": "Geen apparaten gevonden op dit netwerk.",
-    "castLabel": "Casten naar een apparaat"
+    "castLabel": "Casten naar een apparaat",
+    "unknownDevice": "Onbekend apparaat"
   },
   "request": {
     "failed": "Details konden niet worden geladen",
@@ -321,7 +322,9 @@
     "language": "Taal",
     "seasonCount": "Seizoenen",
     "episodeCount": "Afleveringen",
-    "countries": "Landen"
+    "countries": "Landen",
+    "seasonNumber": "Seizoen {{number}}",
+    "seasonsNote": "Seizoenen die al beschikbaar zijn, gedownload worden of nog niet zijn uitgezonden kun je niet aanvragen - daarom staan ze grijs in plaats van verborgen."
   },
   "badge": {
     "available": "Beschikbaar",

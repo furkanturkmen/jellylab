@@ -304,7 +304,8 @@
     "castTo": "Cast to",
     "disconnect": "Disconnect current session",
     "noDevices": "No devices found on this network.",
-    "castLabel": "Cast to a device"
+    "castLabel": "Cast to a device",
+    "unknownDevice": "Unknown device"
   },
   "request": {
     "failed": "Failed to load details",
@@ -321,7 +322,9 @@
     "language": "Language",
     "seasonCount": "Seasons",
     "episodeCount": "Episodes",
-    "countries": "Countries"
+    "countries": "Countries",
+    "seasonNumber": "Season {{number}}",
+    "seasonsNote": "Seasons already available, downloading or not yet aired cannot be requested - that is why they are greyed out rather than hidden."
   },
   "badge": {
     "available": "Available",

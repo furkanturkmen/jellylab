@@ -304,7 +304,8 @@
     "castTo": "Streamen auf",
     "disconnect": "Aktuelle Sitzung trennen",
     "noDevices": "Keine Geräte in diesem Netzwerk gefunden.",
-    "castLabel": "Auf ein Gerät streamen"
+    "castLabel": "Auf ein Gerät streamen",
+    "unknownDevice": "Unbekanntes Gerät"
   },
   "request": {
     "failed": "Details konnten nicht geladen werden",
@@ -321,7 +322,9 @@
     "language": "Sprache",
     "seasonCount": "Staffeln",
     "episodeCount": "Folgen",
-    "countries": "Länder"
+    "countries": "Länder",
+    "seasonNumber": "Staffel {{number}}",
+    "seasonsNote": "Staffeln, die bereits verfügbar sind, geladen werden oder noch nicht ausgestrahlt wurden, lassen sich nicht anfragen - deshalb sind sie ausgegraut statt ausgeblendet."
   },
   "badge": {
     "available": "Verfügbar",

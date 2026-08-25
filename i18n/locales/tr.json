@@ -304,7 +304,8 @@
     "castTo": "Şuraya yayınla",
     "disconnect": "Geçerli oturumu kes",
     "noDevices": "Bu ağda cihaz bulunamadı.",
-    "castLabel": "Bir cihaza yayınla"
+    "castLabel": "Bir cihaza yayınla",
+    "unknownDevice": "Bilinmeyen cihaz"
   },
   "request": {
     "failed": "Ayrıntılar yüklenemedi",
@@ -321,7 +322,9 @@
     "language": "Dil",
     "seasonCount": "Sezon",
     "episodeCount": "Bölüm",
-    "countries": "Ülkeler"
+    "countries": "Ülkeler",
+    "seasonNumber": "{{number}}. sezon",
+    "seasonsNote": "Hâlihazırda mevcut olan, indirilen ya da henüz yayınlanmamış sezonlar istenemez - bu yüzden gizlenmek yerine soluk gösterilir."
   },
   "badge": {
     "available": "Mevcut",

@@ -41,13 +41,13 @@ type AudioStream = { index: number; label: string; language?: string };
 
 export default function ItemScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { state } = useAuth();
   const [item, setItem] = useState<JellyfinItem | null>(null);
   const [playback, setPlayback] = useState<PlaybackConfig | null>(null);
 
   const castClient = useRemoteMediaClient();
   const castState = useCastState();
-  const [castPickerOpen, setCastPickerOpen] = useState(false);
   const { t, i18n } = useTranslation();
   const [tmdbArt, setTmdbArt] = useState<{ backdrop?: string; poster?: string }>({});
   /** TMDB's description in the app's language, when it has one. */
@@ -399,7 +399,7 @@ export default function ItemScreen() {
                 />
                 <CircleButton
                   icon={{ ios: 'tv.badge.wifi', android: 'cast', web: 'cast' }}
-                  onPress={() => setCastPickerOpen(true)}
+                  onPress={() => router.push('/sheet/cast')}
                   accessibilityLabel={t('player.castLabel')}
                   tint={castState === 'connected' ? colors.pink : undefined}
                 />
@@ -427,7 +427,6 @@ export default function ItemScreen() {
           ) : null}
         </View>
       </Animated.ScrollView>
-      <CastPickerModal visible={castPickerOpen} onClose={() => setCastPickerOpen(false)} />
     </View>
   );
 }
@@ -1274,118 +1273,6 @@ function ExternalSubsModal({
               ))}
             </>
           )}
-          <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.modalCloseText}>{t('player.close')}</Text>
-          </TouchableOpacity>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
-
-function CastPickerModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { t } = useTranslation();
-  const castState = useCastState();
-  const [devices, setDevices] = useState<any[]>([]);
-  const [scanning, setScanning] = useState(false);
-  const [connecting, setConnecting] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!visible) return;
-    setScanning(true);
-
-    const discovery = GoogleCast.getDiscoveryManager();
-    let sub: any;
-
-    (async () => {
-      try {
-        await discovery.startDiscovery();
-        const current = await discovery.getDevices();
-        setDevices(current ?? []);
-      } catch {}
-    })();
-
-    try {
-      sub = discovery.onDevicesUpdated((next) => {
-        setDevices(next ?? []);
-      });
-    } catch {}
-
-    const t = setTimeout(() => setScanning(false), 6000);
-
-    return () => {
-      clearTimeout(t);
-      try { sub?.remove?.(); } catch {}
-    };
-  }, [visible]);
-
-  async function connect(device: any) {
-    setConnecting(device.deviceId);
-    try {
-      await GoogleCast.getSessionManager().startSession(device.deviceId);
-      onClose();
-    } catch (e: any) {
-      // swallow
-    } finally {
-      setConnecting(null);
-    }
-  }
-
-  async function disconnect() {
-    try {
-      await GoogleCast.getSessionManager().endCurrentSession(true);
-    } catch {}
-  }
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-      supportedOrientations={['portrait', 'landscape', 'landscape-left', 'landscape-right']}
-    >
-      <Pressable style={styles.modalBackdrop} onPress={onClose}>
-        <Pressable style={styles.modalSheet} onPress={() => {}}>
-          <View style={styles.modalHandle} />
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t('player.castTo')}</Text>
-            {scanning ? <ActivityIndicator color={colors.text} /> : null}
-          </View>
-          <Text style={styles.modalSub}>State: {castState ?? 'unknown'}</Text>
-
-          {castState === 'connected' ? (
-            <TouchableOpacity style={styles.disconnectBtn} onPress={disconnect} activeOpacity={0.8}>
-              <Text style={styles.disconnectText}>{t('player.disconnect')}</Text>
-            </TouchableOpacity>
-          ) : null}
-
-          <View style={{ marginTop: spacing.md }}>
-            {devices.length === 0 && !scanning ? (
-              <Text style={styles.modalEmpty}>{t('player.noDevices')}</Text>
-            ) : null}
-            {devices.map((d) => (
-              <TouchableOpacity
-                key={d.deviceId ?? d.uniqueId}
-                style={styles.deviceRow}
-                onPress={() => connect(d)}
-                disabled={!!connecting}
-                activeOpacity={0.7}
-              >
-                <SymbolView
-                  name={{ ios: 'tv.badge.wifi', android: 'cast', web: 'cast' }}
-                  tintColor={colors.text}
-                  size={22}
-                />
-                <View style={{ flex: 1, marginLeft: spacing.md }}>
-                  <Text style={styles.deviceName}>{d.friendlyName ?? d.name ?? 'Unknown device'}</Text>
-                  {d.modelName ? <Text style={styles.deviceModel}>{d.modelName}</Text> : null}
-                </View>
-                {connecting === d.deviceId ? <ActivityIndicator color={colors.text} /> : null}
-              </TouchableOpacity>
-            ))}
-          </View>
-
           <TouchableOpacity style={styles.modalClose} onPress={onClose} activeOpacity={0.8}>
             <Text style={styles.modalCloseText}>{t('player.close')}</Text>
           </TouchableOpacity>
@@ -2352,9 +2239,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: spacing.lg,
   },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   modalTitle: { ...type.h1, color: colors.text },
-  modalSub: { ...type.caption, color: colors.textMuted, marginTop: spacing.xs, textTransform: 'uppercase' },
   modalEmpty: { ...type.small, color: colors.textDim, paddingVertical: spacing.md, textAlign: 'center' },
   deviceRow: {
     flexDirection: 'row',
@@ -2363,17 +2248,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  deviceName: { ...type.body, color: colors.text },
-  deviceModel: { ...type.caption, color: colors.textMuted, marginTop: 2 },
-  disconnectBtn: {
-    marginTop: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255, 69, 58, 0.5)',
-  },
-  disconnectText: { color: 'rgba(255, 99, 99, 1)', ...type.small, fontWeight: '600' },
   modalClose: {
     marginTop: spacing.lg,
     paddingVertical: spacing.md,
