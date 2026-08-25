@@ -343,7 +343,9 @@
     "trackExternal": "{{label}} (external)",
     "trackNumber": "Track {{number}}",
     "speedNormal": "Normal",
-    "castHint": "The AirPlay picker is inside the player."
+    "castHint": "The AirPlay picker is inside the player.",
+    "pipUnavailable": "Picture in picture needs AVPlayer",
+    "pipUnavailableBody": "This file plays through VLC, which has no picture in picture. Settings → Playback → Always use AVPlayer will transcode it on the server so PiP works, at the cost of some work for the server."
   },
   "request": {
     "failed": "Failed to load details",

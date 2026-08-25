@@ -1293,6 +1293,25 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
                 <TouchableOpacity style={styles.overlayIconBtn} onPress={showSpeedSheet} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
+                {/*
+                  * Present but dimmed, and it explains itself.
+                  *
+                  * VLC has no picture in picture, so this engine simply had no
+                  * such button - which reads as the feature being broken
+                  * rather than absent, especially on a library that is mostly
+                  * mkv and therefore mostly VLC.
+                  */}
+                <TouchableOpacity
+                  style={styles.overlayIconBtn}
+                  onPress={() => Alert.alert(t('player.pipUnavailable'), t('player.pipUnavailableBody'))}
+                  activeOpacity={0.7}
+                >
+                  <SymbolView
+                    name={{ ios: 'pip.enter', android: 'picture_in_picture_alt', web: 'picture_in_picture_alt' }}
+                    tintColor={colors.textDim}
+                    size={22}
+                  />
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
                   <SymbolView
                     name={{

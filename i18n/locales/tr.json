@@ -343,7 +343,9 @@
     "trackExternal": "{{label}} (harici)",
     "trackNumber": "İz {{number}}",
     "speedNormal": "Normal",
-    "castHint": "AirPlay seçici oynatıcının içinde."
+    "castHint": "AirPlay seçici oynatıcının içinde.",
+    "pipUnavailable": "Görüntü içinde görüntü için AVPlayer gerekir",
+    "pipUnavailableBody": "Bu dosya VLC ile oynatılıyor ve VLC’de görüntü içinde görüntü yok. Ayarlar → Oynatma → Her zaman AVPlayer, sunucuda transkod ederek PiP’i çalıştırır; karşılığında sunucu biraz iş yapar."
   },
   "request": {
     "failed": "Ayrıntılar yüklenemedi",

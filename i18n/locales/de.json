@@ -343,7 +343,9 @@
     "trackExternal": "{{label}} (extern)",
     "trackNumber": "Spur {{number}}",
     "speedNormal": "Normal",
-    "castHint": "Die AirPlay-Auswahl steckt im Player."
+    "castHint": "Die AirPlay-Auswahl steckt im Player.",
+    "pipUnavailable": "Bild-in-Bild braucht AVPlayer",
+    "pipUnavailableBody": "Diese Datei läuft über VLC, das kein Bild-in-Bild kann. Einstellungen → Wiedergabe → Immer AVPlayer lässt den Server transkodieren, damit PiP funktioniert - auf Kosten von Arbeit für den Server."
   },
   "request": {
     "failed": "Details konnten nicht geladen werden",
