@@ -32,6 +32,21 @@ export default function TmdbDetailScreen() {
    * the artwork. A third of the speed, and gone by the time the content has
    * covered where it was.
    */
+  // Pull down and the artwork grows rather than leaving a gap; scroll up and it
+  // drifts at a third of the speed and fades out. The same hero as the show
+  // page - this screen only scrolled it away before.
+  const heroRubberBand = scrollY.interpolate({
+    inputRange: [-HERO_HEIGHT, 0],
+    outputRange: [-HERO_HEIGHT / 2, 0],
+    extrapolateLeft: 'extend' as const,
+    extrapolateRight: 'clamp' as const,
+  });
+  const heroDrift = scrollY.interpolate({
+    inputRange: [0, HERO_HEIGHT],
+    outputRange: [0, HERO_HEIGHT / 3],
+    extrapolate: 'clamp' as const,
+  });
+
   const heroFade = {
     opacity: scrollY.interpolate({
       inputRange: [0, HERO_HEIGHT * 0.55, HERO_HEIGHT * 0.9],
@@ -39,11 +54,13 @@ export default function TmdbDetailScreen() {
       extrapolate: 'clamp' as const,
     }),
     transform: [
+      { translateY: Animated.add(heroRubberBand, heroDrift) },
       {
-        translateY: scrollY.interpolate({
-          inputRange: [0, HERO_HEIGHT],
-          outputRange: [0, HERO_HEIGHT / 3],
-          extrapolate: 'clamp' as const,
+        scale: scrollY.interpolate({
+          inputRange: [-HERO_HEIGHT, 0],
+          outputRange: [2 * HERO_STRETCH_SLOP, 1],
+          extrapolateLeft: 'extend' as const,
+          extrapolateRight: 'clamp' as const,
         }),
       },
     ],
@@ -259,7 +276,11 @@ export default function TmdbDetailScreen() {
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
       >
-        <Animated.View style={[styles.hero, heroFade]}>
+        <View style={styles.hero}>
+          {/* Everything that darkens the artwork travels with it, or the shade
+              slides off the picture on a pull - which is what left a hard line
+              across the item screen until it was fixed there. */}
+          <Animated.View style={[styles.heroInner, heroFade]}>
           {backdrop ? (
             <Image source={{ uri: backdrop }} style={StyleSheet.absoluteFill} contentFit="cover" transition={300} />
           ) : (
@@ -278,7 +299,8 @@ export default function TmdbDetailScreen() {
             locations={[0.35, 1]}
             style={StyleSheet.absoluteFill}
           />
-        </Animated.View>
+          </Animated.View>
+        </View>
 
         <View style={styles.body}>
           <View style={styles.headerRow}>
@@ -580,6 +602,10 @@ function MetaRow({ k, v }: { k: string; v: string }) {
 }
 
 const HERO_HEIGHT = 320;
+/** Extra height above the visible hero for the rubber-band to grow into. */
+const HERO_BLEED = 320;
+/** A few percent of over-scale, so rounding never shows a hairline of background. */
+const HERO_STRETCH_SLOP = 1.08;
 const POSTER_OFFSET = -80;
 
 const styles = StyleSheet.create({
@@ -623,7 +649,9 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   errorText: { ...type.body, color: colors.textDim },
 
-  hero: { width: '100%', height: HERO_HEIGHT, overflow: 'hidden' },
+  hero: { width: '100%', height: HERO_HEIGHT + HERO_BLEED, marginTop: -HERO_BLEED, overflow: 'hidden' },
+  // Sits below the bleed at rest; the stretch grows it into that space.
+  heroInner: { position: 'absolute', top: HERO_BLEED, left: 0, right: 0, bottom: 0 },
   body: { paddingHorizontal: spacing.xl, marginTop: POSTER_OFFSET },
 
   headerRow: { flexDirection: 'row', gap: spacing.lg, alignItems: 'flex-end' },
