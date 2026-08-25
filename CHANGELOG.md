@@ -4,8 +4,34 @@ Versions are tagged in git. The app reads its own number from `app.json`, shows
 it under Profile → About, and sends it to Jellyfin, so an install can be
 identified from the server's device list.
 
-Pre-1.0 on purpose: Downloads is planned but unbuilt (`docs/downloads.md`), and
-1.0 should mean the tabs all do what they say.
+Pre-1.0 on purpose: Downloads stores and lists files but cannot yet play them
+with no server (`docs/downloads.md`), and 1.0 should mean the tabs all do what
+they say.
+
+## 0.12.0 — downloads, and a player that does what its settings say
+
+- The Downloads tab holds files now: a button on any film or episode that
+  asks before it starts and says how much room it needs, a list of what is
+  arriving with a progress bar and a cancel, and what is stored with its size
+  and a delete. Playback prefers the stored copy. Not offline playback yet -
+  `docs/downloads.md` is honest about what is left.
+- Press and hold a poster anywhere in the library for a peek at the item screen
+  and a menu: play or resume, and mark watched. Watched posters carry a tick.
+- "Always use AVPlayer" changed the engine but not the mode, so AVPlayer was
+  handed an mkv it cannot open, failed, and the screen fell back to VLC without
+  saying so. It asks the server for a transcode instead, which is the stream
+  AVPlayer exists to play.
+- Picture in picture called a method the player does not have; it is on the
+  video view. The fullscreen button locked an orientation the binary never
+  declared. Both need the rebuild this release implies.
+- The player's subtitle, audio, track and speed pickers are native sheets, as
+  the seasons and cast pickers already were - and all of them are now the one
+  shape a form sheet can lay out, after several that it could not.
+- Searching for a title with a comma, a colon or a plus in it returned nothing:
+  axios leaves those unencoded and Jellyseerr rejects them. Encoded here now.
+- A subtitle track that produced no text was silent about why. The log says
+  what was fetched and how many cues came out of it, and the picker shows one
+  tick instead of two.
 
 ## 0.11.0 — the platform's own furniture, in your own language
 
