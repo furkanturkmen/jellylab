@@ -1,4 +1,4 @@
-import { languageNeedles, matchesLanguage } from '../lang';
+import { languageNeedles, matchesLanguage, preferredAudioIndex } from '../lang';
 
 /**
  * Track labels are written by whoever released the file, so matching them is
@@ -54,5 +54,39 @@ describe('matchesLanguage', () => {
     expect(languageNeedles('kor')).toEqual(['kor']);
     expect(matchesLanguage('kor', 'kor')).toBe(true);
     expect(matchesLanguage('Korean', 'kor')).toBe(false);
+  });
+});
+
+describe('preferredAudioIndex', () => {
+  // The shape Jellyfin sends for the release this was written against.
+  const streams = [
+    { Index: 1, Language: 'eng', DisplayTitle: 'Golumpa@CR - English - AAC - Stereo', IsDefault: true },
+    { Index: 2, Language: 'jpn', DisplayTitle: 'Japanese - AAC - Stereo' },
+  ];
+
+  it('picks the track in the language asked for', () => {
+    expect(preferredAudioIndex(streams, 'jpn')).toBe(2);
+    expect(preferredAudioIndex(streams, 'eng')).toBe(1);
+  });
+
+  // Saying nothing leaves the server's default alone, which is better than
+  // pinning every file to a guess.
+  it('says nothing when the language is not there', () => {
+    expect(preferredAudioIndex(streams, 'tur')).toBeNull();
+  });
+
+  it('says nothing for original, or for a single-track file', () => {
+    expect(preferredAudioIndex(streams, 'original')).toBeNull();
+    expect(preferredAudioIndex(streams, undefined)).toBeNull();
+    expect(preferredAudioIndex([streams[0]], 'jpn')).toBeNull();
+  });
+
+  // Some releases label the track and leave Language empty.
+  it('falls back to the label when the code is missing', () => {
+    const labelled = [
+      { Index: 1, DisplayTitle: 'English dub' },
+      { Index: 2, DisplayTitle: 'Japanese 2.0' },
+    ];
+    expect(preferredAudioIndex(labelled, 'jpn')).toBe(2);
   });
 });

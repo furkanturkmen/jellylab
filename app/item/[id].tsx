@@ -15,9 +15,9 @@ import { useTranslation } from 'react-i18next';
 import * as Jellyfin from '@/api/jellyfin';
 import * as Jellyseerr from '@/api/jellyseerr';
 import { ButtonRow, CircleButton, PrimaryButton } from '@/components/AppleButton';
-import { decideEngine, decidePlayback, type Engine, type PlayMode } from '@/player/decide';
+import { decideEngine, decidePlayback, FORCED_TRANSCODE_BITRATE, type Engine, type PlayMode } from '@/player/decide';
 import { parseVtt, findActiveCue, type VttCue } from '@/player/vtt';
-import { matchesLanguage } from '@/player/lang';
+import { matchesLanguage, preferredAudioIndex } from '@/player/lang';
 import { useAuth } from '@/hooks/useAuth';
 import { getDeviceId } from '@/store/auth';
 import { cleanSubLabel } from '@/components/TrackRow';
@@ -51,6 +51,16 @@ type PlaybackConfig = {
   mediaSourceId?: string;
   externalSubs: { index: number; label: string }[];
   audioStreams: AudioStream[];
+  /** Which track the server is encoding, when it is encoding one. */
+  audioStreamIndex?: number | null;
+  /**
+   * Where to start, when this config replaced another mid-playback.
+   *
+   * Switching audio on a transcode is a new stream, and a new stream starts at
+   * zero unless told otherwise - which would throw away the position every
+   * time someone changed track.
+   */
+  startAt?: number;
 };
 
 /** An audio track as Jellyfin describes it, before VLC has opened the file. */
@@ -235,6 +245,30 @@ export default function ItemScreen() {
     );
   }
 
+  /**
+   * Change the audio track of a transcode, which means a new stream.
+   *
+   * Direct play hands the player every track and it switches them itself. A
+   * transcode carries exactly one, so the only way to hear another is to ask
+   * the server to encode that one instead - a different URL, resumed at the
+   * second the old one reached.
+   */
+  async function switchTranscodeAudio(streamIndex: number, positionSeconds: number) {
+    if (state.status !== 'signed-in' || !item || !playback?.mediaSourceId) return;
+    const [deviceId, prefs] = await Promise.all([getDeviceId(), loadPrefs()]);
+    const ceiling = Math.round((prefs.maxBitrateMbps || 0) * 1_000_000) || FORCED_TRANSCODE_BITRATE;
+    const url = Jellyfin.transcodeUrl(
+      item.Id,
+      playback.mediaSourceId,
+      state.auth.accessToken,
+      deviceId,
+      ceiling,
+      streamIndex,
+    );
+    console.log(`[jellylab] player:switchAudio index=${streamIndex} at=${Math.round(positionSeconds)}s`);
+    setPlayback(p => (p ? { ...p, url, audioStreamIndex: streamIndex, startAt: positionSeconds } : p));
+  }
+
   async function play() {
     if (state.status !== 'signed-in' || !item) return;
 
@@ -304,8 +338,16 @@ export default function ItemScreen() {
     // transcoding needs a MediaSourceId; without one we can only direct play
     const transcoding = decision.mode === 'transcode' && !!source?.Id && !!decision.maxBitrate;
     const mode: PlayMode = transcoding ? 'transcode' : 'direct';
+    // The transcode carries one audio track, so the preference has to reach
+    // the server: inside the player there is nothing left to switch between.
+    const audioIndex = transcoding
+      ? preferredAudioIndex(
+          (source?.MediaStreams ?? []).filter(stream => stream.Type === 'Audio'),
+          prefs.audioLanguage,
+        )
+      : null;
     const url = transcoding
-      ? Jellyfin.transcodeUrl(item.Id, source.Id, state.auth.accessToken, deviceId, decision.maxBitrate!)
+      ? Jellyfin.transcodeUrl(item.Id, source.Id, state.auth.accessToken, deviceId, decision.maxBitrate!, audioIndex)
       : Jellyfin.streamUrl(item.Id, state.auth.accessToken, deviceId);
     const externalSubs = (source?.MediaStreams ?? [])
       .filter(s => s.Type === 'Subtitle' && typeof s.Index === 'number')
@@ -348,9 +390,13 @@ export default function ItemScreen() {
 
     console.log(
       `[jellylab] player:decision engine=${engine} mode=${mode} preferred=${prefs.preferredEngine}` +
-      ` container=${source?.Container ?? '?'} bitrate=${source?.Bitrate ?? 0}`,
+      ` container=${source?.Container ?? '?'} bitrate=${source?.Bitrate ?? 0}` +
+      ` audioPref=${prefs.audioLanguage} audioIndex=${audioIndex ?? 'server'}`,
     );
-    setPlayback({ url, engine, mode, mediaSourceId: source?.Id, externalSubs, audioStreams });
+    setPlayback({
+      url, engine, mode, mediaSourceId: source?.Id, externalSubs, audioStreams,
+      audioStreamIndex: audioIndex,
+    });
   }
 
   if (!item) {
@@ -371,7 +417,12 @@ export default function ItemScreen() {
           */}
         <Stack.Screen options={{ headerShown: false, gestureEnabled: false, orientation: 'all' }} />
         <Player
+          // The key is the URL: a new stream is a new player, which is what
+          // makes the switch actually take effect rather than being ignored by
+          // a component that thinks nothing changed.
+          key={playback.url}
           config={playback}
+          onSwitchAudio={switchTranscodeAudio}
           itemId={item.Id}
           delayKey={item.SeriesId ?? item.Id}
           title={item.Name}
@@ -384,7 +435,7 @@ export default function ItemScreen() {
           artworkUri={tmdbArt.poster ?? (item.ImageTags?.Primary
             ? Jellyfin.imageUrl(item.Id, item.ImageTags.Primary, 'Primary', 600)
             : undefined)}
-          resumeSeconds={Jellyfin.ticksToSeconds(item.UserData?.PlaybackPositionTicks ?? 0)}
+          resumeSeconds={playback.startAt ?? Jellyfin.ticksToSeconds(item.UserData?.PlaybackPositionTicks ?? 0)}
           initialDuration={Jellyfin.ticksToSeconds(item.RunTimeTicks ?? 0)}
           onExit={() => setPlayback(null)}
           // AVPlayer failing and VLC quietly taking over is why "Always use
@@ -1550,6 +1601,7 @@ function SeriesEpisodes({ seriesId, userId, tmdbId, seasons }: {
 
 function Player({
   config,
+  onSwitchAudio,
   itemId,
   delayKey,
   title,
@@ -1561,6 +1613,8 @@ function Player({
   onNativeError,
 }: {
   config: PlaybackConfig;
+  /** Called with a Jellyfin stream index when the audio track should change. */
+  onSwitchAudio: (streamIndex: number, positionSeconds: number) => void;
   itemId: string;
   /** what a subtitle offset is remembered against: the series, or the film */
   delayKey: string;
@@ -1598,6 +1652,9 @@ function Player({
           itemId={itemId}
           mediaSourceId={config.mediaSourceId}
           externalSubs={config.externalSubs}
+          audioStreams={config.audioStreams}
+          activeAudioStreamIndex={config.audioStreamIndex}
+          onSwitchAudio={config.mode === 'transcode' ? onSwitchAudio : undefined}
           title={title}
           subtitle={subtitle}
           artworkUri={artworkUri}
@@ -1627,11 +1684,16 @@ function Player({
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', onError, onExit }: {
+function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, activeAudioStreamIndex, onSwitchAudio, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', onError, onExit }: {
   url: string;
   itemId: string;
   mediaSourceId?: string;
   externalSubs: { index: number; label: string }[];
+  /** The server's audio tracks - the only list that means anything on a transcode. */
+  audioStreams?: AudioStream[];
+  activeAudioStreamIndex?: number | null;
+  /** Set only when transcoding: switching means a new stream from the server. */
+  onSwitchAudio?: (streamIndex: number, positionSeconds: number) => void;
   title: string;
   subtitle?: string;
   artworkUri?: string;
@@ -1850,6 +1912,18 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, subtitl
       externalSubs,
       activeExternalSubIndex: activeSubIndex,
       onPickExternal: pickExternalSub,
+      /**
+       * On a transcode the file has one audio track, so the picker offers the
+       * server's list instead of the player's - and choosing one asks for a
+       * new stream rather than flipping a track that is not there.
+       */
+      serverAudio: onSwitchAudio
+        ? {
+            tracks: audioStreams ?? [],
+            activeIndex: activeAudioStreamIndex ?? null,
+            onPick: (streamIndex: number) => onSwitchAudio(streamIndex, player.currentTime ?? 0),
+          }
+        : undefined,
     });
     router.push('/sheet/player');
   }

@@ -35,3 +35,29 @@ export function matchesLanguage(text: string | undefined, code: string): boolean
   const tokens = hay.split(/[^\p{L}]+/u).filter(Boolean);
   return languageNeedles(code).some(n => (n.length <= 3 ? tokens.includes(n) : hay.includes(n)));
 }
+
+/** The pieces of a MediaStream this needs; anything else is the caller's. */
+type AudioStream = { Index?: number; Language?: string; DisplayTitle?: string; IsDefault?: boolean };
+
+/**
+ * Which audio stream the server should send when it transcodes.
+ *
+ * Direct play hands every track to the player and the picker sorts it out.
+ * A transcode does not: Jellyfin re-encodes one stream and the player sees a
+ * file with a single audio track, so the choice has to be made in the request.
+ * Without one the server sends the container's default - on these anime
+ * releases, the English dub, with no way to change it from inside the player.
+ *
+ * Returns null when there is nothing to say, which leaves the server's own
+ * default alone rather than pinning it to a guess.
+ */
+export function preferredAudioIndex(streams: AudioStream[], code: string | undefined): number | null {
+  if (!code || code === 'original') return null;
+
+  const audio = streams.filter(s => typeof s.Index === 'number');
+  if (audio.length < 2) return null;
+
+  const match = audio.find(s => matchesLanguage(s.Language, code))
+    ?? audio.find(s => matchesLanguage(s.DisplayTitle, code));
+  return match?.Index ?? null;
+}
