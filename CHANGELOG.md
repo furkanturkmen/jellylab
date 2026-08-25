@@ -7,6 +7,32 @@ identified from the server's device list.
 Pre-1.0 on purpose: Downloads is planned but unbuilt (`docs/downloads.md`), and
 1.0 should mean the tabs all do what they say.
 
+## 0.11.0 — the platform's own furniture, in your own language
+
+- iOS draws the tab bar now, not us: a SwiftUI TabView with the system's
+  material and selection animation, and a search tab that hands its field to
+  the bottom bar the way the App Store does.
+- Lock the phone mid-episode and the lock screen shows the poster, the title
+  and working controls, with the audio still playing. AVPlayer only; the VLC
+  engine has no equivalent.
+- The seasons and cast pickers are native sheets - grabber, drag-to-dismiss,
+  and a height that fits what is in them.
+- Metadata arrives in the app's language: titles, overviews and episode names
+  come from TMDB in Dutch, Turkish or German where they exist, falling back to
+  English rather than to nothing. Overviews render as text, not as the markup
+  some of them are stored in.
+- Every word the app writes itself is translated in all four languages -
+  pills, buttons, alerts, player menus, settings - with dates as dd-mm-yyyy and
+  times as hh:mm throughout. A test fails the build on a key that exists in one
+  language and not the others.
+- A show is called what it is: Series, Film or Anime, rather than everything
+  with episodes being a series.
+- Specials no longer count as a season, so Tokyo Ghoul says three.
+- The request screen's hero stretches on a pull like the show page's, and its
+  shade stays on the artwork instead of sliding off.
+- Groundwork for Downloads: the store and the file handling, with no screen on
+  top of it yet.
+
 ## 0.10.0 — diagnostics, and a library worth browsing
 
 - Every failure says what it was: `[jellylab]` error logging into the Metro
