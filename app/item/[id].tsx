@@ -25,7 +25,17 @@ import { openPlayerSheet } from '@/store/playerSheet';
 import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/prefs';
 import { useDownload } from '@/hooks/useDownloads';
 import { formatBytes } from '@/lib/bytes';
-import { getDownloadSync, localUriSync, removeDownload, startDownload } from '@/store/downloads';
+import {
+  getDownloadSync,
+  localSubtitleSync,
+  offlineItemSync,
+  localSubtitlesSync,
+  localUriSync,
+  removeDownload,
+  saveLocalPosition,
+  startDownload,
+} from '@/store/downloads';
+import { drainProgressOutbox, queueProgress } from '@/store/outbox';
 import { logRequestFailure } from '@/lib/errorLog';
 import { formatDate } from '@/lib/date';
 import { jellyfinKind, kindKey } from '@/lib/kind';
@@ -75,7 +85,29 @@ export default function ItemScreen() {
 
   useEffect(() => {
     if (state.status !== 'signed-in' || !id) return;
-    Jellyfin.getItem(state.auth.userId, id).then(setItem);
+    Jellyfin.getItem(state.auth.userId, id)
+      .then(fetched => {
+        setItem(fetched);
+        // The server answered, so anything watched offline can be handed over.
+        drainProgressOutbox();
+      })
+      .catch(e => {
+        /**
+         * No server, but possibly a file.
+         *
+         * The screen is the only way into the player, so failing here used to
+         * mean a download on the device was unreachable - which is the one
+         * situation downloads exist for. What the store wrote down is enough
+         * to draw a title and press play.
+         */
+        const offline = offlineItemSync(id);
+        if (offline) {
+          console.log(`[jellylab] item:offline ${id}`);
+          setItem(offline);
+          return;
+        }
+        logRequestFailure('item:get', e);
+      });
   }, [state.status, id]);
 
   // Fetched here rather than inside the episode list, because the pill above it
@@ -164,12 +196,26 @@ export default function ItemScreen() {
     const bytes = source?.Size
       ?? Math.round(((source?.Bitrate ?? 0) / 8) * Jellyfin.ticksToSeconds(item.RunTimeTicks ?? 0));
 
+    // The subtitle streams are looked up here, where the server is known to be
+    // reachable, and handed to the store to fetch alongside the media. A
+    // sidecar track lives on the server and would be missing exactly when it
+    // is wanted.
+    const subs = (source?.MediaStreams ?? [])
+      .filter(stream => stream.Type === 'Subtitle' && typeof stream.Index === 'number')
+      .map(stream => ({
+        index: stream.Index as number,
+        label: stream.DisplayTitle ?? stream.Language ?? `Track ${stream.Index}`,
+      }));
+
     Alert.alert(
       t('downloads.startTitle', { title: item.Name }),
       t('downloads.startBody', { size: formatBytes(bytes) }),
       [
         { text: t('common.cancel'), style: 'cancel' },
-        { text: t('downloads.start'), onPress: () => startDownload(item, container) },
+        {
+          text: t('downloads.start'),
+          onPress: () => startDownload(item, container, { mediaSourceId: source?.Id, subs }),
+        },
       ],
     );
   }
@@ -195,8 +241,37 @@ export default function ItemScreen() {
         // Not decidePlayback: its answer for a file AVPlayer cannot open is
         // "ask the server to transcode", and there may be no server.
         : decideEngine([{ Id: 'local', Container: stored?.container }]);
-      console.log(`[jellylab] player:local engine=${engine} container=${stored?.container ?? '?'}`);
-      setPlayback({ url: local, engine, mode: 'direct', externalSubs: [], audioStreams: [] });
+      /**
+       * Subtitles for a stored file.
+       *
+       * What was fetched alongside the media is authoritative, since it is
+       * what will still be here on a plane. When the server happens to be
+       * reachable its list is used to fill in tracks stored before this
+       * existed - a download made yesterday has no sidecars beside it, and
+       * losing the subtitle picker was not the trade anyone agreed to.
+       */
+      let externalSubs = localSubtitlesSync(item.Id);
+      if (externalSubs.length === 0) {
+        const sources = await Jellyfin.getPlaybackInfo(state.auth.userId, item.Id).catch(() => []);
+        externalSubs = (sources[0]?.MediaStreams ?? [])
+          .filter(stream => stream.Type === 'Subtitle' && typeof stream.Index === 'number')
+          .map(stream => ({
+            index: stream.Index as number,
+            label: stream.DisplayTitle ?? stream.Language ?? `Track ${stream.Index}`,
+          }));
+      }
+      console.log(
+        `[jellylab] player:local engine=${engine} container=${stored?.container ?? '?'}` +
+        ` subs=${externalSubs.length}`,
+      );
+      setPlayback({
+        url: local,
+        engine,
+        mode: 'direct',
+        mediaSourceId: item.Id,
+        externalSubs,
+        audioStreams: [],
+      });
       return;
     }
 
@@ -658,7 +733,10 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     Jellyfin.reportPlaybackStart(itemId, Jellyfin.secondsToTicks(resumeSeconds), playMethod).catch(() => {});
     return () => {
       try {
-        Jellyfin.reportPlaybackStopped(itemId, Jellyfin.secondsToTicks(positionRef.current), playMethod).catch(() => {});
+        const ticks = Jellyfin.secondsToTicks(positionRef.current);
+        rememberLocalPosition();
+        Jellyfin.reportPlaybackStopped(itemId, ticks, playMethod)
+          .catch(() => queueProgress(itemId, ticks));
       } catch {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -802,6 +880,16 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       return;
     }
     try {
+      // A stored copy first: it is the one that exists with no network, and it
+      // is identical to what the server would send.
+      const offline = localSubtitleSync(itemId, streamIndex);
+      if (offline) {
+        const cues = parseVtt(offline);
+        setExternalCues(cues);
+        console.log(`[jellylab] player:externalSub index=${streamIndex} stored cues=${cues.length}`);
+        return;
+      }
+
       const auth = await import('@/store/auth').then(m => m.loadJellyfinAuth());
       if (!auth) return;
       const url = Jellyfin.subtitleUrl(itemId, mediaSourceId, streamIndex, auth.accessToken, 'vtt');
@@ -826,6 +914,18 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       logRequestFailure(`player:externalSub index=${streamIndex}`, e);
       setExternalCues([]);
     }
+  }
+
+  /**
+   * Keep the resume point on the device as well as on the server.
+   *
+   * Jellyfin owns this normally, and offline there is nobody to tell - so a
+   * stored item remembers where it got to itself, and the meta file is what
+   * the item screen reads when there is no server to ask.
+   */
+  function rememberLocalPosition() {
+    if (!localUriSync(itemId)) return;
+    saveLocalPosition(itemId, Jellyfin.secondsToTicks(positionRef.current));
   }
 
   function pickInternalSub(trackId: number) {
@@ -985,8 +1085,22 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     setVlcTextTracks(tracks);
 
     const rawAudio = Array.isArray(e?.audioTracks) ? e.audioTracks : [];
+    console.log(`[jellylab] player:vlcAudioTracks ${JSON.stringify(rawAudio)}`);
     const audio = rawAudio.filter((t: any) => t && t.id != null && t.id !== -1);
     setVlcAudioTracks(audio);
+
+    /**
+     * Say which track is playing, even when nobody chose it.
+     *
+     * The picker ticks whatever `vlcAudioTrackId` holds, and that stayed at -1
+     * until someone opened the picker and chose - so a file playing its own
+     * default, which for these releases is the English dub, showed a list with
+     * nothing ticked at all. VLC starts on the container's default, which is
+     * the first track it reports.
+     */
+    if (vlcAudioTrackId === -1 && audio.length > 0) {
+      setVlcAudioTrackId(audio[0].id);
+    }
 
     // VLC only acts on textTrack/audioTrack when the prop *changes*, and a
     // fresh instance has already reselected the container's defaults by the
@@ -1515,7 +1629,9 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, subtitl
     return () => {
       try {
         const pos = Jellyfin.secondsToTicks(player.currentTime ?? 0);
-        Jellyfin.reportPlaybackStopped(itemId, pos, playMethod).catch(() => {});
+        saveLocalPosition(itemId, pos);
+        Jellyfin.reportPlaybackStopped(itemId, pos, playMethod)
+          .catch(() => queueProgress(itemId, pos));
       } catch {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

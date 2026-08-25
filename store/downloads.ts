@@ -36,6 +36,26 @@ export type DownloadMeta = {
   runtimeTicks?: number;
   /** When the download finished, so the tab can sort by recency. */
   completedAt?: number;
+  /** 'Episode' or 'Movie' - the item screen branches on it when the server is gone. */
+  type?: string;
+  seriesId?: string;
+  /** Stored artwork, so the screen can draw with no network. */
+  poster?: string;
+  /**
+   * Subtitle tracks fetched as VTT alongside the media.
+   *
+   * Embedded tracks travel inside the container and need nothing here; a
+   * sidecar file lives on the server and would be missing exactly when it is
+   * needed, which is the whole point of a download.
+   */
+  subs?: { index: number; label: string; file: string }[];
+  /**
+   * Where this was left off, in ticks.
+   *
+   * Jellyfin owns this normally. Offline there is nobody to ask and nobody to
+   * tell, so it is kept here as well and reconciled by the outbox.
+   */
+  positionTicks?: number;
 };
 
 export type DownloadEntry = {
@@ -136,7 +156,66 @@ export function describeItem(item: JellyfinItem, container: string): DownloadMet
     seriesName: item.SeriesName,
     container,
     runtimeTicks: item.RunTimeTicks,
+    type: item.Type,
+    seriesId: item.SeriesId,
+    positionTicks: item.UserData?.PlaybackPositionTicks,
   };
+}
+
+/**
+ * The stored item, shaped like one from the server.
+ *
+ * The item screen is the only way into the player, and it starts with a
+ * getItem - so with no server there is no screen and no way to reach a file
+ * that is sitting on the phone. This is what it falls back to: enough of a
+ * JellyfinItem to draw a title, a runtime and a play button.
+ */
+export function offlineItemSync(itemId: string): JellyfinItem | null {
+  const meta = cache[itemId]?.meta;
+  if (!meta) return null;
+  const [, episodePart] = meta.subtitle.split('·').map(part => part.trim());
+  return {
+    Id: meta.itemId,
+    Name: meta.type === 'Episode' ? (episodePart || meta.subtitle || meta.title) : meta.title,
+    Type: (meta.type as JellyfinItem['Type']) ?? 'Movie',
+    SeriesName: meta.seriesName,
+    SeriesId: meta.seriesId,
+    RunTimeTicks: meta.runtimeTicks,
+    UserData: { PlaybackPositionTicks: meta.positionTicks ?? 0, Played: false },
+  } as JellyfinItem;
+}
+
+/**
+ * Remember where playback got to.
+ *
+ * Written straight to meta.json rather than held in memory: the reason this
+ * exists at all is a device that may be closed and reopened with no server in
+ * between.
+ */
+export function saveLocalPosition(itemId: string, positionTicks: number): void {
+  const entry = cache[itemId];
+  if (!entry) return;
+  const meta = { ...entry.meta, positionTicks };
+  try {
+    writeMeta(itemId, meta);
+  } catch {
+    // Not worth failing playback over.
+  }
+  set(itemId, { ...entry, meta });
+}
+
+/** The stored VTT for a track, if this download has one. */
+export function localSubtitleSync(itemId: string, index: number): string | null {
+  const meta = cache[itemId]?.meta;
+  const track = meta?.subs?.find(s => s.index === index);
+  if (!track) return null;
+  const file = new File(itemDir(itemId), track.file);
+  return file.exists ? safeRead(file) : null;
+}
+
+/** Stored external tracks, in the shape the player already passes around. */
+export function localSubtitlesSync(itemId: string): { index: number; label: string }[] {
+  return (cache[itemId]?.meta.subs ?? []).map(({ index, label }) => ({ index, label }));
 }
 
 // ------------------------------------------------------------------- hydrate
@@ -194,7 +273,71 @@ function safeRead(file: File): string | null {
  * is on disk. Anything else arrives as HLS - a playlist and hundreds of
  * segments - which is not something to reassemble on a phone.
  */
-export async function startDownload(item: JellyfinItem, container: string): Promise<void> {
+/**
+ * Fetch the artwork and any sidecar subtitle tracks beside the media.
+ *
+ * Both are on the server, which is the thing that will be missing. Failures
+ * here are not failures of the download: an episode without its poster is
+ * still an episode, and one without its external track still has whatever the
+ * container carries.
+ */
+async function storeCompanions(
+  item: JellyfinItem,
+  dir: Directory,
+  subs: { index: number; label: string }[],
+): Promise<Partial<DownloadMeta>> {
+  const extra: Partial<DownloadMeta> = {};
+
+  const tag = item.ImageTags?.Primary;
+  if (tag) {
+    try {
+      const target = new File(dir, 'poster.jpg');
+      const file = await File.downloadFileAsync(
+        Jellyfin.imageUrl(item.Id, tag, 'Primary', 600),
+        target,
+        { idempotent: true },
+      );
+      extra.poster = file.uri;
+    } catch (e) {
+      logRequestFailure(`downloads:poster ${item.Id}`, e);
+    }
+  }
+
+  const stored: DownloadMeta['subs'] = [];
+  for (const track of subs) {
+    try {
+      const auth = await import('./auth').then(m => m.loadJellyfinAuth());
+      if (!auth) continue;
+      // Jellyfin's media source id is the item id for anything with a single
+      // file, which is everything this app downloads - but the caller passes
+      // the real one when it has it.
+      const sourceId = mediaSourceIds.get(item.Id) ?? item.Id;
+      const url = Jellyfin.subtitleUrl(item.Id, sourceId, track.index, auth.accessToken, 'vtt');
+      const vtt = await Jellyfin.fetchSubtitleVtt(url);
+      const name = `sub-${track.index}.vtt`;
+      const file = new File(dir, name);
+      try {
+        if (!file.exists) file.create({ intermediates: true, overwrite: true });
+      } catch {}
+      file.write(vtt);
+      stored.push({ index: track.index, label: track.label, file: name });
+    } catch (e) {
+      logRequestFailure(`downloads:subtitle ${item.Id}/${track.index}`, e);
+    }
+  }
+  if (stored.length > 0) extra.subs = stored;
+  return extra;
+}
+
+/** Media source ids, needed to build subtitle URLs after the fact. */
+const mediaSourceIds = new Map<string, string>();
+
+export async function startDownload(
+  item: JellyfinItem,
+  container: string,
+  /** The subtitle streams the item screen already looked up, and the source they belong to. */
+  companions?: { mediaSourceId?: string; subs: { index: number; label: string }[] },
+): Promise<void> {
   await ensureDownloadsLoaded();
 
   const meta = describeItem(item, container);
@@ -202,6 +345,8 @@ export async function startDownload(item: JellyfinItem, container: string): Prom
   if (existing?.status === 'done' || existing?.status === 'downloading') return;
 
   set(item.Id, { meta, status: 'queued', bytesWritten: 0, totalBytes: -1 });
+
+  if (companions?.mediaSourceId) mediaSourceIds.set(item.Id, companions.mediaSourceId);
 
   const dir = itemDir(item.Id);
   try {
@@ -227,7 +372,10 @@ export async function startDownload(item: JellyfinItem, container: string): Prom
     });
 
     controllers.delete(item.Id);
-    const done: DownloadMeta = { ...meta, completedAt: Date.now() };
+
+    // The media is here; the companions are best effort on top of it.
+    const extra = await storeCompanions(item, dir, companions?.subs ?? []);
+    const done: DownloadMeta = { ...meta, ...extra, completedAt: Date.now() };
     writeMeta(item.Id, done);
     console.log(`[jellylab] downloads:done ${item.Id} bytes=${file.size ?? 0}`);
     set(item.Id, {
