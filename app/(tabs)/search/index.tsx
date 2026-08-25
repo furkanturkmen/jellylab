@@ -126,11 +126,11 @@ export default function SearchScreen() {
         * Apple's Liquid Glass documentation, and the same one the App Store
         * uses.
         *
-        * `Stack.Toolbar` with a `SearchBarSlot` is what asks for the bottom
-        * placement - hence the stack around this screen in _layout.tsx. On
-        * anything older than iOS 26 the same declaration falls back to the
-        * search bar in the navigation header, which is why nothing here draws a
-        * field of its own any more.
+        * A search bar is a property of a navigation header, which is why this
+        * screen has a stack of its own (see _layout.tsx). Declaring it is the
+        * whole of it: the tab bar takes the field on iOS 26, and on anything
+        * older the same declaration stays in the header. Either way nothing
+        * here draws a field of its own any more.
         */}
       <Stack.SearchBar
         placeholder={t('search.placeholder')}
@@ -148,9 +148,6 @@ export default function SearchScreen() {
         tintColor={colors.text}
         headerIconColor={colors.textMuted}
       />
-      <Stack.Toolbar>
-        <Stack.Toolbar.SearchBarSlot />
-      </Stack.Toolbar>
       {showingSearch ? (
         busy ? (
           <>
