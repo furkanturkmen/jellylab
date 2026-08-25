@@ -1893,6 +1893,10 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, subtitl
           style={{ flex: 1 }}
           fullscreenOptions={{ enable: true, autoExitOnRotate: false }}
           allowsPictureInPicture
+          // What people mean by picture in picture: swipe home and the video
+          // carries on in a corner. The button is the explicit version of the
+          // same thing.
+          startsPictureInPictureAutomatically
           nativeControls={false}
           contentFit="contain"
         />
