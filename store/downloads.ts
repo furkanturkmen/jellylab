@@ -1,6 +1,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 
 import * as Jellyfin from '@/api/jellyfin';
+import { logRequestFailure } from '@/lib/errorLog';
 import { parseStored } from './json';
 import type { JellyfinItem } from '@/types';
 
@@ -101,6 +102,23 @@ function metaFile(itemId: string): File {
   return new File(itemDir(itemId), 'meta.json');
 }
 
+/**
+ * Write the sidecar, creating it first.
+ *
+ * `write` on a File that does not exist is not documented either way, and this
+ * runs before the download starts - so a throw here would take the download
+ * with it, for a file that is only there to name the episode offline.
+ */
+function writeMeta(itemId: string, meta: DownloadMeta): void {
+  const file = metaFile(itemId);
+  try {
+    if (!file.exists) file.create({ intermediates: true, overwrite: true });
+  } catch {
+    // Already there, or the directory is not writable - write will say so.
+  }
+  file.write(JSON.stringify(meta));
+}
+
 /** Containers arrive as "mkv" or occasionally "mp4,m4v" - keep the first. */
 export function mediaName(container: string | undefined): string {
   const ext = (container ?? '').toLowerCase().split(',')[0].trim() || 'bin';
@@ -188,13 +206,14 @@ export async function startDownload(item: JellyfinItem, container: string): Prom
   const dir = itemDir(item.Id);
   try {
     if (!dir.exists) dir.create({ intermediates: true });
-    metaFile(item.Id).write(JSON.stringify(meta));
+    writeMeta(item.Id, meta);
 
     const url = await Jellyfin.downloadUrl(item.Id);
     const target = new File(dir, mediaName(container));
     const controller = new AbortController();
     controllers.set(item.Id, controller);
 
+    console.log(`[jellylab] downloads:start ${item.Id} container=${container}`);
     set(item.Id, { meta, status: 'downloading', bytesWritten: 0, totalBytes: -1 });
 
     const file = await File.downloadFileAsync(url, target, {
@@ -209,7 +228,8 @@ export async function startDownload(item: JellyfinItem, container: string): Prom
 
     controllers.delete(item.Id);
     const done: DownloadMeta = { ...meta, completedAt: Date.now() };
-    metaFile(item.Id).write(JSON.stringify(done));
+    writeMeta(item.Id, done);
+    console.log(`[jellylab] downloads:done ${item.Id} bytes=${file.size ?? 0}`);
     set(item.Id, {
       meta: done,
       status: 'done',
@@ -222,6 +242,7 @@ export async function startDownload(item: JellyfinItem, container: string): Prom
     // A cancel lands here too; remove() has already cleared the entry in that
     // case, so only report when it is still ours to report on.
     if (cache[item.Id]) {
+      logRequestFailure(`downloads:${item.Id}`, e);
       set(item.Id, {
         meta,
         status: 'failed',
