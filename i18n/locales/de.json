@@ -90,7 +90,9 @@
     "seeAll": "alle ansehen",
     "itemCount": "{{count}} Titel",
     "emptyLibrary": "Noch nichts in dieser Bibliothek.",
-    "rowFailed": "Diese Zeile wurde nicht geladen. Zum erneuten Versuch tippen."
+    "rowFailed": "Diese Zeile wurde nicht geladen. Zum erneuten Versuch tippen.",
+    "watchDownloaded_one": "{{count}} Download ansehen",
+    "watchDownloaded_other": "{{count}} Downloads ansehen"
   },
   "search": {
     "placeholder": "Filme und Serien suchen",

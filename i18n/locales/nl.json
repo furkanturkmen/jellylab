@@ -90,7 +90,9 @@
     "seeAll": "alles bekijken",
     "itemCount": "{{count}} titels",
     "emptyLibrary": "Nog niets in deze bibliotheek.",
-    "rowFailed": "Deze rij is niet geladen. Tik om het opnieuw te proberen."
+    "rowFailed": "Deze rij is niet geladen. Tik om het opnieuw te proberen.",
+    "watchDownloaded_one": "Bekijk {{count}} download",
+    "watchDownloaded_other": "Bekijk {{count}} downloads"
   },
   "search": {
     "placeholder": "Zoek films en series",

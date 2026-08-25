@@ -90,7 +90,9 @@
     "seeAll": "see all",
     "itemCount": "{{count}} titles",
     "emptyLibrary": "Nothing in this library yet.",
-    "rowFailed": "This row didn't load. Tap to try again."
+    "rowFailed": "This row didn't load. Tap to try again.",
+    "watchDownloaded_one": "Watch {{count}} download",
+    "watchDownloaded_other": "Watch {{count}} downloads"
   },
   "search": {
     "placeholder": "Search movies and TV",

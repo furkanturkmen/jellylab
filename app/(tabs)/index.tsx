@@ -12,6 +12,7 @@ import * as Jellyseerr from '@/api/jellyseerr';
 import { jellyfinKind, kindKey } from '@/lib/kind';
 import { useAuth } from '@/hooks/useAuth';
 import { ItemLink } from '@/components/ItemLink';
+import { useDownloads } from '@/hooks/useDownloads';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem, JellyfinView } from '@/types';
@@ -121,6 +122,9 @@ export default function LibraryScreen() {
   const [heroIndex, setHeroIndex] = useState(0);
   const [heroArt, setHeroArt] = useState<Record<string, string>>({});
   const scrollY = useRef(new Animated.Value(0)).current;
+  // What is on the phone, for the one screen where the server being gone is
+  // the whole story.
+  const { entries: downloaded } = useDownloads();
   const inFlight = useRef(false);
   const loadedAt = useRef(0);
 
@@ -276,6 +280,30 @@ export default function LibraryScreen() {
             {error === 'auth' ? t('library.unavailableAuth') : t('library.unavailableBody')}
           </Text>
           {error === 'auth' ? null : <Text style={styles.errorDetail}>{breakable(error)}</Text>}
+          {/*
+            * The library failing is the first thing seen with no network, and
+            * saying only "unavailable" while three episodes sit on the phone
+            * is how a working app looks broken.
+            */}
+          {downloaded.some(entry => entry.status === 'done') ? (
+            <TouchableOpacity
+              style={styles.toDownloads}
+              onPress={() => router.push('/downloads')}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <SymbolView
+                name={{ ios: 'arrow.down.circle', android: 'download', web: 'download' }}
+                tintColor={colors.text}
+                size={17}
+              />
+              <Text style={styles.toDownloadsText}>
+                {t('library.watchDownloaded', {
+                  count: downloaded.filter(entry => entry.status === 'done').length,
+                })}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
           <TouchableOpacity style={styles.retry} onPress={() => load()} activeOpacity={0.7} disabled={loading}>
             {/* The button is the only moving part on this screen, so it has to
                 carry the wait itself - otherwise a retry against a server that
@@ -727,6 +755,19 @@ const styles = StyleSheet.create({
   // The address the request could not reach. Dim on purpose: it is for the
   // person debugging their own server, not the headline.
   errorDetail: { ...type.small, color: colors.textDim, textAlign: 'center', marginTop: spacing.md },
+  toDownloads: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  toDownloadsText: { ...type.body, color: colors.text, fontWeight: '600' },
   retry: {
     marginTop: spacing.xl,
     paddingHorizontal: spacing.xxl,

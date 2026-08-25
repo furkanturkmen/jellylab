@@ -90,7 +90,9 @@
     "seeAll": "tümünü gör",
     "itemCount": "{{count}} başlık",
     "emptyLibrary": "Bu kitaplıkta henüz bir şey yok.",
-    "rowFailed": "Bu satır yüklenmedi. Yeniden denemek için dokun."
+    "rowFailed": "Bu satır yüklenmedi. Yeniden denemek için dokun.",
+    "watchDownloaded_one": "{{count}} indirmeyi izle",
+    "watchDownloaded_other": "{{count}} indirmeyi izle"
   },
   "search": {
     "placeholder": "Film ve dizi ara",
