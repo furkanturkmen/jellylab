@@ -8,6 +8,14 @@ Pre-1.0 on purpose: Downloads works per item but has no eviction and no way to
 take a whole season (`docs/downloads.md`), and 1.0 should mean the tabs all do
 what they say.
 
+## 0.13.1 — the offline path, actually walked
+
+- A stored item is drawn from disk before the server is asked rather than after
+  it times out, so opening a downloaded episode with no network is immediate
+  instead of a fifteen second spinner.
+- The item screen says when the copy on the device is the one that will play.
+  It always preferred it; nothing said so.
+
 ## 0.13.0 — a download you can actually watch
 
 - Subtitles and artwork are stored beside the media, so a downloaded episode
