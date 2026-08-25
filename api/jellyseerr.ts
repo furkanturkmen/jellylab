@@ -17,11 +17,6 @@ async function makeClient(cookie?: string): Promise<AxiosInstance> {
     // awaited, not read synchronously: the store may still be hydrating
     baseURL: `${await requireJellyseerrUrl()}/api/v1`,
     timeout: 15000,
-    // Sent with everything except discovery, which opts out below. Seerr
-    // forwards it to TMDB, so search results, details and episode text come
-    // back in the app's language. A call passing its own language still wins:
-    // axios lets request params override the defaults set here.
-    params: { language: currentLanguage() },
     // Cookie is a forbidden header name in a browser: the fetch spec has XHR
     // drop it, so the header set below never leaves the page and every call
     // arrives unauthenticated. withCredentials is how a browser is asked to
@@ -181,11 +176,17 @@ export async function logout(): Promise<void> {
 
 export async function search(query: string, page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/search', { params: { query, page } });
+  // Search text follows the app; the matching does not care - TMDB looks at
+  // every title it holds in every language either way.
+  const res = await client.get('/search', { params: { query, page, language: currentLanguage() } });
   return res.data.results ?? [];
 }
 
 /**
+ * Language is stated per call rather than defaulted on the client, because the
+ * three kinds of request want three different things: text you read follows
+ * the app, browse rows ask in English, and the anime row asks for nothing.
+ *
  * Browse rows ask in English, deliberately.
  *
  * TMDB does not merely translate a discovery list - it weights popularity by
