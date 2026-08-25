@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
@@ -33,7 +34,7 @@ export default function SearchScreen() {
   const { headerHeight } = useTabHeaderMetrics();
   const scrollY = useRef(new Animated.Value(0)).current;
   const { state } = useAuth();
-  const [query] = useSearchQuery();
+  const [query, setQuery] = useSearchQuery();
   const [results, setResults] = useState<JellyseerrSearchResult[]>([]);
   const [library, setLibrary] = useState<JellyfinItem[]>([]);
   const [busy, setBusy] = useState(false);
@@ -112,10 +113,31 @@ export default function SearchScreen() {
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
+      {/* The field was part of the hand-built tab bar, which the system's own
+          bar replaced. It belongs on this screen anyway - it is the only screen
+          that uses it, and it no longer has to travel between tabs to get here. */}
+      <View style={[styles.searchBar, { marginTop: headerHeight }]}>
+        <SymbolView
+          name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
+          tintColor={colors.textMuted}
+          size={18}
+        />
+        <TextInput
+          style={styles.searchInput}
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t('search.placeholder')}
+          placeholderTextColor={colors.textDim}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+          accessibilityLabel={t('tabs.search')}
+        />
+      </View>
       {showingSearch ? (
         busy ? (
           <>
-            <View style={{ height: headerHeight }} />
             <View style={styles.center}><ActivityIndicator color={colors.text} /></View>
           </>
         ) : (
@@ -308,9 +330,22 @@ const CARD_HEIGHT = 180;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.md,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  searchInput: { flex: 1, color: colors.text, ...type.body, padding: 0 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
   emptyText: { ...type.body, color: colors.textDim },
-  searchBar: { padding: spacing.lg, paddingTop: spacing.md },
   input: {
     height: 46,
     borderRadius: radius.pill,
