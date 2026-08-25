@@ -52,6 +52,7 @@ export default function ItemScreen() {
   const [tmdbArt, setTmdbArt] = useState<{ backdrop?: string; poster?: string }>({});
   /** TMDB's description in the app's language, when it has one. */
   const [localisedOverview, setLocalisedOverview] = useState<string | null>(null);
+  const [seasons, setSeasons] = useState<any[]>([]);
   const scrollY = useRef(new Animated.Value(0)).current;
   const { width: screenWidth } = useWindowDimensions();
 
@@ -67,6 +68,18 @@ export default function ItemScreen() {
     if (state.status !== 'signed-in' || !id) return;
     Jellyfin.getItem(state.auth.userId, id).then(setItem);
   }, [state.status, id]);
+
+  // Fetched here rather than inside the episode list, because the pill above it
+  // needs to count them - and counting them is the only way to get the number
+  // right. See below.
+  useEffect(() => {
+    if (state.status !== 'signed-in' || !item || item.Type !== 'Series') return;
+    let cancelled = false;
+    Jellyfin.getSeasons(state.auth.userId, item.Id)
+      .then(list => { if (!cancelled) setSeasons(list); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [state, item]);
 
   /**
    * Prefer TMDB's own artwork for the two big images on this screen.
@@ -215,7 +228,16 @@ export default function ItemScreen() {
   // For a series the runtime is one episode's, which is worth saying rather
   // than implying - "24m" beside "3 seasons" reads as the season being 24
   // minutes long otherwise.
-  const seasons = item.Type === 'Series' && item.ChildCount ? item.ChildCount : null;
+  //
+  // The count comes from the season list, not from ChildCount: Jellyfin counts
+  // Specials as a season, so Tokyo Ghoul - three seasons and a specials folder -
+  // reported four. Specials are index 0 by convention, which is what makes them
+  // separable. ChildCount stands in until the list arrives, so the pill does not
+  // appear and then jump.
+  const realSeasons = seasons.filter(x => (x?.IndexNumber ?? 0) > 0).length;
+  const seasonCount = item.Type !== 'Series'
+    ? null
+    : realSeasons || (item.ChildCount ?? null);
   const backdropPx = Math.min(HERO_MAX_PX, Math.round(screenWidth * PixelRatio.get()));
 
   // Grows on a downward pull instead of leaving a black bar above it. Scaling
@@ -314,9 +336,9 @@ export default function ItemScreen() {
                 {years ? (
                   <View style={styles.pill}><Text style={styles.pillText}>{years}</Text></View>
                 ) : null}
-                {seasons ? (
+                {seasonCount ? (
                   <View style={styles.pill}>
-                    <Text style={styles.pillText}>{t('detail.seasons', { count: seasons })}</Text>
+                    <Text style={styles.pillText}>{t('detail.seasons', { count: seasonCount })}</Text>
                   </View>
                 ) : null}
                 {runtimeMin ? (
@@ -362,7 +384,12 @@ export default function ItemScreen() {
           ) : null}
 
           {item.Type === 'Series' && state.status === 'signed-in' ? (
-            <SeriesEpisodes seriesId={item.Id} userId={state.auth.userId} tmdbId={Jellyfin.tmdbId(item)} />
+            <SeriesEpisodes
+              seriesId={item.Id}
+              userId={state.auth.userId}
+              tmdbId={Jellyfin.tmdbId(item)}
+              seasons={seasons}
+            />
           ) : null}
         </View>
       </Animated.ScrollView>
@@ -1330,11 +1357,13 @@ function CastPickerModal({ visible, onClose }: { visible: boolean; onClose: () =
   );
 }
 
-function SeriesEpisodes({ seriesId, userId, tmdbId }: {
+function SeriesEpisodes({ seriesId, userId, tmdbId, seasons }: {
   seriesId: string;
   userId: string;
   /** null when the series was never matched against TMDB. */
   tmdbId: number | null;
+  /** Fetched by the screen above, which needs the count for its pill. */
+  seasons: any[];
 }) {
   const router = useRouter();
   const { i18n } = useTranslation();
@@ -1348,21 +1377,16 @@ function SeriesEpisodes({ seriesId, userId, tmdbId }: {
    * no translation.
    */
   const [localised, setLocalised] = useState<Map<number, Jellyseerr.LocalisedEpisode>>(new Map());
-  const [seasons, setSeasons] = useState<any[]>([]);
   const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null);
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingEps, setLoadingEps] = useState(false);
 
   useEffect(() => {
-    Jellyfin.getSeasons(userId, seriesId)
-      .then(list => {
-        setSeasons(list);
-        const first = list[0];
-        if (first) setActiveSeasonId(first.Id);
-      })
-      .finally(() => setLoading(false));
-  }, [seriesId, userId]);
+    if (seasons.length === 0) return;
+    setLoading(false);
+    setActiveSeasonId(current => current ?? seasons[0]?.Id ?? null);
+  }, [seasons]);
 
   useEffect(() => {
     if (!activeSeasonId) return;
