@@ -398,5 +398,9 @@
     "fre": "Fransızca",
     "spa": "İspanyolca",
     "jpn": "Japonca"
+  },
+  "menu": {
+    "markWatched": "İzlendi olarak işaretle",
+    "markUnwatched": "İzlenmedi olarak işaretle"
   }
 }

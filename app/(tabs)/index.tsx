@@ -11,6 +11,7 @@ import * as Jellyfin from '@/api/jellyfin';
 import * as Jellyseerr from '@/api/jellyseerr';
 import { jellyfinKind, kindKey } from '@/lib/kind';
 import { useAuth } from '@/hooks/useAuth';
+import { ItemLink } from '@/components/ItemLink';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem, JellyfinView } from '@/types';
@@ -328,13 +329,22 @@ export default function LibraryScreen() {
                 backdrop shows through the list as it scrolls over it. */}
             {resume.length > 0 ? (
               <View style={[styles.opaque, styles.afterHero]}>
-                <ContinueWatchingRow items={resume} title={t('library.continueWatching')} />
+                {/* Marking something watched takes it out of this row, which is
+                    the server's decision - so the shelf is re-read rather than
+                    patched. Silent: nothing should flash for a menu tap. */}
+                <ContinueWatchingRow
+                  items={resume}
+                  title={t('library.continueWatching')}
+                  onChanged={() => load(true)}
+                />
               </View>
             ) : null}
           </>
         }
         renderItem={({ item }: { item: LibraryItem }) => (
-          <View style={styles.opaque}><LibraryRow lib={item} onRetry={() => load()} /></View>
+          <View style={styles.opaque}>
+            <LibraryRow lib={item} onRetry={() => load()} onChanged={() => load(true)} />
+          </View>
         )}
         ListFooterComponent={<View style={[styles.opaque, styles.listFooter]} />}
       />
@@ -529,7 +539,11 @@ function HeroOverlay({ items, height, index, onIndex }: {
   );
 }
 
-function ContinueWatchingRow({ items, title }: { items: JellyfinItem[]; title: string }) {
+function ContinueWatchingRow({ items, title, onChanged }: {
+  items: JellyfinItem[];
+  title: string;
+  onChanged?: () => void;
+}) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -542,13 +556,13 @@ function ContinueWatchingRow({ items, title }: { items: JellyfinItem[]; title: s
         keyExtractor={i => i.Id}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: spacing.xl, gap: spacing.md }}
-        renderItem={({ item }) => <ResumeCard item={item} />}
+        renderItem={({ item }) => <ResumeCard item={item} onChanged={onChanged} />}
       />
     </View>
   );
 }
 
-function ResumeCard({ item }: { item: JellyfinItem }) {
+function ResumeCard({ item, onChanged }: { item: JellyfinItem; onChanged?: () => void }) {
   const backdrop = item.BackdropImageTags?.[0];
   const primary = item.ImageTags?.Primary;
   const tag = backdrop ?? primary;
@@ -567,10 +581,9 @@ function ResumeCard({ item }: { item: JellyfinItem }) {
         : '';
 
   return (
-    <Link href={`/item/${item.Id}`} asChild>
-      <TouchableOpacity
+    <ItemLink item={item} onChanged={onChanged}>
+      <View
         style={styles.resumeCard}
-        activeOpacity={0.8}
         accessibilityRole="button"
         accessibilityLabel={label ? `${item.Name}, ${label}` : item.Name}
       >
@@ -589,12 +602,12 @@ function ResumeCard({ item }: { item: JellyfinItem }) {
         </View>
         <Text style={styles.resumeTitle} numberOfLines={1}>{item.Name}</Text>
         {label ? <Text style={styles.resumeMeta}>{label}</Text> : null}
-      </TouchableOpacity>
-    </Link>
+      </View>
+    </ItemLink>
   );
 }
 
-function LibraryRow({ lib, onRetry }: { lib: LibraryItem; onRetry: () => void }) {
+function LibraryRow({ lib, onRetry, onChanged }: { lib: LibraryItem; onRetry: () => void; onChanged?: () => void }) {
   const { t } = useTranslation();
   const count = lib.total || lib.items.length;
   return (
@@ -642,33 +655,44 @@ function LibraryRow({ lib, onRetry }: { lib: LibraryItem; onRetry: () => void })
           keyExtractor={i => i.Id}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: spacing.xl, gap: spacing.md }}
-          renderItem={({ item }) => <PosterCard item={item} />}
+          renderItem={({ item }) => <PosterCard item={item} onChanged={onChanged} />}
         />
       )}
     </View>
   );
 }
 
-function PosterCard({ item }: { item: JellyfinItem }) {
+function PosterCard({ item, onChanged }: { item: JellyfinItem; onChanged?: () => void }) {
   const tag = item.ImageTags?.Primary;
   return (
-    <Link href={`/item/${item.Id}`} asChild>
-      <TouchableOpacity
+    <ItemLink item={item} onChanged={onChanged}>
+      <View
         style={styles.card}
-        activeOpacity={0.7}
         accessibilityRole="button"
         accessibilityLabel={item.ProductionYear ? `${item.Name}, ${item.ProductionYear}` : item.Name}
       >
-        <Image
-          source={{ uri: Jellyfin.imageUrl(item.Id, tag) }}
-          style={styles.poster}
-          contentFit="cover"
-          transition={200}
-        />
+        <View>
+          <Image
+            source={{ uri: Jellyfin.imageUrl(item.Id, tag) }}
+            style={styles.poster}
+            contentFit="cover"
+            transition={200}
+          />
+          {item.UserData?.Played ? <WatchedTick /> : null}
+        </View>
         <Text style={styles.cardTitle} numberOfLines={1}>{item.Name}</Text>
         {item.ProductionYear ? <Text style={styles.cardYear}>{item.ProductionYear}</Text> : null}
-      </TouchableOpacity>
-    </Link>
+      </View>
+    </ItemLink>
+  );
+}
+
+/** Watched, said on the card rather than only on the screen behind it. */
+function WatchedTick() {
+  return (
+    <View style={styles.watched}>
+      <Text style={styles.watchedMark}>✓</Text>
+    </View>
   );
 }
 
@@ -813,6 +837,22 @@ const styles = StyleSheet.create({
   resumeTitle: { marginTop: spacing.sm, ...type.small, color: colors.text },
   resumeMeta: { ...type.caption, color: colors.textMuted, marginTop: 2 },
 
+  // The tick sits on the poster, not beside it: the corner is the one place
+  // that is never part of the title or the year.
+  watched: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.successTint,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.successBorder,
+  },
+  watchedMark: { color: colors.text, fontSize: 12, fontWeight: '700' },
   card: { width: 130 },
   poster: {
     width: 130,

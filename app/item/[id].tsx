@@ -40,7 +40,9 @@ type PlaybackConfig = {
 type AudioStream = { index: number; label: string; language?: string };
 
 export default function ItemScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // `play` is set by the long-press menu on a poster, which starts playback
+  // without making you find the button on the screen it is opening.
+  const { id, play: autoplay } = useLocalSearchParams<{ id: string; play?: string }>();
   const router = useRouter();
   const { state } = useAuth();
   const [item, setItem] = useState<JellyfinItem | null>(null);
@@ -72,6 +74,15 @@ export default function ItemScreen() {
   // Fetched here rather than inside the episode list, because the pill above it
   // needs to count them - and counting them is the only way to get the number
   // right. See below.
+  // Once, and only for a film or an episode: a series has no single thing to
+  // play, and the ref is what stops a re-render from starting it twice.
+  const autoplayed = useRef(false);
+  useEffect(() => {
+    if (autoplay !== '1' || autoplayed.current || !item || item.Type === 'Series') return;
+    autoplayed.current = true;
+    play();
+  }, [autoplay, item]);
+
   useEffect(() => {
     if (state.status !== 'signed-in' || !item || item.Type !== 'Series') return;
     let cancelled = false;

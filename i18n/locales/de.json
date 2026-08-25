@@ -398,5 +398,9 @@
     "fre": "Französisch",
     "spa": "Spanisch",
     "jpn": "Japanisch"
+  },
+  "menu": {
+    "markWatched": "Als gesehen markieren",
+    "markUnwatched": "Als ungesehen markieren"
   }
 }

@@ -210,6 +210,20 @@ export async function getItem(userId: string, itemId: string): Promise<JellyfinI
   return res.data;
 }
 
+/**
+ * Mark an item watched or unwatched.
+ *
+ * The legacy path rather than 10.9's `/UserPlayedItems/{id}`: it is still
+ * routed by every server this app talks to, and it carries the user id in the
+ * URL instead of a query parameter, which is one less thing to get wrong.
+ */
+export async function setPlayed(userId: string, itemId: string, played: boolean): Promise<void> {
+  const client = await authClient();
+  const path = `/Users/${userId}/PlayedItems/${itemId}`;
+  if (played) await client.post(path);
+  else await client.delete(path);
+}
+
 /** Full-text search across the user's own libraries. */
 export async function searchLibrary(userId: string, term: string, limit = 24): Promise<JellyfinItem[]> {
   const client = await authClient();
