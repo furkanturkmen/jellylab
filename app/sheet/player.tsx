@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
@@ -21,6 +22,7 @@ import { colors, spacing, type } from '@/theme';
  */
 export default function PlayerSheet() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // Read once. The player writes before it pushes, and a later write is a
   // different opening of the sheet.
@@ -34,7 +36,7 @@ export default function PlayerSheet() {
   if (!request) return null;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
       {request.kind === 'vlcSubtitles' ? <VlcSubtitles request={request} close={router.back} /> : null}
       {request.kind === 'vlcAudio' ? <VlcAudio request={request} close={router.back} /> : null}
       {request.kind === 'tracks' ? <NativeTracks request={request} close={router.back} /> : null}
@@ -235,8 +237,8 @@ const styles = StyleSheet.create({
   // No corners and no handle: the sheet around this draws both.
   // No flex, for the same reason as the seasons sheet: the card is measured
   // from this view, and flex would make it report the whole screen.
-  root: { backgroundColor: colors.bgElevated, paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
-  title: { ...type.h1, color: colors.text, marginBottom: spacing.sm },
+  root: { backgroundColor: colors.bgElevated, paddingHorizontal: spacing.lg, paddingTop: spacing.xl },
+  title: { ...type.h1, color: colors.text, marginBottom: spacing.md },
   secondTitle: { marginTop: spacing.lg },
   list: { flexGrow: 0 },
   empty: { ...type.small, color: colors.textDim, paddingVertical: spacing.md, textAlign: 'center' },
@@ -245,12 +247,11 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     paddingTop: spacing.md,
     marginTop: spacing.md,
-    marginBottom: spacing.xxl,
     gap: spacing.sm,
   },
   delayHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   delayLabel: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase' },
   delayValue: { ...type.small, color: colors.text, fontWeight: '600' },
   delayRow: { flexDirection: 'row', gap: spacing.sm },
-  hint: { ...type.small, color: colors.textDim, lineHeight: 18, marginBottom: spacing.xxl },
+  hint: { ...type.small, color: colors.textDim, lineHeight: 18 },
 });

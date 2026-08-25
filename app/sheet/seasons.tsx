@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
@@ -22,6 +23,7 @@ import { colors, radius, spacing, type } from '@/theme';
 export default function SeasonSheet() {
   const router = useRouter();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   // Read once: the sheet owns the selection from here on, and a later write to
   // the store is a different opening of it.
@@ -60,7 +62,8 @@ export default function SeasonSheet() {
   }
 
   return (
-    <View style={styles.root}>
+    // The card ends at the home indicator, not a guessed distance from it.
+    <View style={[styles.root, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
       <Text style={styles.title}>{t('request.seasons')}</Text>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
@@ -113,9 +116,10 @@ const styles = StyleSheet.create({
   // around this content.
   // No flex: the sheet is sized to this view, so it has to be as tall as
   // what is in it rather than as tall as it is allowed to be.
-  root: { backgroundColor: colors.bgElevated, paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
-  title: { ...type.h1, color: colors.text, marginBottom: spacing.sm },
-  list: { paddingBottom: spacing.lg },
+  // paddingTop clears the grabber iOS draws over the top of the card.
+  root: { backgroundColor: colors.bgElevated, paddingHorizontal: spacing.lg, paddingTop: spacing.xl },
+  title: { ...type.h1, color: colors.text, marginBottom: spacing.md },
+  list: { paddingBottom: 0 },
   // Long shows scroll inside the card instead of pushing the button off it.
   scroll: { maxHeight: 420 },
   seasonRow: {
@@ -136,9 +140,9 @@ const styles = StyleSheet.create({
   },
   checkOn: { backgroundColor: colors.text, borderColor: colors.text },
   checkMark: { color: colors.bg, fontSize: 14, fontWeight: '700' },
-  note: { ...type.small, color: colors.textDim, marginTop: spacing.lg, lineHeight: 18 },
+  note: { ...type.small, color: colors.textDim, marginTop: spacing.md, lineHeight: 18 },
   confirm: {
-    marginBottom: spacing.xxl,
+    marginTop: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: radius.pill,
     backgroundColor: colors.accent,
