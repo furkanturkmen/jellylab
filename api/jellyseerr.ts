@@ -1,15 +1,27 @@
 import axios, { AxiosInstance } from 'axios';
 import { Platform } from 'react-native';
 import { getJellyseerrUrl, requireJellyfinUrl, requireJellyseerrUrl } from '@/config';
+import i18n from '@/i18n';
+import { metadataLanguage } from '@/lib/text';
 import { loadJellyseerrAuth, saveJellyseerrAuth, clearJellyseerrAuth } from '@/store/auth';
 import { logRequestFailure } from '@/lib/errorLog';
 import type { JellyseerrAuth, JellyseerrRequest, JellyseerrSearchResult } from '@/types';
+
+/** Whatever the app is showing right now, as a TMDB language code. */
+export function currentLanguage(): string {
+  return metadataLanguage(i18n.language);
+}
 
 async function makeClient(cookie?: string): Promise<AxiosInstance> {
   const client = axios.create({
     // awaited, not read synchronously: the store may still be hydrating
     baseURL: `${await requireJellyseerrUrl()}/api/v1`,
     timeout: 15000,
+    // Sent with everything except discovery, which opts out below. Seerr
+    // forwards it to TMDB, so search results, details and episode text come
+    // back in the app's language. A call passing its own language still wins:
+    // axios lets request params override the defaults set here.
+    params: { language: currentLanguage() },
     // Cookie is a forbidden header name in a browser: the fetch spec has XHR
     // drop it, so the header set below never leaves the page and every call
     // arrives unauthenticated. withCredentials is how a browser is asked to
@@ -173,34 +185,48 @@ export async function search(query: string, page = 1): Promise<JellyseerrSearchR
   return res.data.results ?? [];
 }
 
+/**
+ * Browse rows ask in English, deliberately.
+ *
+ * TMDB does not merely translate a discovery list - it weights popularity by
+ * language, so asking in Dutch returns Dutch television: Goede Tijden, De
+ * Fabeltjeskrant, RTL Tonight, in place of Reacher and Silo. These rows exist
+ * to show what is worth requesting, which is a global question.
+ *
+ * Search is unaffected either way: TMDB matches a query against every title it
+ * holds in every language, so an English name is found whatever the app is set
+ * to. Only these unprompted lists change.
+ */
+const DISCOVER_PARAMS = { language: 'en' };
+
 export async function discoverTrending(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/discover/trending', { params: { page } });
+  const res = await client.get('/discover/trending', { params: { page, ...DISCOVER_PARAMS } });
   return (res.data.results ?? []).filter((r: any) => r.mediaType !== 'person');
 }
 
 export async function discoverMovies(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/discover/movies', { params: { page } });
+  const res = await client.get('/discover/movies', { params: { page, ...DISCOVER_PARAMS } });
   return res.data.results ?? [];
 }
 
 export async function discoverTv(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/discover/tv', { params: { page } });
+  const res = await client.get('/discover/tv', { params: { page, ...DISCOVER_PARAMS } });
   return res.data.results ?? [];
 }
 
 // Anime keyword id on TMDB = 210024
 export async function discoverAnime(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/discover/tv', { params: { page, keywords: 210024 } });
+  const res = await client.get('/discover/tv', { params: { page, keywords: 210024, ...DISCOVER_PARAMS } });
   return res.data.results ?? [];
 }
 
 export async function discoverUpcomingMovies(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/discover/movies/upcoming', { params: { page } });
+  const res = await client.get('/discover/movies/upcoming', { params: { page, ...DISCOVER_PARAMS } });
   return res.data.results ?? [];
 }
 
@@ -330,7 +356,7 @@ const seasonEpisodeCache = new Map<string, Map<number, LocalisedEpisode>>();
 export async function getSeasonEpisodes(
   tmdbId: number,
   seasonNumber: number,
-  language: string,
+  language: string = currentLanguage(),
 ): Promise<Map<number, LocalisedEpisode>> {
   const key = `${tmdbId}:${seasonNumber}:${language}`;
   const cached = seasonEpisodeCache.get(key);
@@ -415,18 +441,16 @@ const detailsCache = new Map<string, MediaDetails | null>();
 export async function getMediaDetails(
   mediaType: 'movie' | 'tv',
   tmdbId: number,
-  language?: string,
+  language: string = currentLanguage(),
 ): Promise<MediaDetails | null> {
   // Language is part of the key: without it, switching the app to Dutch would
   // be served the English copy that was cached on the previous screen.
-  const cacheKey = `${mediaType}:${tmdbId}:${language ?? 'default'}`;
+  const cacheKey = `${mediaType}:${tmdbId}:${language}`;
   const cached = detailsCache.get(cacheKey);
   if (cached !== undefined) return cached;
   try {
     const client = await authClient();
-    const res = await client.get(`/${mediaType}/${tmdbId}`, {
-      params: language ? { language } : undefined,
-    });
+    const res = await client.get(`/${mediaType}/${tmdbId}`, { params: { language } });
     const d = res.data;
     const details: MediaDetails = {
       title: d.title ?? d.name ?? '',
