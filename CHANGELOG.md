@@ -8,6 +8,25 @@ Pre-1.0 on purpose: Downloads works per item but has no eviction and no way to
 take a whole season (`docs/downloads.md`), and 1.0 should mean the tabs all do
 what they say.
 
+## 0.14.0 — watch it on a plane
+
+The version where Downloads stopped being a placeholder. Pick an episode, put
+it on the phone, turn everything off, and watch it - subtitles, artwork and
+resume point included.
+
+- **Downloads that work with nothing behind them.** A button on any film or
+  episode that says how much room it needs before it starts, a tab that shows
+  what is arriving and what has landed, and playback that quietly prefers the
+  copy on the device - and now says so.
+- **Subtitles and artwork stored beside the media**, so a downloaded episode
+  keeps its subtitle picker with no server to ask.
+- **The item screen works without a server**, drawn from what the download
+  wrote down rather than after a fifteen second timeout.
+- **The resume point survives the flight.** Kept on the device and handed to
+  Jellyfin the moment it can be reached.
+- **The library offers what is on the phone** when it cannot reach the server,
+  instead of only saying it is unavailable.
+
 ## 0.13.1 — the offline path, actually walked
 
 - A stored item is drawn from disk before the server is asked rather than after
