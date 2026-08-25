@@ -1,0 +1,48 @@
+name: CI
+
+# Every push and every pull request. Tags too, since a release is cut from one
+# and "the tests passed on that commit" is the whole point of having them.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: types, lint, tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # ci, not install: the lockfile is the point - a run that quietly
+      # resolves different versions is not checking what will ship.
+      - run: npm ci
+
+      - name: Types
+        run: npx tsc --noEmit
+
+      # The one rule that is an error here is react-hooks/rules-of-hooks, which
+      # has caught two crashes that reached the phone. Warnings stay warnings.
+      - name: Lint
+        run: npx expo lint
+
+      - name: Tests
+        run: npx jest --ci
+
+      # A release should not be able to claim a version the app does not
+      # report. app.json is what the About screen and Jellyfin's device list
+      # read, so a tag that disagrees with it is a lie in two places.
+      - name: Tag matches app.json version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          app=$(node -p "require('./app.json').expo.version")
+          echo "tag=$tag app.json=$app"
+          test "$tag" = "$app"
