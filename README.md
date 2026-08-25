@@ -169,12 +169,14 @@ npm run prebuild     # expo prebuild -p ios
 npm run ios
 ```
 
-iOS only, and deliberately: `react-native-vlc-media-player`'s Android config
-plugin patches `app/build.gradle` by matching
-`applyNativeModulesAppBuildGradle(project)`, a line React Native 0.86 no longer
-generates — autolinking moved to `autolinkLibrariesWithApp()`. A two-platform
-`npx expo prebuild` therefore fails on the Android mod before it finishes
-writing `ios/`. Android needs that plugin fixed upstream, or dropping VLC.
+iOS only, and deliberately. `expo.platforms` is `["ios", "web"]`, so prebuild
+does not generate an Android project — which matters because
+`react-native-vlc-media-player`'s Android config plugin patches
+`app/build.gradle` by matching `applyNativeModulesAppBuildGradle(project)`, a
+line React Native 0.86 no longer generates: autolinking moved to
+`autolinkLibrariesWithApp()`. Prebuild clears both native directories before it
+runs the mods, so that failure used to take `ios/` down with it and read as an
+iOS problem. Android needs the plugin fixed upstream, or dropping VLC.
 
 ## Known limitations
 

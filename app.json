@@ -3,6 +3,10 @@
     "name": "JellyLab",
     "slug": "jellylab",
     "version": "0.14.0",
+    "platforms": [
+      "ios",
+      "web"
+    ],
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "jellylab",
