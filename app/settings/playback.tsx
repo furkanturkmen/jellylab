@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Form, Host, Picker, Section, Text, Toggle } from '@expo/ui/swift-ui';
+import { tag } from '@expo/ui/swift-ui/modifiers';
 
 import { loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
 import { colors } from '@/theme';
@@ -23,6 +24,12 @@ import { colors } from '@/theme';
  * Note the shape: SwiftUI views have to live under a `Host`, which is the
  * bridge between the React tree and the SwiftUI one. A Host that fills the
  * screen gives the form its own scrolling, as Settings.app has.
+ *
+ * Every option carries a `tag`, and `selection` is a tag rather than an index.
+ * That is SwiftUI's own contract and it is not optional: written with indices,
+ * the picker matched nothing, handed back nothing on selection, and every
+ * choice fell through to the default - which read as the screen resetting
+ * itself and as the quality setting refusing to change.
  */
 
 const BITRATES: { mbps: number; label?: string; labelKey?: string }[] = [
@@ -70,35 +77,43 @@ export default function PlaybackSettings() {
       <Host style={styles.host} colorScheme="dark">
         <Form>
           <Section title={t('settings.labels.preferredAudio')}>
-            {/* Pickers take their options as children and report the index
-                back, so the code that reads them stays the same. */}
+            {/* The tag is the value the preferences file stores, so what comes
+                back needs no translating between the two. */}
             <Picker
               label={t('settings.labels.preferredAudio')}
-              selection={AUDIO.indexOf(prefs.audioLanguage)}
-              onSelectionChange={index => update('audioLanguage', AUDIO[index as number] ?? 'original')}
+              selection={prefs.audioLanguage}
+              onSelectionChange={code => { if (code) update('audioLanguage', String(code)); }}
             >
-              {AUDIO.map(code => <Text key={code}>{t(`trackLanguages.${code}`)}</Text>)}
+              {AUDIO.map(code => (
+                <Text key={code} modifiers={[tag(code)]}>{t(`trackLanguages.${code}`)}</Text>
+              ))}
             </Picker>
           </Section>
 
           <Section title={t('settings.labels.engine')} footer={<Text>{t('settings.playback.engineNote')}</Text>}>
             <Picker
               label={t('settings.labels.engine')}
-              selection={ENGINES.indexOf(prefs.preferredEngine)}
-              onSelectionChange={index => update('preferredEngine', ENGINES[index as number] ?? 'auto')}
+              selection={prefs.preferredEngine}
+              onSelectionChange={engine => {
+                if (engine) update('preferredEngine', String(engine) as Prefs['preferredEngine']);
+              }}
             >
-              {engineLabels.map(label => <Text key={label}>{label}</Text>)}
+              {ENGINES.map((engine, i) => (
+                <Text key={engine} modifiers={[tag(engine)]}>{engineLabels[i]}</Text>
+              ))}
             </Picker>
           </Section>
 
           <Section title={t('settings.labels.maxQuality')} footer={<Text>{t('settings.playback.qualityNote')}</Text>}>
             <Picker
               label={t('settings.labels.maxQuality')}
-              selection={BITRATES.findIndex(b => b.mbps === prefs.maxBitrateMbps)}
-              onSelectionChange={index => update('maxBitrateMbps', BITRATES[index as number]?.mbps ?? 0)}
+              selection={prefs.maxBitrateMbps}
+              onSelectionChange={mbps => { if (mbps != null) update('maxBitrateMbps', Number(mbps)); }}
             >
               {BITRATES.map(b => (
-                <Text key={b.mbps}>{b.labelKey ? t(b.labelKey) : b.label ?? ''}</Text>
+                <Text key={b.mbps} modifiers={[tag(b.mbps)]}>
+                  {b.labelKey ? t(b.labelKey) : b.label ?? ''}
+                </Text>
               ))}
             </Picker>
           </Section>
