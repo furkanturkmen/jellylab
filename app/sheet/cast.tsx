@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
@@ -69,7 +69,10 @@ export default function CastSheet() {
 
   return (
     <View style={styles.root}>
-      <View style={styles.header}>
+      {/* One child, like the other sheets - a header, a button and a list as
+          siblings is more than a form sheet will lay out. */}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
         <Text style={styles.title}>{t('player.castTo')}</Text>
         {scanning ? <ActivityIndicator color={colors.text} /> : null}
       </View>
@@ -105,7 +108,8 @@ export default function CastSheet() {
             {connecting === d.deviceId ? <ActivityIndicator color={colors.text} /> : null}
           </TouchableOpacity>
         ))}
-      </View>
+        </View>
+      </ScrollView>
     </View>
   );
 }

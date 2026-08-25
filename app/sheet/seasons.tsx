@@ -64,7 +64,14 @@ export default function SeasonSheet() {
   return (
     // The card ends at the home indicator, not a guessed distance from it.
     <View style={[styles.root, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+      {/*
+        * Everything lives in this one scroller, the Request button included.
+        *
+        * A form sheet lays out at most two subviews, and drawing a title, a
+        * list and a footer as siblings had UIKit placing them over each other -
+        * the title landing on top of the first row, inset differently from it.
+        */}
+      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>{t('request.seasons')}</Text>
         {request.seasons.map(s => {
           const selectable = Jellyseerr.isSeasonRequestable(s);
@@ -94,18 +101,18 @@ export default function SeasonSheet() {
           );
         })}
         <Text style={styles.note}>{t('request.seasonsNote')}</Text>
-      </ScrollView>
 
-      <TouchableOpacity
-        style={[styles.confirm, picked.size === 0 && styles.confirmOff]}
-        onPress={confirm}
-        disabled={picked.size === 0}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.confirmText}>
-          {picked.size > 0 ? `${t('action.request')} (${picked.size})` : t('action.request')}
-        </Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.confirm, picked.size === 0 && styles.confirmOff]}
+          onPress={confirm}
+          disabled={picked.size === 0}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.confirmText}>
+            {picked.size > 0 ? `${t('action.request')} (${picked.size})` : t('action.request')}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 }
@@ -119,8 +126,6 @@ const styles = StyleSheet.create({
   root: { backgroundColor: colors.bgElevated, paddingHorizontal: spacing.lg, paddingTop: spacing.xl },
   title: { ...type.h1, color: colors.text, marginBottom: spacing.md },
   list: { paddingBottom: 0 },
-  // Long shows scroll inside the card instead of pushing the button off it.
-  scroll: { maxHeight: 420 },
   seasonRow: {
     flexDirection: 'row',
     alignItems: 'center',

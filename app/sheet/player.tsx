@@ -61,7 +61,8 @@ function VlcSubtitles({ request, close }: { request: Of<'vlcSubtitles'>; close: 
 
   return (
     <>
-      <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+      {/* One scroller, timing block included - see the seasons sheet. */}
+      <ScrollView showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>{t('player.subtitles')}</Text>
         {request.externalSubs.length === 0 && request.internalTracks.length === 0 ? (
           <Text style={styles.empty}>{t('player.noSubtitles')}</Text>
@@ -88,9 +89,7 @@ function VlcSubtitles({ request, close }: { request: Of<'vlcSubtitles'>; close: 
             ))}
           </>
         )}
-      </ScrollView>
-
-      <View style={styles.delayBlock}>
+        <View style={styles.delayBlock}>
         <View style={styles.delayHeader}>
           <Text style={styles.delayLabel}>{t('player.timing')}</Text>
           <Text style={styles.delayValue}>
@@ -104,10 +103,11 @@ function VlcSubtitles({ request, close }: { request: Of<'vlcSubtitles'>; close: 
           <DelayButton label="+0.1s" disabled={!request.delayEnabled} onPress={() => changeDelay(delayMs + 100)} />
           <DelayButton label="+0.5s" disabled={!request.delayEnabled} onPress={() => changeDelay(delayMs + 500)} />
         </View>
-        <Text style={styles.hint}>
-          {request.delayEnabled ? t('player.delayHint') : t('player.delayHintOff')}
-        </Text>
-      </View>
+          <Text style={styles.hint}>
+            {request.delayEnabled ? t('player.delayHint') : t('player.delayHintOff')}
+          </Text>
+        </View>
+      </ScrollView>
     </>
   );
 }
@@ -116,7 +116,7 @@ function VlcAudio({ request, close }: { request: Of<'vlcAudio'>; close: () => vo
   const { t } = useTranslation();
   return (
     <>
-      <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>{t('player.audio')}</Text>
         {request.tracks.length === 0 ? (
           <Text style={styles.empty}>{t('player.noAudio')}</Text>
@@ -167,7 +167,7 @@ function NativeTracks({ request, close }: { request: Of<'tracks'>; close: () => 
   const hasAnySub = subtitles.length > 0 || request.externalSubs.length > 0;
 
   return (
-    <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+    <ScrollView showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>{t('player.subtitles')}</Text>
       {!hasAnySub ? (
         <Text style={styles.empty}>{t('player.noSubtitles')}</Text>
@@ -219,7 +219,7 @@ function NativeTracks({ request, close }: { request: Of<'tracks'>; close: () => 
 function Speed({ request, close }: { request: Of<'speed'>; close: () => void }) {
   const { t } = useTranslation();
   return (
-    <>
+    <ScrollView showsVerticalScrollIndicator={false}>
       <Text style={styles.title}>{t('player.speed')}</Text>
       {request.rates.map(rate => (
         <TrackRow
@@ -229,7 +229,7 @@ function Speed({ request, close }: { request: Of<'speed'>; close: () => void }) 
           onPress={() => { request.onPick(rate); close(); }}
         />
       ))}
-    </>
+    </ScrollView>
   );
 }
 
@@ -240,7 +240,6 @@ const styles = StyleSheet.create({
   root: { backgroundColor: colors.bgElevated, paddingHorizontal: spacing.lg, paddingTop: spacing.xl },
   title: { ...type.h1, color: colors.text, marginBottom: spacing.md },
   secondTitle: { marginTop: spacing.lg },
-  list: { flexGrow: 0 },
   empty: { ...type.small, color: colors.textDim, paddingVertical: spacing.md, textAlign: 'center' },
   delayBlock: {
     borderTopWidth: StyleSheet.hairlineWidth,
