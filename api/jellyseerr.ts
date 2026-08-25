@@ -5,6 +5,7 @@ import i18n from '@/i18n';
 import { metadataLanguage } from '@/lib/text';
 import { loadJellyseerrAuth, saveJellyseerrAuth, clearJellyseerrAuth } from '@/store/auth';
 import { logRequestFailure } from '@/lib/errorLog';
+import { queryString } from '@/lib/url';
 import type { JellyseerrAuth, JellyseerrRequest, JellyseerrSearchResult } from '@/types';
 
 /** Whatever the app is showing right now, as a TMDB language code. */
@@ -178,7 +179,12 @@ export async function search(query: string, page = 1): Promise<JellyseerrSearchR
   const client = await authClient();
   // Search text follows the app; the matching does not care - TMDB looks at
   // every title it holds in every language either way.
-  const res = await client.get('/search', { params: { query, page, language: currentLanguage() } });
+  //
+  // The query string is built here rather than left to axios, whose serializer
+  // leaves a comma, a colon and a plus unencoded. Jellyseerr validates strictly
+  // and answered those with 400 "Parameter 'query' must be url encoded", which
+  // reached the app as a search that silently found nothing.
+  const res = await client.get(`/search?${queryString({ query, page, language: currentLanguage() })}`);
   return res.data.results ?? [];
 }
 
