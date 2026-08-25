@@ -8,16 +8,18 @@ Built with Expo Router (SDK 57), React Native 0.86, and TypeScript. iOS-first; A
 
 - **Library** — Apple TV-style layout: featured hero, Continue Watching row, one row per Jellyfin library. Header (page title + avatar) fades on scroll, status bar overlays the hero.
 - **Item detail** — poster, backdrop, overview, cast, download-progress bars for in-flight Jellyseerr/Seerr requests. Series show a season/episode picker.
-- **Player** — custom overlay. AVPlayer for compatible files, VLC fallback for MKV/DTS/anime/whatever AVPlayer refuses. Engine picker in settings.
+- **Player** — custom overlay. AVPlayer for compatible files, VLC for MKV/DTS/anime/whatever AVPlayer refuses. Engine picker in settings; forcing AVPlayer on a file it can't open asks the server to transcode rather than failing.
   - Scrubbing, ±10s skip, speed control, PiP, fullscreen with rotation lock
-  - Embedded + external subtitle picker with size and language preferences
-  - Watch progress reported to Jellyfin (start/progress/stopped)
+  - Subtitle, audio, track and speed pickers as native sheets
+  - Embedded + external subtitle picker with size, language and timing preferences
+  - Lock-screen Now Playing with artwork, and audio that keeps going when the screen does not (AVPlayer path)
+  - Watch progress reported to Jellyfin (start/progress/stopped), queued and re-sent when watched offline
   - AirPlay button (native) + Chromecast (Google Cast SDK — uses the public default media receiver; register your own for custom branding)
 - **Search** — Seerr (Jellyseerr fork) TMDB search + Discover categories (Trending / Popular Movies / Popular TV / Anime / Upcoming). Tap a card for TMDB detail. Admins can delete requests or remove media from Jellyfin (Radarr/Sonarr file wipe).
 - **Requests** — pull-to-refresh with human-readable status + admin actions.
-- **Downloads** — dedicated tab with empty state; offline playback is on the roadmap.
+- **Downloads** — put a film or episode on the phone and watch it with nothing behind it. The button says how much room it needs before it starts; the tab shows what is arriving with progress and a cancel, what has landed with its size and a delete. Subtitles and artwork are stored beside the media, the item screen draws from disk when the server cannot be reached, and the resume point is kept locally and handed to Jellyfin the moment it can be.
 - **Profile** — Apple TV-style grouped list. Change display name, password, avatar (camera / library / remove). Preferences: subtitles, playback, language. Admin shortcuts to Jellyfin/Seerr dashboards when signed in as admin. Servers section for managing multiple homelab pairs.
-- **Custom tab bar** — floating glass pill (Library / Requests / Downloads) + detached search circle that expands into an inline search bar (Apple TV pattern). Smooth Reanimated layout transitions between states.
+- **The platform's own furniture** — iOS draws the tab bar (SwiftUI TabView) and puts the search field in the bottom bar on iOS 26. Press and hold any poster for a peek at the item screen and a menu: play or resume, mark watched. Pickers and season lists are native sheets.
 - **Servers** — add/edit/delete/switch multiple Jellyfin+Jellyseerr pairs from Profile → App → Servers. Switching signs you out and re-prompts login for the new server. Server-edit screen has a "Test connection" button that pings both endpoints before you save. No server URLs baked in the app.
 - **i18n** — English, Dutch, Turkish, German. Auto-detects device language; override in Profile → Language.
 
@@ -163,7 +165,7 @@ types/                  Shared TypeScript types
 ## Known limitations
 
 - **Direct-play depends on your server.** If your Jellyfin host can't transcode, VLC fallback handles most codec issues but corrupt/exotic files can still fail with no auto-recovery.
-- **No downloads / no offline mode.** Every play is a live stream.
+- **Downloads are per item.** No whole-season download and no eviction policy yet: what you store stays until you delete it.
 - **Plain HTTP allowed by default.** `NSAllowsArbitraryLoads` is enabled in `app.json` because most homelabs run HTTP behind a reverse proxy on the LAN. If you only connect to HTTPS servers, tighten it.
 - **iPhone-only layout.** iPad renders as a stretched iPhone.
 - **No live TV / no music library** (Jellyfin has them, jellylab doesn't surface them).
@@ -178,13 +180,14 @@ types/                  Shared TypeScript types
 Ordered by realistic priority — small wins first, bigger platform work later.
 
 **Recently shipped**
+- Downloads that work offline: stored media, subtitles and artwork, an item screen that draws with no server, and a resume point that survives the flight
+- iOS draws the tab bar and the search field; posters answer a long press with a peek and a menu; the player's pickers and the season list are native sheets
+- Metadata in the language the app is set to, with every string the app writes itself translated in four languages and a test that keeps the files in step
 - Library hero is a 5-item carousel drawn from what you're part-way through and what arrived recently, cross-fading, with a pinned backdrop that stretches on pull instead of leaving a gap
 - Notifications screen wired to a self-hosted push bridge — complete but gated on the Apple entitlement above; the same events reach you through the ntfy app meanwhile
 - Search your own Jellyfin library alongside Seerr/TMDB — owned titles surface first with Play, everything else falls under Request
 - Max streaming quality setting: above the chosen ceiling the server transcodes to HLS, below it the file is direct played untouched
 - Runtime server management (add / edit / delete / switch, no baked-in URLs, connection test)
-- Custom Apple TV-style floating tab bar with search-bar transformation (Reanimated transitions)
-- Downloads tab (empty state; wiring in progress)
 - Shared TabHeader (scroll-fade page titles) on every tab
 - Custom player overlay in Abyss style with per-engine glass controls
 - Watch progress sync to Jellyfin
@@ -200,7 +203,7 @@ Ordered by realistic priority — small wins first, bigger platform work later.
 5. Turn on push once there's a paid Apple account — delete `plugins/withoutPushEntitlement.js` from `app.json`, `prebuild --clean`, rebuild. No code changes
 
 **Mid-term (medium effort, high value)**
-5. Downloads / offline playback (needs codec-aware file cache + player fallback for local file:// URLs)
+5. Downloads: a whole season in one go, and an eviction policy once there is a real number to base one on
 6. iPad-friendly split layout (sidebar + detail pane; adaptive from 768pt)
 7. Home Screen Widget (Continue Watching)
 8. Push notifications for request approval / media available (needs APNS + Seerr webhook bridge)
