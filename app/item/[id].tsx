@@ -83,6 +83,20 @@ export default function ItemScreen() {
     })();
   }, []);
 
+  /**
+   * A stored item is drawn before the server is asked, not after it fails.
+   *
+   * The fallback below only runs when getItem rejects, and that takes the
+   * fifteen second timeout - which on a plane is fifteen seconds of spinner
+   * for a file sitting on the phone. What the download wrote down is enough to
+   * draw the screen immediately; the server's version replaces it if it comes.
+   */
+  useEffect(() => {
+    if (item || !id || download?.status !== 'done') return;
+    const stored = offlineItemSync(id);
+    if (stored) setItem(stored);
+  }, [download, item, id]);
+
   useEffect(() => {
     if (state.status !== 'signed-in' || !id) return;
     Jellyfin.getItem(state.auth.userId, id)
