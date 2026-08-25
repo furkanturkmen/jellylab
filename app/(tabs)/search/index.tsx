@@ -1,16 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
 import * as Jellyseerr from '@/api/jellyseerr';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
-import { useSearchQuery } from '@/store/search';
 import { jellyfinKind, kindKey, tmdbKind } from '@/lib/kind';
 import { oneLine } from '@/lib/text';
 import { colors, radius, spacing, type } from '@/theme';
@@ -34,7 +32,11 @@ export default function SearchScreen() {
   const { headerHeight } = useTabHeaderMetrics();
   const scrollY = useRef(new Animated.Value(0)).current;
   const { state } = useAuth();
-  const [query, setQuery] = useSearchQuery();
+  // The field is the system's, and the system's field is uncontrolled: it
+  // reports what was typed, it does not take a value back. So the query lives
+  // here rather than in a store, which is also the last thing that store was
+  // for now that the hand-built tab bar is gone.
+  const [query, setQuery] = useState('');
   const [results, setResults] = useState<JellyseerrSearchResult[]>([]);
   const [library, setLibrary] = useState<JellyfinItem[]>([]);
   const [busy, setBusy] = useState(false);
@@ -113,28 +115,42 @@ export default function SearchScreen() {
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      {/* The field was part of the hand-built tab bar, which the system's own
-          bar replaced. It belongs on this screen anyway - it is the only screen
-          that uses it, and it no longer has to travel between tabs to get here. */}
-      <View style={[styles.searchBar, { marginTop: headerHeight }]}>
-        <SymbolView
-          name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
-          tintColor={colors.textMuted}
-          size={18}
-        />
-        <TextInput
-          style={styles.searchInput}
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('search.placeholder')}
-          placeholderTextColor={colors.textDim}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="search"
-          clearButtonMode="while-editing"
-          accessibilityLabel={t('tabs.search')}
-        />
-      </View>
+      {/*
+        * The search field is the system's, not ours.
+        *
+        * What was here was a rounded View with a TextInput in it, inherited from
+        * the hand-built tab bar. iOS 26 has somewhere better to put it: with the
+        * tab declared role="search", a search bar that allows toolbar
+        * integration is drawn into the bottom bar, right above the thumb,
+        * instead of sitting at the top of the content. That is the toolbar in
+        * Apple's Liquid Glass documentation, and the same one the App Store
+        * uses.
+        *
+        * `Stack.Toolbar` with a `SearchBarSlot` is what asks for the bottom
+        * placement - hence the stack around this screen in _layout.tsx. On
+        * anything older than iOS 26 the same declaration falls back to the
+        * search bar in the navigation header, which is why nothing here draws a
+        * field of its own any more.
+        */}
+      <Stack.SearchBar
+        placeholder={t('search.placeholder')}
+        // The native bar reports through an event, not a plain string.
+        onChangeText={e => setQuery(e.nativeEvent.text)}
+        // Cancel wipes the field itself; the results have to be told.
+        onCancelButtonPress={() => setQuery('')}
+        onClose={() => setQuery('')}
+        autoCapitalize="none"
+        // It is the only control on the screen - it should not disappear the
+        // moment you scroll the results it produced.
+        hideWhenScrolling={false}
+        textColor={colors.text}
+        hintTextColor={colors.textDim}
+        tintColor={colors.text}
+        headerIconColor={colors.textMuted}
+      />
+      <Stack.Toolbar>
+        <Stack.Toolbar.SearchBarSlot />
+      </Stack.Toolbar>
       {showingSearch ? (
         busy ? (
           <>
@@ -330,20 +346,6 @@ const CARD_HEIGHT = 180;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginHorizontal: spacing.xl,
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.md,
-    height: 40,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
-  searchInput: { flex: 1, color: colors.text, ...type.body, padding: 0 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
   emptyText: { ...type.body, color: colors.textDim },
   input: {
