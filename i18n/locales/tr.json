@@ -146,7 +146,16 @@
       "message": "Medya Jellyseerr'den silinir ve Radarr/Sonarr'a dosyayı silmesi söylenir. Geri alınamaz."
     },
     "requestedToast": "{{title}} Jellyseerr'e gönderildi",
-    "castHint": "Cast: {{state}} · AirPlay seçici oynatıcının içinde"
+    "castHint": "Cast: {{state}} · AirPlay seçici oynatıcının içinde",
+    "kind": {
+      "anime": "Anime",
+      "series": "Dizi",
+      "movie": "Film",
+      "episode": "Bölüm"
+    },
+    "seasons": "{{count}} sezon",
+    "seasons_one": "1 sezon",
+    "perEpisode": "bölüm başına {{minutes}}dk"
   },
   "profile": {
     "title": "Profil",

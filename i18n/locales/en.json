@@ -146,7 +146,16 @@
       "message": "This removes the media from Jellyseerr and asks Radarr/Sonarr to remove the file. Irreversible."
     },
     "requestedToast": "{{title}} sent to Jellyseerr",
-    "castHint": "Cast: {{state}} · AirPlay picker is inside the player"
+    "castHint": "Cast: {{state}} · AirPlay picker is inside the player",
+    "kind": {
+      "anime": "Anime",
+      "series": "Series",
+      "movie": "Film",
+      "episode": "Episode"
+    },
+    "seasons": "{{count}} seasons",
+    "seasons_one": "1 season",
+    "perEpisode": "{{minutes}}m per ep"
   },
   "profile": {
     "title": "Profile",

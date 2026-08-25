@@ -10,6 +10,8 @@ import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
 
+import { useTranslation } from 'react-i18next';
+
 import * as Jellyfin from '@/api/jellyfin';
 import * as Jellyseerr from '@/api/jellyseerr';
 import { ButtonRow, CircleButton, PrimaryButton } from '@/components/AppleButton';
@@ -44,6 +46,7 @@ export default function ItemScreen() {
   const castClient = useRemoteMediaClient();
   const castState = useCastState();
   const [castPickerOpen, setCastPickerOpen] = useState(false);
+  const { t } = useTranslation();
   const [tmdbArt, setTmdbArt] = useState<{ backdrop?: string; poster?: string }>({});
   const scrollY = useRef(new Animated.Value(0)).current;
   const { width: screenWidth } = useWindowDimensions();
@@ -180,6 +183,43 @@ export default function ItemScreen() {
   const primary = item.ImageTags?.Primary;
   const backdrop = item.BackdropImageTags?.[0];
   const runtimeMin = item.RunTimeTicks ? Math.round(item.RunTimeTicks / 600_000_000) : null;
+
+  /**
+   * Anime is a genre, not a Jellyfin type - the server calls Dororo and Better
+   * Call Saul both "Series", which is true and useless. The library says which
+   * is which through the genre list and through the AniList/AniDB ids that only
+   * an anime scraper writes, so either is enough to say the word out loud.
+   */
+  const isAnime =
+    (item.Genres ?? []).some(g => g.toLowerCase() === 'anime') ||
+    !!(item.ProviderIds?.AniList || item.ProviderIds?.AniDB);
+  const kind = isAnime
+    ? t('detail.kind.anime')
+    : item.Type === 'Movie'
+      ? t('detail.kind.movie')
+      : item.Type === 'Episode'
+        ? t('detail.kind.episode')
+        : t('detail.kind.series');
+
+  /**
+   * A series that has ended has two years worth showing. One that is still
+   * running has one and an en dash, the way every listing writes it.
+   */
+  const endYear = item.EndDate ? Number(item.EndDate.slice(0, 4)) : null;
+  const years = !item.ProductionYear
+    ? null
+    : item.Type !== 'Series'
+      ? String(item.ProductionYear)
+      : endYear && endYear !== item.ProductionYear
+        ? `${item.ProductionYear}–${endYear}`
+        : item.Status === 'Continuing'
+          ? `${item.ProductionYear}–`
+          : String(item.ProductionYear);
+
+  // For a series the runtime is one episode's, which is worth saying rather
+  // than implying - "24m" beside "3 seasons" reads as the season being 24
+  // minutes long otherwise.
+  const seasons = item.Type === 'Series' && item.ChildCount ? item.ChildCount : null;
   const backdropPx = Math.min(HERO_MAX_PX, Math.round(screenWidth * PixelRatio.get()));
 
   // Grows on a downward pull instead of leaving a black bar above it. Scaling
@@ -274,13 +314,22 @@ export default function ItemScreen() {
             <View style={styles.metaCol}>
               <Text style={styles.title}>{item.Name}</Text>
               <View style={styles.pillRow}>
-                {item.ProductionYear ? (
-                  <View style={styles.pill}><Text style={styles.pillText}>{item.ProductionYear}</Text></View>
+                <View style={styles.pill}><Text style={styles.pillText}>{kind}</Text></View>
+                {years ? (
+                  <View style={styles.pill}><Text style={styles.pillText}>{years}</Text></View>
+                ) : null}
+                {seasons ? (
+                  <View style={styles.pill}>
+                    <Text style={styles.pillText}>{t('detail.seasons', { count: seasons })}</Text>
+                  </View>
                 ) : null}
                 {runtimeMin ? (
-                  <View style={styles.pill}><Text style={styles.pillText}>{runtimeMin}m</Text></View>
+                  <View style={styles.pill}>
+                    <Text style={styles.pillText}>
+                      {item.Type === 'Series' ? t('detail.perEpisode', { minutes: runtimeMin }) : `${runtimeMin}m`}
+                    </Text>
+                  </View>
                 ) : null}
-                <View style={styles.pill}><Text style={styles.pillText}>{item.Type}</Text></View>
               </View>
             </View>
           </View>

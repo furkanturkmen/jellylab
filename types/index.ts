@@ -35,6 +35,12 @@ export type JellyfinItem = {
   SeriesId?: string;
   IndexNumber?: number;
   SeriesName?: string;
+  Genres?: string[];
+  /** "Continuing" or "Ended" for a series. */
+  Status?: string;
+  EndDate?: string;
+  /** Seasons, for a series. */
+  ChildCount?: number;
   ParentIndexNumber?: number;
 };
 

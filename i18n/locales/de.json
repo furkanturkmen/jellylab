@@ -146,7 +146,16 @@
       "message": "Entfernt die Medien aus Jellyseerr und weist Radarr/Sonarr an, die Datei zu löschen. Nicht umkehrbar."
     },
     "requestedToast": "{{title}} an Jellyseerr gesendet",
-    "castHint": "Cast: {{state}} · AirPlay-Auswahl im Player"
+    "castHint": "Cast: {{state}} · AirPlay-Auswahl im Player",
+    "kind": {
+      "anime": "Anime",
+      "series": "Serie",
+      "movie": "Film",
+      "episode": "Folge"
+    },
+    "seasons": "{{count}} Staffeln",
+    "seasons_one": "1 Staffel",
+    "perEpisode": "{{minutes}}m pro Folge"
   },
   "profile": {
     "title": "Profil",
