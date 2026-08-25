@@ -218,9 +218,23 @@ export async function discoverTv(page = 1): Promise<JellyseerrSearchResult[]> {
 }
 
 // Anime keyword id on TMDB = 210024
+/**
+ * The anime row asks for no language at all, unlike the rows above it.
+ *
+ * Asking in English reranks this keyword toward internationally known titles -
+ * Lazarus, Devil May Cry, Star Wars: Visions - which is a narrower and more
+ * western list than the row is meant to be. Asking in Dutch returns nothing:
+ * TMDB has no Dutch-language titles carrying the keyword.
+ *
+ * Raw popularity brings ecchi with it, since that is genuinely what is popular
+ * by this measure. Hiding it belongs in an explicit 18+ filter rather than in
+ * a language parameter that removes it as a side effect - see docs/downloads.md
+ * for how the last "we will filter this later" went, which is to say: this is
+ * the honest list until the filter exists.
+ */
 export async function discoverAnime(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/discover/tv', { params: { page, keywords: 210024, ...DISCOVER_PARAMS } });
+  const res = await client.get('/discover/tv', { params: { page, keywords: 210024 } });
   return res.data.results ?? [];
 }
 
