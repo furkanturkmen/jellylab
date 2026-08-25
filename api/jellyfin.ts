@@ -507,9 +507,18 @@ export function transcodeParams(
   token: string,
   deviceId: string,
   maxBitrate: number,
+  /**
+   * Which audio stream to encode.
+   *
+   * A transcode carries one audio track and the player cannot switch to
+   * another, so if it is not chosen here it cannot be chosen at all - the
+   * server sends the container's default, which on an anime release is the
+   * English dub.
+   */
+  audioStreamIndex?: number | null,
 ): URLSearchParams {
   const video = Math.max(400_000, maxBitrate - TRANSCODE_AUDIO_BITRATE);
-  return new URLSearchParams({
+  const params = new URLSearchParams({
     api_key: token,
     DeviceId: deviceId,
     MediaSourceId: mediaSourceId,
@@ -522,6 +531,8 @@ export function transcodeParams(
     TranscodingProtocol: 'hls',
     SegmentContainer: 'ts',
   });
+  if (audioStreamIndex != null) params.set('AudioStreamIndex', String(audioStreamIndex));
+  return params;
 }
 
 export function transcodeUrl(
@@ -530,7 +541,8 @@ export function transcodeUrl(
   token: string,
   deviceId: string,
   maxBitrate: number,
+  audioStreamIndex?: number | null,
 ): string {
-  const params = transcodeParams(mediaSourceId, token, deviceId, maxBitrate);
+  const params = transcodeParams(mediaSourceId, token, deviceId, maxBitrate, audioStreamIndex);
   return `${getJellyfinUrl()}/Videos/${itemId}/master.m3u8?${params.toString()}`;
 }

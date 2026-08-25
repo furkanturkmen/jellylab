@@ -38,6 +38,18 @@ export type PlayerSheetRequest =
       externalSubs: { index: number; label: string }[];
       activeExternalSubIndex: number | null;
       onPickExternal: (index: number | null) => void;
+      /**
+       * The server's audio tracks, when the server is the one deciding.
+       *
+       * A transcode carries a single audio track, so AVPlayer has nothing to
+       * switch between - the choice has to go back to the server as a new
+       * stream. Absent on direct play, where the player's own list is real.
+       */
+      serverAudio?: {
+        tracks: { index: number; label: string; language?: string }[];
+        activeIndex: number | null;
+        onPick: (streamIndex: number) => void;
+      };
     }
   | {
       kind: 'speed';

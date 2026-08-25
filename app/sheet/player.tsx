@@ -201,7 +201,25 @@ function NativeTracks({ request, close }: { request: Of<'tracks'>; close: () => 
       )}
 
       <Text style={[styles.title, styles.secondTitle]}>{t('player.audio')}</Text>
-      {audios.length === 0 ? (
+      {/*
+        * On a transcode the file has one audio track and AVPlayer has nothing
+        * to switch between, so the server's list is the real one: choosing
+        * from it asks for a new stream, resumed where this one is.
+        */}
+      {request.serverAudio ? (
+        request.serverAudio.tracks.length === 0 ? (
+          <Text style={styles.empty}>{t('player.noAlternateAudio')}</Text>
+        ) : (
+          request.serverAudio.tracks.map(track => (
+            <TrackRow
+              key={`srv-${track.index}`}
+              label={track.label}
+              selected={request.serverAudio?.activeIndex === track.index}
+              onPress={() => { request.serverAudio?.onPick(track.index); close(); }}
+            />
+          ))
+        )
+      ) : audios.length === 0 ? (
         <Text style={styles.empty}>{t('player.noAlternateAudio')}</Text>
       ) : (
         audios.map((track, i) => (
