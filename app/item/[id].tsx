@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, AppState, PanResponder, PixelRatio, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, AppState, PanResponder, PixelRatio, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import * as Jellyfin from '@/api/jellyfin';
 import * as Jellyseerr from '@/api/jellyseerr';
 import { ButtonRow, CircleButton, PrimaryButton } from '@/components/AppleButton';
-import { decidePlayback, type Engine, type PlayMode } from '@/player/decide';
+import { decideEngine, decidePlayback, type Engine, type PlayMode } from '@/player/decide';
 import { parseVtt, findActiveCue, type VttCue } from '@/player/vtt';
 import { matchesLanguage } from '@/player/lang';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,6 +23,9 @@ import { getDeviceId } from '@/store/auth';
 import { cleanSubLabel } from '@/components/TrackRow';
 import { openPlayerSheet } from '@/store/playerSheet';
 import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/prefs';
+import { useDownload } from '@/hooks/useDownloads';
+import { formatBytes } from '@/lib/bytes';
+import { getDownloadSync, localUriSync, removeDownload, startDownload } from '@/store/downloads';
 import { logRequestFailure } from '@/lib/errorLog';
 import { formatDate } from '@/lib/date';
 import { jellyfinKind, kindKey } from '@/lib/kind';
@@ -60,6 +63,7 @@ export default function ItemScreen() {
   const [seasons, setSeasons] = useState<any[]>([]);
   const scrollY = useRef(new Animated.Value(0)).current;
   const { width: screenWidth } = useWindowDimensions();
+  const download = useDownload(id);
 
   useEffect(() => {
     (async () => {
@@ -131,8 +135,71 @@ export default function ItemScreen() {
     return () => { cancelled = true; };
   }, [item, i18n.language]);
 
+  /**
+   * Store this item on the device.
+   *
+   * The size comes from the server rather than being guessed, and it is said
+   * out loud before anything starts: a remux is tens of gigabytes and the
+   * phone should be asked, not told.
+   */
+  async function downloadItem() {
+    if (state.status !== 'signed-in' || !item) return;
+    if (download?.status === 'done') {
+      Alert.alert(
+        t('downloads.removeTitle'),
+        t('downloads.removeBody', { title: item.Name }),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('common.delete'), style: 'destructive', onPress: () => removeDownload(item.Id) },
+        ],
+      );
+      return;
+    }
+    if (download?.status === 'downloading' || download?.status === 'queued') return;
+
+    const sources = await Jellyfin.getPlaybackInfo(state.auth.userId, item.Id).catch(() => []);
+    const source = sources[0];
+    const container = (source?.Container ?? 'mkv').split(',')[0].trim();
+    // Size, or what the bitrate and runtime imply when the server does not say.
+    const bytes = source?.Size
+      ?? Math.round(((source?.Bitrate ?? 0) / 8) * Jellyfin.ticksToSeconds(item.RunTimeTicks ?? 0));
+
+    Alert.alert(
+      t('downloads.startTitle', { title: item.Name }),
+      t('downloads.startBody', { size: formatBytes(bytes) }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('downloads.start'), onPress: () => startDownload(item, container) },
+      ],
+    );
+  }
+
   async function play() {
     if (state.status !== 'signed-in' || !item) return;
+
+    /**
+     * A stored copy wins, and it wins before anything asks the server.
+     *
+     * That is the whole point of a download: on a plane there is no
+     * PlaybackInfo call to make, no transcode to negotiate and no stream URL
+     * to build. The engine still has to be chosen, because an mkv on disk is
+     * as unplayable to AVPlayer as an mkv on the server - but the choice can
+     * be made from the container alone, which the download wrote down.
+     */
+    const local = localUriSync(item.Id);
+    if (local) {
+      const prefs = await loadPrefs();
+      const stored = getDownloadSync(item.Id)?.meta;
+      const engine: Engine = prefs.preferredEngine === 'vlc'
+        ? 'vlc'
+        // Not decidePlayback: its answer for a file AVPlayer cannot open is
+        // "ask the server to transcode", and there may be no server.
+        : decideEngine([{ Id: 'local', Container: stored?.container }]);
+      console.log(`[jellylab] player:local engine=${engine} container=${stored?.container ?? '?'}`);
+      setPlayback({ url: local, engine, mode: 'direct', externalSubs: [], audioStreams: [] });
+      return;
+    }
+
     const [deviceId, sources, prefs] = await Promise.all([
       getDeviceId(),
       Jellyfin.getPlaybackInfo(state.auth.userId, item.Id).catch(() => []),
@@ -424,6 +491,18 @@ export default function ItemScreen() {
                   onPress={() => router.push('/sheet/cast')}
                   accessibilityLabel={t('player.castLabel')}
                   tint={castState === 'connected' ? colors.pink : undefined}
+                />
+                {/* Filled once it is here, the way the rest of the app says
+                    "this one is yours". Pressing it again offers to delete. */}
+                <CircleButton
+                  icon={download?.status === 'done'
+                    ? { ios: 'arrow.down.circle.fill', android: 'download_done', web: 'download_done' }
+                    : { ios: 'arrow.down.circle', android: 'download', web: 'download' }}
+                  onPress={downloadItem}
+                  accessibilityLabel={download?.status === 'done'
+                    ? t('downloads.downloaded')
+                    : t('downloads.label')}
+                  tint={download?.status === 'done' ? colors.successBorder : undefined}
                 />
               </ButtonRow>
               <Text style={styles.castHint}>{t('player.castHint')}</Text>

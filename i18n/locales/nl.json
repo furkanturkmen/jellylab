@@ -64,7 +64,21 @@
   },
   "downloads": {
     "emptyTitle": "Nog geen downloads",
-    "emptyBody": "Offline afspelen staat op de roadmap. Gedownloade titels verschijnen hier."
+    "emptyBody": "Wat je downloadt om offline te kijken verschijnt hier.",
+    "arriving": "Bezig met downloaden",
+    "onThisDevice": "Op dit apparaat",
+    "failed": "Mislukt",
+    "storedCount_one": "{{count}} titel",
+    "storedCount_other": "{{count}} titels",
+    "removeTitle": "Download verwijderen?",
+    "removeBody": "{{title}} wordt van dit apparaat verwijderd. Op de server blijft het staan.",
+    "startTitle": "{{title}} downloaden?",
+    "startBody": "Dit gebruikt ongeveer {{size}} op dit apparaat.",
+    "start": "Downloaden",
+    "downloaded": "Gedownload",
+    "downloading": "Bezig…",
+    "label": "Downloaden voor offline",
+    "playingOffline": "Speelt de kopie op dit apparaat af"
   },
   "library": {
     "welcomeBack": "Welkom terug",

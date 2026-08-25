@@ -259,6 +259,8 @@ export type MediaSource = {
   MediaStreams?: MediaStream[];
   /** total bits per second, as reported by Jellyfin */
   Bitrate?: number;
+  /** bytes on the server's disk - what a download will occupy here */
+  Size?: number;
 };
 
 export async function getPlaybackInfo(userId: string, itemId: string): Promise<MediaSource[]> {

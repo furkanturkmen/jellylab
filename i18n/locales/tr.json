@@ -64,7 +64,21 @@
   },
   "downloads": {
     "emptyTitle": "Henüz indirme yok",
-    "emptyBody": "Çevrimdışı oynatma yol haritasında. İndirilen içerikler burada görünecek."
+    "emptyBody": "Çevrimdışı izlemek için indirdiklerin burada görünür.",
+    "arriving": "İndiriliyor",
+    "onThisDevice": "Bu cihazda",
+    "failed": "Başarısız",
+    "storedCount_one": "{{count}} başlık",
+    "storedCount_other": "{{count}} başlık",
+    "removeTitle": "İndirme silinsin mi?",
+    "removeBody": "{{title}} bu cihazdan kaldırılacak. Sunucuda kalmaya devam eder.",
+    "startTitle": "{{title}} indirilsin mi?",
+    "startBody": "Bu cihazda yaklaşık {{size}} yer kaplayacak.",
+    "start": "İndir",
+    "downloaded": "İndirildi",
+    "downloading": "İndiriliyor…",
+    "label": "Çevrimdışı için indir",
+    "playingOffline": "Bu cihazdaki kopya oynatılıyor"
   },
   "library": {
     "welcomeBack": "Tekrar hoş geldin",

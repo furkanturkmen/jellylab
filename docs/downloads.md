@@ -95,6 +95,34 @@ cancel, **on this device** with size and a delete, and the existing empty state
 when both are empty. Total size and free space at the top, which the profile
 screen already knows how to ask for.
 
+## Where this stands
+
+Built:
+
+1. `expo-file-system`, `store/downloads.ts`, one directory per item with a
+   `meta.json` beside the media file.
+2. A download button on the item screen for films and episodes. It asks first,
+   with the size the server reports, and turns green once the file is here.
+   Pressing it again offers to delete.
+3. The tab: what is arriving with a progress bar and a cancel, what is stored
+   with its size and a delete, failures kept rather than swept away, and the
+   total across the top.
+4. Playback prefers the stored file. The engine is chosen from the container
+   the download wrote down rather than from `decidePlayback`, whose answer for
+   an unplayable file is "ask the server to transcode" - and the server may be
+   the thing that is missing.
+
+Not built, and worth being plain about: **this is not offline playback yet.**
+Reaching a stored file still means opening the item screen, and that screen
+starts with `getItem` - no server, no screen. What is missing:
+
+- Play from the Downloads tab, using `meta.json` alone.
+- Subtitles and poster stored alongside the media, per §1. Embedded tracks
+  travel inside the file and already work; a sidecar SRT does not.
+- The outbox in §5, so a watch on a plane moves the resume point once the
+  server is reachable.
+- Eviction, §6.
+
 ## Order of work
 
 1. `expo-file-system` + `store/downloads.ts` + a hardcoded download of one item.

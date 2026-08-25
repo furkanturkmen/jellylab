@@ -64,7 +64,21 @@
   },
   "downloads": {
     "emptyTitle": "No downloads yet",
-    "emptyBody": "Offline playback is on the roadmap. Downloaded titles will appear here."
+    "emptyBody": "Anything you download for offline watching shows up here.",
+    "arriving": "Downloading",
+    "onThisDevice": "On this device",
+    "failed": "Failed",
+    "storedCount_one": "{{count}} title",
+    "storedCount_other": "{{count}} titles",
+    "removeTitle": "Delete download?",
+    "removeBody": "{{title}} will be removed from this device. It stays on the server.",
+    "startTitle": "Download {{title}}?",
+    "startBody": "This will use about {{size}} on this device.",
+    "start": "Download",
+    "downloaded": "Downloaded",
+    "downloading": "Downloading…",
+    "label": "Download for offline",
+    "playingOffline": "Playing the copy on this device"
   },
   "library": {
     "welcomeBack": "Welcome back",

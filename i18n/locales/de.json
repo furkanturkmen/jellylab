@@ -64,7 +64,21 @@
   },
   "downloads": {
     "emptyTitle": "Noch keine Downloads",
-    "emptyBody": "Offline-Wiedergabe steht auf der Roadmap. Heruntergeladene Titel erscheinen hier."
+    "emptyBody": "Was du für offline lädst, erscheint hier.",
+    "arriving": "Wird geladen",
+    "onThisDevice": "Auf diesem Gerät",
+    "failed": "Fehlgeschlagen",
+    "storedCount_one": "{{count}} Titel",
+    "storedCount_other": "{{count}} Titel",
+    "removeTitle": "Download löschen?",
+    "removeBody": "{{title}} wird von diesem Gerät entfernt. Auf dem Server bleibt es.",
+    "startTitle": "{{title}} laden?",
+    "startBody": "Das belegt etwa {{size}} auf diesem Gerät.",
+    "start": "Laden",
+    "downloaded": "Geladen",
+    "downloading": "Wird geladen…",
+    "label": "Für offline laden",
+    "playingOffline": "Spielt die Kopie auf diesem Gerät"
   },
   "library": {
     "welcomeBack": "Willkommen zurück",
