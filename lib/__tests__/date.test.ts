@@ -51,3 +51,20 @@ describe('formatYear', () => {
     expect(formatYear(undefined)).toBe('');
   });
 });
+
+describe('dates without a time in them', () => {
+  // TMDB release dates. These are calendar dates, not instants: parsing them
+  // as midnight UTC and rendering in local time is a day wrong for everyone
+  // west of Greenwich, which is most of the world.
+  it('renders the day it was given, whatever the timezone', () => {
+    expect(formatDate('2019-01-07')).toBe('07-01-2019');
+    expect(formatDate('2020-12-31')).toBe('31-12-2020');
+    expect(formatYear('2019-01-07')).toBe('2019');
+  });
+
+  // A timestamp is a moment, and a moment belongs to the reader's clock. The
+  // suite pins Europe/Amsterdam so this states a fact rather than a location.
+  it('still moves a timestamp into local time', () => {
+    expect(formatDate('2019-01-06T23:00:00.0000000Z')).toBe('07-01-2019');
+  });
+});
