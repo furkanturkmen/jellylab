@@ -233,7 +233,9 @@ function Speed({ request, close }: { request: Of<'speed'>; close: () => void }) 
 
 const styles = StyleSheet.create({
   // No corners and no handle: the sheet around this draws both.
-  root: { flex: 1, backgroundColor: colors.bgElevated, paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
+  // No flex, for the same reason as the seasons sheet: the card is measured
+  // from this view, and flex would make it report the whole screen.
+  root: { backgroundColor: colors.bgElevated, paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
   title: { ...type.h1, color: colors.text, marginBottom: spacing.sm },
   secondTitle: { marginTop: spacing.lg },
   list: { flexGrow: 0 },

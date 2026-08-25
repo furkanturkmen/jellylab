@@ -63,7 +63,7 @@ export default function SeasonSheet() {
     <View style={styles.root}>
       <Text style={styles.title}>{t('request.seasons')}</Text>
 
-      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
         {request.seasons.map(s => {
           const selectable = Jellyseerr.isSeasonRequestable(s);
           const on = picked.has(s.seasonNumber);
@@ -111,9 +111,13 @@ export default function SeasonSheet() {
 const styles = StyleSheet.create({
   // No rounded corners or handle here: both belong to the sheet iOS draws
   // around this content.
-  root: { flex: 1, backgroundColor: colors.bgElevated, paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
+  // No flex: the sheet is sized to this view, so it has to be as tall as
+  // what is in it rather than as tall as it is allowed to be.
+  root: { backgroundColor: colors.bgElevated, paddingHorizontal: spacing.lg, paddingTop: spacing.lg },
   title: { ...type.h1, color: colors.text, marginBottom: spacing.sm },
   list: { paddingBottom: spacing.lg },
+  // Long shows scroll inside the card instead of pushing the button off it.
+  scroll: { maxHeight: 420 },
   seasonRow: {
     flexDirection: 'row',
     alignItems: 'center',
