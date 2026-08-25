@@ -96,3 +96,36 @@ describe('decidePlayback', () => {
     expect(decidePlayback([heavy], 1.5).maxBitrate).toBe(1_500_000);
   });
 });
+
+describe('decidePlayback with a forced engine', () => {
+  const mkv: any = { Container: 'mkv', Bitrate: 5_000_000, MediaStreams: [{ Type: 'Video', Codec: 'hevc' }] };
+  const mp4: any = { Container: 'mp4', Bitrate: 5_000_000, MediaStreams: [{ Type: 'Video', Codec: 'h264' }] };
+
+  it('transcodes for AVPlayer when the file is one it cannot open', () => {
+    // Handing AVPlayer the mkv is what made "Always use AVPlayer" look ignored:
+    // it failed on the first frame and the screen fell back to VLC in silence.
+    expect(decidePlayback([mkv], 0, 'native')).toEqual({
+      engine: 'native',
+      mode: 'transcode',
+      maxBitrate: 20_000_000,
+    });
+  });
+
+  it('leaves a playable file alone when AVPlayer is forced', () => {
+    expect(decidePlayback([mp4], 0, 'native')).toEqual({ engine: 'native', mode: 'direct' });
+  });
+
+  it('respects the user ceiling when it has to transcode anyway', () => {
+    expect(decidePlayback([mkv], 4, 'native').maxBitrate).toBe(4_000_000);
+  });
+
+  it('never transcodes for VLC, which can open the file as it is', () => {
+    expect(decidePlayback([mkv], 0, 'vlc')).toEqual({ engine: 'vlc', mode: 'direct' });
+    expect(decidePlayback([mp4], 0, 'vlc')).toEqual({ engine: 'vlc', mode: 'direct' });
+  });
+
+  it('still lets the file decide when nothing is forced', () => {
+    expect(decidePlayback([mkv], 0).engine).toBe('vlc');
+    expect(decidePlayback([mp4], 0).engine).toBe('native');
+  });
+});

@@ -39,7 +39,20 @@ export function decideEngine(sources: MediaSource[]): Engine {
  * as "can't tell" — both fall through to direct play rather than making the
  * server do work on a guess.
  */
-export function decidePlayback(sources: MediaSource[], maxBitrateMbps: number): PlaybackDecision {
+/**
+ * What the server sends when AVPlayer is asked for a file it cannot open.
+ *
+ * High enough that 1080p does not visibly suffer, low enough that the server
+ * is not encoding a near-lossless stream for a phone.
+ */
+export const FORCED_TRANSCODE_BITRATE = 20_000_000;
+
+export function decidePlayback(
+  sources: MediaSource[],
+  maxBitrateMbps: number,
+  /** What the user asked for in Settings. 'auto' lets the file decide. */
+  preferred: 'auto' | Engine = 'auto',
+): PlaybackDecision {
   const ceiling = Math.round((maxBitrateMbps || 0) * 1_000_000);
   const sourceBitrate = sources[0]?.Bitrate ?? 0;
 
@@ -47,6 +60,19 @@ export function decidePlayback(sources: MediaSource[], maxBitrateMbps: number): 
     // Jellyfin transcodes to h264/aac inside HLS, which is AVPlayer's native
     // format — so the transcode path gets the better battery and AirPlay story.
     return { engine: 'native', mode: 'transcode', maxBitrate: ceiling };
+  }
+
+  if (preferred === 'vlc') return { engine: 'vlc', mode: 'direct' };
+
+  /**
+   * "Always use AVPlayer" has to mean something for a file AVPlayer cannot
+   * open. It used to hand it the mkv anyway: the player errored on the first
+   * frame and the screen fell back to VLC without saying so, which read as the
+   * setting being ignored. Asking the server to transcode gives AVPlayer the
+   * HLS stream it can actually play, which is what the setting was for.
+   */
+  if (preferred === 'native' && decideEngine(sources) !== 'native') {
+    return { engine: 'native', mode: 'transcode', maxBitrate: ceiling || FORCED_TRANSCODE_BITRATE };
   }
 
   return { engine: decideEngine(sources), mode: 'direct' };

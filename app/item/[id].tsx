@@ -138,13 +138,11 @@ export default function ItemScreen() {
       Jellyfin.getPlaybackInfo(state.auth.userId, item.Id).catch(() => []),
       loadPrefs(),
     ]);
-    const decision = decidePlayback(sources, prefs.maxBitrateMbps);
-    const engine: Engine =
-      prefs.preferredEngine === 'native'
-        ? 'native'
-        : prefs.preferredEngine === 'vlc'
-          ? 'vlc'
-          : decision.engine;
+    // The setting goes into the decision rather than being applied on top of
+    // it: forcing AVPlayer has to be able to change the mode as well as the
+    // engine, since the whole point is a file it can only play transcoded.
+    const decision = decidePlayback(sources, prefs.maxBitrateMbps, prefs.preferredEngine);
+    const engine: Engine = decision.engine;
     const source = sources[0];
     // transcoding needs a MediaSourceId; without one we can only direct play
     const transcoding = decision.mode === 'transcode' && !!source?.Id && !!decision.maxBitrate;
@@ -191,6 +189,10 @@ export default function ItemScreen() {
       }
     }
 
+    console.log(
+      `[jellylab] player:decision engine=${engine} mode=${mode} preferred=${prefs.preferredEngine}` +
+      ` container=${source?.Container ?? '?'} bitrate=${source?.Bitrate ?? 0}`,
+    );
     setPlayback({ url, engine, mode, mediaSourceId: source?.Id, externalSubs, audioStreams });
   }
 
@@ -219,7 +221,13 @@ export default function ItemScreen() {
           resumeSeconds={Jellyfin.ticksToSeconds(item.UserData?.PlaybackPositionTicks ?? 0)}
           initialDuration={Jellyfin.ticksToSeconds(item.RunTimeTicks ?? 0)}
           onExit={() => setPlayback(null)}
-          onNativeError={() => setPlayback(p => (p ? { ...p, engine: 'vlc' } : p))}
+          // AVPlayer failing and VLC quietly taking over is why "Always use
+          // AVPlayer" looked like it did nothing. It still falls back - better
+          // than a dead screen - but it says so first.
+          onNativeError={() => {
+            console.log('[jellylab] player:nativeFailed — falling back to VLC');
+            setPlayback(p => (p ? { ...p, engine: 'vlc' } : p));
+          }}
         />
       </>
     );
@@ -870,7 +878,9 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
         setIsLandscape(true);
       }
-    } catch {}
+    } catch (e) {
+      logRequestFailure('player:orientation', e);
+    }
   }
 
   // Resume once loaded (initial resumeSeconds, or last position after remount)
@@ -1494,13 +1504,23 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, subtitl
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
         setIsLandscape(true);
       }
-    } catch {}
+    } catch (e) {
+      logRequestFailure('player:orientation', e);
+    }
   }
 
+  const viewRef = useRef<VideoView>(null);
+
+  /**
+   * Picture in picture belongs to the view, not the player.
+   *
+   * `player.startPictureInPicture` does not exist, so the button called
+   * nothing at all. The method is on the VideoView's ref, and it only works in
+   * a binary built with the expo-video plugin's supportsPictureInPicture -
+   * which is why app.json changed alongside this.
+   */
   function togglePip() {
-    try {
-      (player as any).startPictureInPicture?.();
-    } catch {}
+    viewRef.current?.startPictureInPicture().catch(e => logRequestFailure('player:pip', e));
   }
 
   /** Same handoff as the VLC player's, with the live player object attached. */
@@ -1569,6 +1589,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, subtitl
       <StatusBar hidden />
       <View style={{ flex: 1 }}>
         <VideoView
+          ref={viewRef}
           player={player}
           style={{ flex: 1 }}
           fullscreenOptions={{ enable: true, autoExitOnRotate: false }}

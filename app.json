@@ -3,7 +3,7 @@
     "name": "JellyLab",
     "slug": "jellylab",
     "version": "0.11.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "jellylab",
     "userInterfaceStyle": "automatic",
@@ -69,7 +69,13 @@
         }
       ],
       "expo-secure-store",
-      "expo-video",
+      [
+        "expo-video",
+        {
+          "supportsPictureInPicture": true,
+          "supportsBackgroundPlayback": true
+        }
+      ],
       "expo-image",
       [
         "react-native-vlc-media-player",
