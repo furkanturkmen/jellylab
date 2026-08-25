@@ -21,6 +21,7 @@ import { matchesLanguage } from '@/player/lang';
 import { useAuth } from '@/hooks/useAuth';
 import { getDeviceId } from '@/store/auth';
 import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/prefs';
+import { jellyfinKind, kindKey } from '@/lib/kind';
 import { metadataLanguage, plainText, oneLine } from '@/lib/text';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem } from '@/types';
@@ -191,22 +192,9 @@ export default function ItemScreen() {
   const backdrop = item.BackdropImageTags?.[0];
   const runtimeMin = item.RunTimeTicks ? Math.round(item.RunTimeTicks / 600_000_000) : null;
 
-  /**
-   * Anime is a genre, not a Jellyfin type - the server calls Dororo and Better
-   * Call Saul both "Series", which is true and useless. The library says which
-   * is which through the genre list and through the AniList/AniDB ids that only
-   * an anime scraper writes, so either is enough to say the word out loud.
-   */
-  const isAnime =
-    (item.Genres ?? []).some(g => g.toLowerCase() === 'anime') ||
-    !!(item.ProviderIds?.AniList || item.ProviderIds?.AniDB);
-  const kind = isAnime
-    ? t('detail.kind.anime')
-    : item.Type === 'Movie'
-      ? t('detail.kind.movie')
-      : item.Type === 'Episode'
-        ? t('detail.kind.episode')
-        : t('detail.kind.series');
+  // Shared with the search results, which were saying TV for the same title
+  // this screen called ANIME.
+  const kind = t(kindKey(jellyfinKind(item)));
 
   /**
    * A series that has ended has two years worth showing. One that is still

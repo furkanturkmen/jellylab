@@ -60,6 +60,10 @@ export type JellyseerrSearchResult = {
   releaseDate?: string;
   firstAirDate?: string;
   adult?: boolean;
+  /** TMDB genre ids; 16 is Animation. */
+  genreIds?: number[];
+  originalLanguage?: string;
+  originalName?: string;
   mediaInfo?: {
     status: number;
     requests?: { id: number; status: number }[];

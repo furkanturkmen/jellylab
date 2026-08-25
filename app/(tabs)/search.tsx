@@ -10,6 +10,7 @@ import * as Jellyseerr from '@/api/jellyseerr';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { useSearchQuery } from '@/store/search';
+import { jellyfinKind, kindKey, tmdbKind } from '@/lib/kind';
 import { oneLine } from '@/lib/text';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem, JellyseerrSearchResult } from '@/types';
@@ -191,7 +192,9 @@ function DiscoverRow({ section, onOpen }: { section: Section; onOpen: (item: Jel
 }
 
 function DiscoverCard({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: () => void }) {
+  const { t } = useTranslation();
   const title = item.title ?? item.name ?? '';
+  const kind = t(kindKey(tmdbKind(item)));
   const poster = item.posterPath ? `https://image.tmdb.org/t/p/w300${item.posterPath}` : null;
   const available = item.mediaInfo?.status === 5;
   const requested = (item.mediaInfo?.requests?.length ?? 0) > 0;
@@ -205,7 +208,7 @@ function DiscoverCard({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: 
       // Availability is a badge drawn over the poster, so it has to be said.
       accessibilityLabel={[
         title,
-        item.mediaType === 'movie' ? 'Movie' : 'TV',
+        kind,
         available ? 'Available' : requested ? 'Requested' : '',
       ].filter(Boolean).join(', ')}
     >
@@ -222,16 +225,17 @@ function DiscoverCard({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: 
         ) : null}
       </View>
       <Text style={styles.cardTitle} numberOfLines={1}>{title}</Text>
-      <Text style={styles.cardMeta}>{item.mediaType === 'movie' ? 'Movie' : 'TV'}</Text>
+      <Text style={styles.cardMeta}>{kind}</Text>
     </TouchableOpacity>
   );
 }
 
 function LibraryRow({ item, onOpen }: { item: JellyfinItem; onOpen: () => void }) {
+  const { t } = useTranslation();
   const year = item.ProductionYear ? String(item.ProductionYear) : '';
   const tag = item.ImageTags?.Primary;
   const poster = tag ? Jellyfin.imageUrl(item.Id, tag, 'Primary', 200) : null;
-  const kind = item.Type === 'Movie' ? 'Movie' : 'TV';
+  const kind = t(kindKey(jellyfinKind(item)));
 
   return (
     <TouchableOpacity
@@ -259,7 +263,9 @@ function LibraryRow({ item, onOpen }: { item: JellyfinItem; onOpen: () => void }
 }
 
 function ResultRow({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: () => void }) {
+  const { t } = useTranslation();
   const title = item.title ?? item.name ?? '';
+  const kind = t(kindKey(tmdbKind(item)));
   const year = (item.releaseDate ?? item.firstAirDate ?? '').slice(0, 4);
   const poster = item.posterPath ? `https://image.tmdb.org/t/p/w300${item.posterPath}` : null;
   const available = item.mediaInfo?.status === 5;
@@ -273,7 +279,7 @@ function ResultRow({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: () 
       accessibilityRole="button"
       accessibilityLabel={[
         title,
-        item.mediaType === 'movie' ? 'Movie' : 'TV',
+        kind,
         year,
         available ? 'Available' : requested ? 'Requested' : '',
       ].filter(Boolean).join(', ')}
@@ -285,7 +291,7 @@ function ResultRow({ item, onOpen }: { item: JellyseerrSearchResult; onOpen: () 
       )}
       <View style={styles.rowText}>
         <Text style={styles.rowTitle} numberOfLines={2}>{title}</Text>
-        <Text style={styles.rowMeta}>{item.mediaType === 'movie' ? 'Movie' : 'TV'} {year ? `· ${year}` : ''}</Text>
+        <Text style={styles.rowMeta}>{kind} {year ? `· ${year}` : ''}</Text>
         {item.overview ? <Text style={styles.rowOverview} numberOfLines={2}>{oneLine(item.overview)}</Text> : null}
       </View>
       {available ? (
