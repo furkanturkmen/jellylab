@@ -14,7 +14,32 @@ const ALIASES: Record<string, string[]> = {
   fre: ['fre', 'fra', 'fr', 'french', 'français'],
   spa: ['spa', 'es', 'spanish', 'español'],
   jpn: ['jpn', 'ja', 'jp', 'japanese'],
+  kor: ['kor', 'ko', 'korean'],
+  chi: ['chi', 'zho', 'zh', 'chinese', 'mandarin', 'cantonese'],
+  ita: ['ita', 'it', 'italian', 'italiano'],
+  por: ['por', 'pt', 'portuguese'],
+  rus: ['rus', 'ru', 'russian'],
 };
+
+/**
+ * TMDB names a language with two letters, containers and Jellyfin with three.
+ *
+ * This is the bridge, and it is deliberately short: the languages an audio
+ * track is likely to be in, not every code that exists. An unknown code is
+ * passed through, since a three-letter code is already what the matcher wants
+ * and a wrong guess is worse than none.
+ */
+const ISO_639_1: Record<string, string> = {
+  ja: 'jpn', en: 'eng', nl: 'nld', tr: 'tur', de: 'ger', fr: 'fre', es: 'spa',
+  ko: 'kor', zh: 'chi', it: 'ita', pt: 'por', ru: 'rus',
+};
+
+export function audioLanguageKey(code: string | undefined | null): string | null {
+  if (!code) return null;
+  const c = code.toLowerCase().trim();
+  if (!c) return null;
+  return ISO_639_1[c] ?? c;
+}
 
 export function languageNeedles(code: string): string[] {
   const c = code.toLowerCase();

@@ -17,7 +17,7 @@ import * as Jellyseerr from '@/api/jellyseerr';
 import { ButtonRow, CircleButton, PrimaryButton } from '@/components/AppleButton';
 import { decideEngine, decidePlayback, FORCED_TRANSCODE_BITRATE, type Engine, type PlayMode } from '@/player/decide';
 import { parseVtt, findActiveCue, type VttCue } from '@/player/vtt';
-import { matchesLanguage, preferredAudioIndex } from '@/player/lang';
+import { audioLanguageKey, matchesLanguage, preferredAudioIndex } from '@/player/lang';
 import { useAuth } from '@/hooks/useAuth';
 import { getDeviceId } from '@/store/auth';
 import { cleanSubLabel } from '@/components/TrackRow';
@@ -54,6 +54,11 @@ type PlaybackConfig = {
   /** Which track the server is encoding, when it is encoding one. */
   audioStreamIndex?: number | null;
   /**
+   * The language the player should select on its own, already resolved -
+   * "original" turned into the language TMDB says the thing was made in.
+   */
+  preferredAudioLanguage?: string;
+  /**
    * Where to start, when this config replaced another mid-playback.
    *
    * Switching audio on a transcode is a new stream, and a new stream starts at
@@ -81,6 +86,14 @@ export default function ItemScreen() {
   const [tmdbArt, setTmdbArt] = useState<{ backdrop?: string; poster?: string }>({});
   /** TMDB's description in the app's language, when it has one. */
   const [localisedOverview, setLocalisedOverview] = useState<string | null>(null);
+  /**
+   * The language the thing was made in, as TMDB reports it.
+   *
+   * What "original audio" has to mean: Japanese for anime, French for a French
+   * film, English for an American one - without asking anyone to set a global
+   * preference that is wrong half the time.
+   */
+  const [originalLanguage, setOriginalLanguage] = useState<string | null>(null);
   const [seasons, setSeasons] = useState<any[]>([]);
   const scrollY = useRef(new Animated.Value(0)).current;
   const { width: screenWidth } = useWindowDimensions();
@@ -182,6 +195,7 @@ export default function ItemScreen() {
       // description follows the app instead. Empty means TMDB has no
       // translation, and then the server's own text is the better answer.
       setLocalisedOverview(details.overview?.trim() ? details.overview : null);
+      setOriginalLanguage(audioLanguageKey(details.originalLanguage));
       setTmdbArt({
         backdrop: details.backdropPath ? `${TMDB_ORIGINAL}${details.backdropPath}` : undefined,
         // The poster is drawn at 140pt, so the original would be a 2000px file
@@ -338,12 +352,24 @@ export default function ItemScreen() {
     // transcoding needs a MediaSourceId; without one we can only direct play
     const transcoding = decision.mode === 'transcode' && !!source?.Id && !!decision.maxBitrate;
     const mode: PlayMode = transcoding ? 'transcode' : 'direct';
-    // The transcode carries one audio track, so the preference has to reach
-    // the server: inside the player there is nothing left to switch between.
+    /**
+     * Which language to ask for, resolved once for both engines.
+     *
+     * "Original" is not a language, it is a rule: whatever the show was made
+     * in. TMDB knows - `ja` for Jujutsu Kaisen - and that beats a global
+     * preference, which is either Japanese and wrong for a French film or
+     * English and wrong for all anime.
+     */
+    const wantedAudio = prefs.audioLanguage === 'original'
+      ? originalLanguage
+      : prefs.audioLanguage;
+
+    // The transcode carries one audio track, so the choice has to reach the
+    // server: inside the player there is nothing left to switch between.
     const audioIndex = transcoding
       ? preferredAudioIndex(
           (source?.MediaStreams ?? []).filter(stream => stream.Type === 'Audio'),
-          prefs.audioLanguage,
+          wantedAudio ?? undefined,
         )
       : null;
     const url = transcoding
@@ -391,11 +417,12 @@ export default function ItemScreen() {
     console.log(
       `[jellylab] player:decision engine=${engine} mode=${mode} preferred=${prefs.preferredEngine}` +
       ` container=${source?.Container ?? '?'} bitrate=${source?.Bitrate ?? 0}` +
-      ` audioPref=${prefs.audioLanguage} audioIndex=${audioIndex ?? 'server'}`,
+      ` audioPref=${prefs.audioLanguage} wanted=${wantedAudio ?? 'none'} audioIndex=${audioIndex ?? 'server'}`,
     );
     setPlayback({
       url, engine, mode, mediaSourceId: source?.Id, externalSubs, audioStreams,
       audioStreamIndex: audioIndex,
+      preferredAudioLanguage: wantedAudio ?? undefined,
     });
   }
 
@@ -722,7 +749,9 @@ function OverviewCard({ text, clamp }: { text: string; clamp: boolean }) {
   );
 }
 
-function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, delayKey, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', onExit }: {
+function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, preferredAudioLanguage, delayKey, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', onExit }: {
+  /** Already resolved by the screen, so "original" means something here too. */
+  preferredAudioLanguage?: string;
   url: string;
   itemId: string;
   mediaSourceId?: string;
@@ -928,16 +957,24 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     const byLastUsed = prefs.lastAudioLabel
       ? audioChoices.find(t => t.label === prefs.lastAudioLabel)
       : undefined;
-    const byLanguage =
-      prefs.audioLanguage && prefs.audioLanguage !== 'original'
-        ? audioChoices.find(t => matchesLanguage(t.language ?? t.label, prefs.audioLanguage))
-        : undefined;
+    /**
+     * The language comes resolved from the screen, so "original" is already a
+     * real language by the time it gets here - Japanese for anime, French for
+     * a French film - rather than a word this effect has to skip.
+     */
+    const byLanguage = preferredAudioLanguage
+      ? audioChoices.find(t => matchesLanguage(t.language ?? t.label, preferredAudioLanguage))
+      : undefined;
     const pick = byLastUsed ?? byLanguage;
+    console.log(
+      `[jellylab] player:audioPick wanted=${preferredAudioLanguage ?? 'none'}` +
+      ` picked=${pick?.label ?? 'server default'}`,
+    );
     // persist=false: an automatic choice should not overwrite what the user
     // last chose by hand, or every title would rewrite the preference.
     if (pick) applyAudioTrack(pick.id, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefsLoaded, vlcAudioTracks]);
+  }, [prefsLoaded, vlcAudioTracks, preferredAudioLanguage]);
 
   async function pickExternalSub(streamIndex: number | null, persistPref = true) {
     setActiveSubIndex(streamIndex);
@@ -1665,6 +1702,7 @@ function Player({
         />
       ) : (
         <VLCEnginePlayer
+          preferredAudioLanguage={config.preferredAudioLanguage}
           url={config.url}
           itemId={itemId}
           mediaSourceId={config.mediaSourceId}

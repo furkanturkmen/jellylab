@@ -258,7 +258,8 @@
       "preferVLCDesc": "Sla AVPlayer helemaal over. Iets langzamere start, werkt met alle codecs en containers.",
       "note": "De speler kiest sowieso VLC als de container of codec niet AVPlayer-compatibel is. Met 'Altijd VLC' sla je AVPlayer ook over voor MP4/H.264 bestanden.",
       "engineNote": "Auto kiest AVPlayer als de container en codec van het bestand worden ondersteund en valt anders terug op VLC. Kies AVPlayer als je altijd de native iOS-speler wilt; kies VLC voor maximale compatibiliteit (MKV, DTS, TrueHD, VP9, AV1) ten koste van een tragere start.",
-      "qualityNote": "Originele kwaliteit streamt het bestand onbewerkt - het beste beeld en geen werk voor de server, maar het vraagt een verbinding die de bronbitrate aankan. Een limiet laat de server alles daarboven transcoderen, wat je op mobiel wilt. Bestanden die al onder de limiet vallen worden hoe dan ook onbewerkt gestreamd."
+      "qualityNote": "Originele kwaliteit streamt het bestand onbewerkt - het beste beeld en geen werk voor de server, maar het vraagt een verbinding die de bronbitrate aankan. Een limiet laat de server alles daarboven transcoderen, wat je op mobiel wilt. Bestanden die al onder de limiet vallen worden hoe dan ook onbewerkt gestreamd.",
+      "originalNote": "Origineel kiest de taal waarin het gemaakt is - Japans voor anime, Frans voor een Franse film - zodat je niet één taal voor alles hoeft in te stellen."
     },
     "content": {
       "title": "Inhoud",
@@ -415,7 +416,7 @@
   },
   "trackLanguages": {
     "off": "Uit",
-    "original": "Origineel",
+    "original": "Originele taal",
     "eng": "Engels",
     "nld": "Nederlands",
     "tur": "Turks",

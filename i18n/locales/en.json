@@ -258,7 +258,8 @@
       "preferVLCDesc": "Skip AVPlayer entirely. Slower start, works with every codec and container.",
       "note": "The player still auto-selects VLC when a file's container or codec is not AVPlayer-compatible. Enabling 'Always use VLC' bypasses AVPlayer even for MP4/H.264 files.",
       "engineNote": "Auto picks AVPlayer when the file’s container and codec are supported and falls back to VLC otherwise. Force AVPlayer if you always want the native iOS player; force VLC for maximum compatibility (MKV, DTS, TrueHD, VP9, AV1) at the cost of slower startup.",
-      "qualityNote": "Original quality streams the file untouched - best picture, no work for the server, but it needs a connection fast enough for the source bitrate. Picking a limit makes the server transcode anything above it, which is what you want on cellular. Files already under the limit are streamed untouched either way."
+      "qualityNote": "Original quality streams the file untouched - best picture, no work for the server, but it needs a connection fast enough for the source bitrate. Picking a limit makes the server transcode anything above it, which is what you want on cellular. Files already under the limit are streamed untouched either way.",
+      "originalNote": "Original picks the language the thing was made in - Japanese for anime, French for a French film - so you do not have to set one language for everything."
     },
     "content": {
       "title": "Content",
@@ -415,7 +416,7 @@
   },
   "trackLanguages": {
     "off": "Off",
-    "original": "Original",
+    "original": "Original language",
     "eng": "English",
     "nld": "Dutch",
     "tur": "Turkish",

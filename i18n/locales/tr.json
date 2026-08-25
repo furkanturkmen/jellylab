@@ -258,7 +258,8 @@
       "preferVLCDesc": "AVPlayer'ı atla. Başlatma biraz yavaş, tüm codec ve konteynerle çalışır.",
       "note": "Oynatıcı zaten AVPlayer uyumsuz dosyalarda VLC'ye geçer. 'Her zaman VLC' ile MP4/H.264'te de AVPlayer atlanır.",
       "engineNote": "Otomatik, dosyanın kabı ve kodeği destekleniyorsa AVPlayer’ı seçer, aksi hâlde VLC’ye döner. Her zaman yerel iOS oynatıcısını istiyorsan AVPlayer’ı zorla; en geniş uyumluluk için (MKV, DTS, TrueHD, VP9, AV1) daha yavaş başlama pahasına VLC’yi zorla.",
-      "qualityNote": "Orijinal kalite dosyayı olduğu gibi aktarır - en iyi görüntü, sunucuya yük yok, ancak kaynak bit hızına yetecek bir bağlantı ister. Bir sınır seçmek, sunucunun üstündeki her şeyi transkod etmesini sağlar; mobil veride istediğin budur. Zaten sınırın altındaki dosyalar her hâlükârda olduğu gibi aktarılır."
+      "qualityNote": "Orijinal kalite dosyayı olduğu gibi aktarır - en iyi görüntü, sunucuya yük yok, ancak kaynak bit hızına yetecek bir bağlantı ister. Bir sınır seçmek, sunucunun üstündeki her şeyi transkod etmesini sağlar; mobil veride istediğin budur. Zaten sınırın altındaki dosyalar her hâlükârda olduğu gibi aktarılır.",
+      "originalNote": "Orijinal, yapımın çekildiği dili seçer - anime için Japonca, Fransız filmi için Fransızca - böylece her şey için tek bir dil belirlemen gerekmez."
     },
     "content": {
       "title": "İçerik",
@@ -415,7 +416,7 @@
   },
   "trackLanguages": {
     "off": "Kapalı",
-    "original": "Orijinal",
+    "original": "Orijinal dil",
     "eng": "İngilizce",
     "nld": "Felemenkçe",
     "tur": "Türkçe",
