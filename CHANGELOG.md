@@ -4,9 +4,23 @@ Versions are tagged in git. The app reads its own number from `app.json`, shows
 it under Profile → About, and sends it to Jellyfin, so an install can be
 identified from the server's device list.
 
-Pre-1.0 on purpose: Downloads stores and lists files but cannot yet play them
-with no server (`docs/downloads.md`), and 1.0 should mean the tabs all do what
-they say.
+Pre-1.0 on purpose: Downloads works per item but has no eviction and no way to
+take a whole season (`docs/downloads.md`), and 1.0 should mean the tabs all do
+what they say.
+
+## 0.13.0 — a download you can actually watch
+
+- Subtitles and artwork are stored beside the media, so a downloaded episode
+  keeps its subtitle picker with no server to ask. Files downloaded before this
+  fall back to the server's list rather than showing an empty picker.
+- The item screen falls back to what the download wrote down when the server
+  cannot be reached, which is the first time a stored file has been reachable
+  without one.
+- Where you left off is written beside the media too, and anything the server
+  missed waits in an outbox that drains the moment a request succeeds. Landing
+  after a flight no longer rewinds the resume point.
+- The audio picker ticked nothing when the file played its own default track -
+  which is every one of these releases and their English dub.
 
 ## 0.12.0 — downloads, and a player that does what its settings say
 

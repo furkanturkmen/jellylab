@@ -112,16 +112,21 @@ Built:
    an unplayable file is "ask the server to transcode" - and the server may be
    the thing that is missing.
 
-Not built, and worth being plain about: **this is not offline playback yet.**
-Reaching a stored file still means opening the item screen, and that screen
-starts with `getItem` - no server, no screen. What is missing:
+5. Subtitles and the poster are stored beside the media, and the picker reads
+   the stored copy first.
+6. The item screen falls back to `meta.json` when the server cannot be reached,
+   so a stored file is reachable with no network at all.
+7. The resume point is written beside the media, and what the server missed
+   waits in `store/outbox.ts` until a request to it succeeds.
 
-- Play from the Downloads tab, using `meta.json` alone.
-- Subtitles and poster stored alongside the media, per §1. Embedded tracks
-  travel inside the file and already work; a sidecar SRT does not.
-- The outbox in §5, so a watch on a plane moves the resume point once the
-  server is reachable.
-- Eviction, §6.
+What is left:
+
+- Eviction, §6. Still needs a number, and the number should come from watching
+  real use.
+- A whole season in one go. Per-item is what exists.
+- Playing straight from the Downloads tab rather than through the item screen.
+  The tab links to the item screen, which now works offline, so this is
+  convenience rather than capability.
 
 ## Order of work
 
