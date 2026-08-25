@@ -193,6 +193,15 @@ export default function ItemScreen() {
           itemId={item.Id}
           delayKey={item.SeriesId ?? item.Id}
           title={item.Name}
+          // What the lock screen shows under the title: the series for an
+          // episode, the year for a film.
+          subtitle={item.Type === 'Episode'
+            ? [item.SeriesName, item.ParentIndexNumber != null && item.IndexNumber != null
+                ? `S${item.ParentIndexNumber} · E${item.IndexNumber}` : null].filter(Boolean).join(' · ')
+            : String(item.ProductionYear ?? '')}
+          artworkUri={tmdbArt.poster ?? (item.ImageTags?.Primary
+            ? Jellyfin.imageUrl(item.Id, item.ImageTags.Primary, 'Primary', 600)
+            : undefined)}
           resumeSeconds={Jellyfin.ticksToSeconds(item.UserData?.PlaybackPositionTicks ?? 0)}
           initialDuration={Jellyfin.ticksToSeconds(item.RunTimeTicks ?? 0)}
           onExit={() => setPlayback(null)}
@@ -1542,6 +1551,8 @@ function Player({
   itemId,
   delayKey,
   title,
+  subtitle,
+  artworkUri,
   resumeSeconds,
   initialDuration,
   onExit,
@@ -1552,6 +1563,10 @@ function Player({
   /** what a subtitle offset is remembered against: the series, or the film */
   delayKey: string;
   title: string;
+  /** Second line on the lock screen: series and episode, or the year. */
+  subtitle?: string;
+  /** Poster for the lock screen and Control Centre. */
+  artworkUri?: string;
   resumeSeconds: number;
   initialDuration: number;
   onExit: () => void;
@@ -1582,6 +1597,8 @@ function Player({
           mediaSourceId={config.mediaSourceId}
           externalSubs={config.externalSubs}
           title={title}
+          subtitle={subtitle}
+          artworkUri={artworkUri}
           resumeSeconds={resumeSeconds}
           playMethod={config.mode === 'transcode' ? 'Transcode' : 'DirectPlay'}
           onError={onNativeError}
@@ -1608,21 +1625,40 @@ function Player({
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, resumeSeconds, playMethod = 'DirectPlay', onError, onExit }: {
+function NativePlayer({ url, itemId, mediaSourceId, externalSubs, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', onError, onExit }: {
   url: string;
   itemId: string;
   mediaSourceId?: string;
   externalSubs: { index: number; label: string }[];
   title: string;
+  subtitle?: string;
+  artworkUri?: string;
   resumeSeconds: number;
   playMethod?: Jellyfin.PlayMethod;
   onError: () => void;
   onExit: () => void;
 }) {
-  const player = useVideoPlayer(url, p => {
+  // metadata belongs to the source rather than the player: it describes this
+  // video, not the thing playing it.
+  const source = { uri: url, metadata: { title, artist: subtitle, artwork: artworkUri } };
+  const player = useVideoPlayer(source, p => {
     if (resumeSeconds > 0) {
       try { p.currentTime = resumeSeconds; } catch {}
     }
+    /**
+     * Hand the system what it needs to run the lock screen.
+     *
+     * Locking the phone mid-episode used to stop everything and show nothing:
+     * no artwork, no controls, no AirPods play/pause, and the audio cut with
+     * the screen. iOS will do all of that itself, given a title, an artwork URL
+     * and permission to keep running - which is the UIBackgroundModes audio
+     * entry added to app.json alongside this.
+     *
+     * The VLC engine has no equivalent, so mkv playback keeps behaving as
+     * before. That is most of the anime library, and worth knowing.
+     */
+    p.showNowPlayingNotification = true;
+    p.staysActiveInBackground = true;
     p.play();
   });
   const [tracksOpen, setTracksOpen] = useState(false);

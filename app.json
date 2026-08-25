@@ -28,7 +28,10 @@
         ],
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
-        }
+        },
+        "UIBackgroundModes": [
+          "audio"
+        ]
       },
       "buildNumber": "1"
     },
