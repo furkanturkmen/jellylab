@@ -19,6 +19,8 @@ import { colors, radius, spacing, type } from '@/theme';
 export default function ProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  /** What SwiftUI says the form needs; see the Host below. */
+  const [formHeight, setFormHeight] = useState(0);
   const { state, signOut } = useAuth();
   const [user, setUser] = useState<any>(null);
   const [avatarBust, setAvatarBust] = useState(Date.now());
@@ -218,7 +220,23 @@ export default function ProfileScreen() {
           * without it the Form scrolls inside a scroll view, which fights the
           * avatar above it.
           */}
-        <Host matchContents colorScheme="dark" style={styles.form}>
+        {/*
+          * The height is measured and then applied, rather than trusted.
+          *
+          * `matchContents` alone gave the Host no height at all inside a
+          * ScrollView - the Form rendered into nothing and the screen showed
+          * only what came after it. `onLayoutContent` reports what SwiftUI
+          * actually laid out, and that is what the view is given.
+          */}
+        <Host
+          matchContents
+          colorScheme="dark"
+          onLayoutContent={e => {
+            const next = Math.ceil(e.nativeEvent.height);
+            if (next > 0 && next !== formHeight) setFormHeight(next);
+          }}
+          style={[styles.form, formHeight ? { height: formHeight } : null]}
+        >
           <Form>
             <UISection>
               <Button onPress={editName}>
