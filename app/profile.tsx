@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
+import { Button, Form, Host, Label, LabeledContent, Section as UISection, Text as UIText } from '@expo/ui/swift-ui';
 
 import * as Jellyfin from '@/api/jellyfin';
 import * as Push from '@/api/push';
@@ -204,52 +205,102 @@ export default function ProfileScreen() {
           <Text style={styles.heroSub}>{getJellyfinUrl().replace(/^https?:\/\//, '')}</Text>
         </View>
 
-        <Section>
-          <Row icon="person" label={t('profile.displayName')} value={user?.Name ?? state.auth.userName} onPress={editName} />
-          <Row icon="key" label={t('profile.changePassword')} onPress={() => router.push('/settings/password')} />
-          <Row icon="clock.arrow.circlepath" label={t('profile.menu.history')} onPress={() => router.push('/history')} />
-        </Section>
+        {/*
+          * Every row on this screen, drawn by SwiftUI.
+          *
+          * They were hand-built: a circle for the icon, a label, an optional
+          * value, a "›" drawn as text, and separators inserted between
+          * children. This is what that was imitating - `Form` with `Section`s,
+          * `Label`s carrying SF Symbols, and `LabeledContent` for a row that
+          * shows a value.
+          *
+          * `matchContents` is what keeps the outer ScrollView in charge:
+          * without it the Form scrolls inside a scroll view, which fights the
+          * avatar above it.
+          */}
+        <Host matchContents colorScheme="dark" style={styles.form}>
+          <Form>
+            <UISection>
+              <Button onPress={editName}>
+                <LabeledContent label={t('profile.displayName')}>
+                  <UIText>{user?.Name ?? state.auth.userName}</UIText>
+                </LabeledContent>
+              </Button>
+              <Button onPress={() => router.push('/settings/password')}>
+                <Label title={t('profile.changePassword')} systemImage="key" />
+              </Button>
+              <Button onPress={() => router.push('/history')}>
+                <Label title={t('profile.menu.history')} systemImage="clock.arrow.circlepath" />
+              </Button>
+            </UISection>
 
-        <SectionHeader>{t('profile.preferences')}</SectionHeader>
-        <Section>
-          <Row icon="captions.bubble" label={t('profile.menu.subtitles')} onPress={() => router.push('/settings/subtitles')} />
-          <Row icon="play.rectangle" label={t('profile.menu.playback')} onPress={() => router.push('/settings/playback')} />
-          <Row icon="eye" label={t('profile.menu.content')} onPress={() => router.push('/settings/content')} />
-          <Row icon="globe" label={t('profile.menu.language')} onPress={() => router.push('/settings/language')} />
-          <Row icon="info.circle" label={t('profile.menu.about')} onPress={() => router.push('/settings/about')} />
-        </Section>
+            <UISection title={t('profile.preferences')}>
+              <Button onPress={() => router.push('/settings/subtitles')}>
+                <Label title={t('profile.menu.subtitles')} systemImage="captions.bubble" />
+              </Button>
+              <Button onPress={() => router.push('/settings/playback')}>
+                <Label title={t('profile.menu.playback')} systemImage="play.rectangle" />
+              </Button>
+              <Button onPress={() => router.push('/settings/content')}>
+                <Label title={t('profile.menu.content')} systemImage="eye" />
+              </Button>
+              <Button onPress={() => router.push('/settings/language')}>
+                <Label title={t('profile.menu.language')} systemImage="globe" />
+              </Button>
+              <Button onPress={() => router.push('/settings/about')}>
+                <Label title={t('profile.menu.about')} systemImage="info.circle" />
+              </Button>
+            </UISection>
 
-        {isAdmin ? (
-          <>
-            <SectionHeader>{t('profile.adminJellyfin')}</SectionHeader>
-            <Section>
-              <Row icon="chart.bar" label={t('profile.adminMenu.dashboard')} onPress={() => openWeb('/web/#/dashboard.html')} />
-              <Row icon="folder" label={t('profile.adminMenu.metadataManager')} onPress={() => openWeb('/web/#/dashboard/libraries')} />
-              <Row icon="person.2" label={t('profile.adminMenu.users')} onPress={() => openWeb('/web/#/dashboard/users')} />
-              <Row icon="puzzlepiece" label={t('profile.adminMenu.plugins')} onPress={() => openWeb('/web/#/dashboard/plugins')} />
-              <Row icon="doc.text" label={t('profile.adminMenu.serverLogs')} onPress={() => openWeb('/web/#/dashboard/logs')} />
-            </Section>
+            {isAdmin ? (
+              <UISection title={t('profile.adminJellyfin')}>
+                <Button onPress={() => openWeb('/web/#/dashboard.html')}>
+                  <Label title={t('profile.adminMenu.dashboard')} systemImage="chart.bar" />
+                </Button>
+                <Button onPress={() => openWeb('/web/#/dashboard/libraries')}>
+                  <Label title={t('profile.adminMenu.metadataManager')} systemImage="folder" />
+                </Button>
+                <Button onPress={() => openWeb('/web/#/dashboard/users')}>
+                  <Label title={t('profile.adminMenu.users')} systemImage="person.2" />
+                </Button>
+                <Button onPress={() => openWeb('/web/#/dashboard/plugins')}>
+                  <Label title={t('profile.adminMenu.plugins')} systemImage="puzzlepiece" />
+                </Button>
+                <Button onPress={() => openWeb('/web/#/dashboard/logs')}>
+                  <Label title={t('profile.adminMenu.serverLogs')} systemImage="doc.text" />
+                </Button>
+              </UISection>
+            ) : null}
 
-            <SectionHeader>{t('profile.adminJellyseerr')}</SectionHeader>
-            <Section>
-              <Row icon="tray.and.arrow.down" label={t('profile.adminMenu.requests')} onPress={() => openJellyseerr('/requests')} />
-              <Row icon="person.2" label={t('profile.adminMenu.users')} onPress={() => openJellyseerr('/users')} />
-              <Row icon="gearshape" label={t('profile.adminMenu.settings')} onPress={() => openJellyseerr('/settings')} />
-            </Section>
-          </>
-        ) : null}
+            {isAdmin ? (
+              <UISection title={t('profile.adminJellyseerr')}>
+                <Button onPress={() => openJellyseerr('/requests')}>
+                  <Label title={t('profile.adminMenu.requests')} systemImage="tray.and.arrow.down" />
+                </Button>
+                <Button onPress={() => openJellyseerr('/users')}>
+                  <Label title={t('profile.adminMenu.users')} systemImage="person.2" />
+                </Button>
+                <Button onPress={() => openJellyseerr('/settings')}>
+                  <Label title={t('profile.adminMenu.settings')} systemImage="gearshape" />
+                </Button>
+              </UISection>
+            ) : null}
 
+            <UISection title={t('profile.app')}>
+              <Button onPress={() => router.push('/servers')}>
+                <Label title={t('profile.menu.servers')} systemImage="server.rack" />
+              </Button>
+            </UISection>
+          </Form>
+        </Host>
+
+        {/* The storage bar stays ours: it is a drawing, not a list row. */}
         {storage ? (
           <>
             <SectionHeader>{t('profile.storage')}</SectionHeader>
             <StorageCard info={storage} />
           </>
         ) : null}
-
-        <SectionHeader>{t('profile.app')}</SectionHeader>
-        <Section>
-          <Row icon="server.rack" label={t('profile.menu.servers')} onPress={() => router.push('/servers')} />
-        </Section>
 
         <View style={styles.signOutWrap}>
           <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.85}>
@@ -303,35 +354,8 @@ function StorageCard({ info }: { info: Push.StorageInfo }) {
   );
 }
 
-function Section({ children }: { children: React.ReactNode }) {
-  const items = Array.isArray(children) ? children.flat() : [children];
-  return (
-    <View style={styles.section}>
-      {items.map((child, i) => (
-        <View key={i}>
-          {child}
-          {i < items.length - 1 ? <View style={styles.sep} /> : null}
-        </View>
-      ))}
-    </View>
-  );
-}
-
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return <Text style={styles.sectionHeader}>{children}</Text>;
-}
-
-function Row({ icon, label, value, onPress }: { icon: any; label: string; value?: string; onPress: () => void }) {
-  return (
-    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.rowIconWrap}>
-        <SymbolView name={icon} tintColor={colors.text} size={20} />
-      </View>
-      <Text style={styles.rowLabel}>{label}</Text>
-      {value ? <Text style={styles.rowValue} numberOfLines={1}>{value}</Text> : null}
-      <Text style={styles.rowArrow}>›</Text>
-    </TouchableOpacity>
-  );
 }
 
 const AVATAR_SIZE = 120;
@@ -379,6 +403,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
+  form: { width: '100%' },
   section: {
     marginHorizontal: spacing.lg,
     borderRadius: radius.lg,
