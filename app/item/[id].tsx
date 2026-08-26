@@ -1883,25 +1883,22 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
         }
       }
 
-      // 2. Fall back to the language preference (alias-matched).
+      /**
+       * 2. Fall back to the language preference.
+       *
+       * This used its own copy of the alias table and matched by plain
+       * substring, which is the bug `matchesLanguage` exists to avoid: "en" is
+       * inside "French", so a French track could be chosen for someone who
+       * asked for English. The VLC path was fixed and this one kept the old
+       * copy, so the two engines disagreed about which subtitle to pick.
+       */
       if (prefs.lastSubLabel !== 'off' && prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
-        const wanted = prefs.subtitleLanguage.toLowerCase();
-        const aliases: Record<string, string[]> = {
-          eng: ['eng', 'english', 'en'],
-          nld: ['nld', 'nl', 'dutch', 'nederlands'],
-          tur: ['tur', 'tr', 'turkish', 'türk'],
-          ger: ['ger', 'deu', 'de', 'german', 'deutsch'],
-          fre: ['fre', 'fra', 'fr', 'french', 'français'],
-          spa: ['spa', 'es', 'spanish', 'español'],
-          jpn: ['jpn', 'ja', 'japanese'],
-        };
-        const needles = aliases[wanted] ?? [wanted];
-        const match = externalSubs.find(s => {
-          const label = s.label.toLowerCase();
-          return needles.some(n => label.includes(n));
-        });
+        const match = externalSubs.find(s => matchesLanguage(s.label, prefs.subtitleLanguage));
         if (match) {
+          console.log(`[jellylab] player:subPick wanted=${prefs.subtitleLanguage} picked=${match.label}`);
           pickExternalSub(match.index, /* persistPref */ false);
+        } else {
+          console.log(`[jellylab] player:subPick wanted=${prefs.subtitleLanguage} picked=none of ${externalSubs.length}`);
         }
       }
     })();
