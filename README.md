@@ -177,9 +177,14 @@ need a reload, and a version bump is synced into Info.plist by the build itself.
 `ios:device` exists because code signing needs the login keychain, and that
 belongs to the graphical session: run `expo run:ios` over ssh and it builds for
 several minutes before dying at the signing step with
-`errSecInternalComponent` and exit 65, which says nothing about keychains. Over
-ssh the script hands the build to the Mac's own Terminal, which can sign, and
-tails the log back.
+`errSecInternalComponent` and exit 65, which says nothing about keychains.
+
+The script asks the keychain whether this session can sign - the environment
+lies, a shell can arrive through a relay without `SSH_CONNECTION`. When it
+cannot, the Mac's own Terminal starts the build inside a tmux session and this
+side attaches to it, so the build runs where it can sign while staying
+interactive: prompts are answerable, ctrl-c reaches it, `ctrl-b d` detaches and
+leaves it building. Run it again from anywhere to reattach.
 
 iOS only, and deliberately. `expo.platforms` is `["ios", "web"]`, so prebuild
 does not generate an Android project — which matters because

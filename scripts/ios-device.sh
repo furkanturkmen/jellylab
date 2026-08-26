@@ -59,15 +59,29 @@ can_sign() {
 }
 
 if [ -n "${SSH_CONNECTION:-}" ] || ! can_sign; then
-  echo "this session cannot sign - handing the build to the Mac's own Terminal"
-  osascript -e "tell application \"Terminal\" to do script \"$build_cmd\"" >/dev/null
-  # Empty it first: tail shows what is already there, and what is already
-  # there is the last build - which is how a fresh run appeared to fail with
-  # the previous run's error before it had compiled anything.
-  : > "$LOG"
-  echo "watching $LOG - ctrl-c stops watching, not the build"
-  # -F rather than -f: the build recreates the file.
-  exec tail -n 5 -F "$LOG"
+  # Hand the build to the graphical session, but keep it interactive.
+  #
+  # A plain handoff runs the build in a window you cannot see and tails a log
+  # back, so a prompt from the CLI is invisible and unanswerable. Instead the
+  # Mac's own Terminal starts a tmux session - which inherits the session that
+  # can sign - and this side attaches to it. Same terminal, both ends: the
+  # build prompts, you answer, ctrl-c reaches it.
+  SESSION="${SESSION:-jellylab-build}"
+
+  if ! tmux has-session -t "$SESSION" 2>/dev/null; then
+    echo "starting the build in the Mac's session, as tmux '$SESSION'"
+    osascript -e "tell application \"Terminal\" to do script \"tmux new-session -A -s $SESSION '$build_cmd; echo; echo [build finished - press enter to close]; read'\"" >/dev/null
+    # The socket appears a moment after Terminal opens.
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+      tmux has-session -t "$SESSION" 2>/dev/null && break
+      sleep 1
+    done
+  else
+    echo "attaching to the build already running as tmux '$SESSION'"
+  fi
+
+  echo "attaching - ctrl-b d detaches and leaves it building"
+  exec tmux attach -t "$SESSION"
 fi
 
 eval "$build_cmd"
