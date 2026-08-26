@@ -22,9 +22,29 @@ REPO="${REPO:-$HOME/Documents/Personal/jellylab}"
 LOG="${LOG:-$HOME/jellylab-device-build.log}"
 DEVICE="${DEVICE:-}"
 
+# Find the phone, because the picker cannot be used from here.
+#
+# Piping to tee costs the CLI its terminal, and without a terminal it refuses
+# to prompt - "Input is required, but 'npx expo' is in non-interactive mode.
+# Required input: Select a device". So the device is named up front, or the
+# build runs without the log and asks in the window it opened.
+if [ -z "$DEVICE" ]; then
+  DEVICE=$(xcrun xctrace list devices 2>/dev/null |
+    sed -n '/^== Devices ==/,/^== Simulators ==/p' |
+    grep -viE 'macbook|mac mini|imac|== ' |
+    grep -oE '\(([0-9A-Fa-f]{8}-[0-9A-Fa-f]{16}|[0-9A-Fa-f]{40})\)' |
+    head -1 | tr -d '()')
+fi
+
 build_cmd="cd '$REPO' && caffeinate -s npx expo run:ios --device"
-[ -n "$DEVICE" ] && build_cmd="$build_cmd $DEVICE"
-build_cmd="$build_cmd --no-bundler 2>&1 | tee '$LOG'"
+if [ -n "$DEVICE" ]; then
+  echo "device: $DEVICE"
+  build_cmd="$build_cmd $DEVICE --no-bundler 2>&1 | tee '$LOG'"
+else
+  # No device found: let it ask, and do not tee, or it cannot.
+  echo "no device found - the build will ask in the window it opens"
+  build_cmd="$build_cmd --no-bundler"
+fi
 
 # Ask the keychain directly rather than guessing from the environment.
 #
