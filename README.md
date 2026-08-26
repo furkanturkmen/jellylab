@@ -165,9 +165,21 @@ types/                  Shared TypeScript types
 ## Rebuilding the native project
 
 ```bash
-npm run prebuild     # expo prebuild -p ios
-npm run ios
+npm run prebuild      # expo prebuild -p ios - only when native config changes
+npm run ios           # simulator
+npm run ios:device    # a connected iPhone, from anywhere
 ```
+
+`prebuild` is only needed when something native moves: a new native dependency,
+an `app.json` plugin or Info.plist key, or a missing `ios/`. JavaScript changes
+need a reload, and a version bump is synced into Info.plist by the build itself.
+
+`ios:device` exists because code signing needs the login keychain, and that
+belongs to the graphical session: run `expo run:ios` over ssh and it builds for
+several minutes before dying at the signing step with
+`errSecInternalComponent` and exit 65, which says nothing about keychains. Over
+ssh the script hands the build to the Mac's own Terminal, which can sign, and
+tails the log back.
 
 iOS only, and deliberately. `expo.platforms` is `["ios", "web"]`, so prebuild
 does not generate an Android project — which matters because

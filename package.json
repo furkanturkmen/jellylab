@@ -55,6 +55,7 @@
     "prebuild": "expo prebuild -p ios",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "ios:device": "bash scripts/ios-device.sh",
     "web": "expo start --web",
     "brand": "node scripts/brand-sync.mjs",
     "lint": "expo lint",
