@@ -7,7 +7,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, HStack, Host, Image as UIImage, Label, LabeledContent, ProgressView, Section as UISection, Spacer, Text as UIText } from '@expo/ui/swift-ui';
-import { buttonStyle, foregroundColor, frame } from '@expo/ui/swift-ui/modifiers';
+import { buttonStyle, foregroundColor, frame, scrollContentBackground, tint } from '@expo/ui/swift-ui/modifiers';
 
 import * as Jellyfin from '@/api/jellyfin';
 import * as Push from '@/api/push';
@@ -222,7 +222,7 @@ export default function ProfileScreen() {
         * either. One scroller, owned by SwiftUI, ends the negotiation.
         */}
       <Host style={styles.form} colorScheme="dark">
-        <Form>
+        <Form modifiers={[scrollContentBackground('hidden'), tint(colors.text)]}>
           <UISection>
             <NavRow
               title={t('profile.displayName')}

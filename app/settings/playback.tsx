@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Form, Host, Picker, Section, Text, Toggle } from '@expo/ui/swift-ui';
-import { tag } from '@expo/ui/swift-ui/modifiers';
+import { scrollContentBackground, tag, tint } from '@expo/ui/swift-ui/modifiers';
 
 import { loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
 import { colors } from '@/theme';
@@ -75,7 +75,7 @@ export default function PlaybackSettings() {
       {/* The app is dark whatever the phone is set to, so SwiftUI is told
           rather than left to ask the system. */}
       <Host style={styles.host} colorScheme="dark">
-        <Form>
+        <Form modifiers={[scrollContentBackground('hidden'), tint(colors.text)]}>
           <Section title={t('settings.labels.preferredAudio')}>
             {/* The tag is the value the preferences file stores, so what comes
                 back needs no translating between the two. */}

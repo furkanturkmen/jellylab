@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, HStack, Host, Image as UIImage, Label, Section, Spacer, Text } from '@expo/ui/swift-ui';
-import { buttonStyle, foregroundColor } from '@expo/ui/swift-ui/modifiers';
+import { buttonStyle, foregroundColor, scrollContentBackground, tint } from '@expo/ui/swift-ui/modifiers';
 
 import { getJellyseerrUrl } from '@/config';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,7 +25,7 @@ export default function ContentSettings() {
     <View style={styles.root}>
       <Stack.Screen options={{ title: t('profile.menu.content') }} />
       <Host style={styles.host} colorScheme="dark">
-        <Form>
+        <Form modifiers={[scrollContentBackground('hidden'), tint(colors.text)]}>
           <Section footer={<Text>{t('settings.content.note')}</Text>}>
             {/* A section needs something in it; the paragraph below is the
                 whole point of the screen for a non-admin. */}

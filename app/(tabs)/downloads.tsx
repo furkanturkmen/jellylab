@@ -15,7 +15,7 @@ import {
   VStack,
 } from '@expo/ui/swift-ui';
 
-import { buttonStyle } from '@expo/ui/swift-ui/modifiers';
+import { buttonStyle, scrollContentBackground, tint } from '@expo/ui/swift-ui/modifiers';
 
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useDownloads } from '@/hooks/useDownloads';
@@ -95,7 +95,7 @@ export default function DownloadsScreen() {
       <StatusBar style="light" />
       <View style={{ height: headerHeight }} />
       <Host style={styles.list} colorScheme="dark">
-        <List>
+        <List modifiers={[scrollContentBackground('hidden'), tint(colors.text)]}>
           {active.length > 0 ? (
             <Section title={t('downloads.arriving')}>
               {active.map(entry => (

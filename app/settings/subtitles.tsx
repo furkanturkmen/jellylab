@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Form, Host, Picker, Section, Text } from '@expo/ui/swift-ui';
-import { tag } from '@expo/ui/swift-ui/modifiers';
+import { scrollContentBackground, tag, tint } from '@expo/ui/swift-ui/modifiers';
 
 import { loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
 import { colors } from '@/theme';
@@ -42,7 +42,7 @@ export default function SubtitlesSettings() {
     <View style={styles.root}>
       <Stack.Screen options={{ title: t('nav.subtitles') }} />
       <Host style={styles.host} colorScheme="dark">
-        <Form>
+        <Form modifiers={[scrollContentBackground('hidden'), tint(colors.text)]}>
           <Section title={t('settings.labels.preferredSubs')}>
             <Picker
               label={t('settings.labels.preferredSubs')}
