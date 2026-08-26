@@ -3,8 +3,8 @@ import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity,
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
+import { ContentUnavailableView, Host } from '@expo/ui/swift-ui';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { useAuth } from '@/hooks/useAuth';
@@ -87,14 +87,13 @@ export default function HistoryScreen() {
           <Text style={styles.empty}>{error}</Text>
         </View>
       ) : rows.length === 0 ? (
-        <View style={styles.center}>
-          <SymbolView
-            name={{ ios: 'clock.arrow.circlepath', android: 'history', web: 'history' }}
-            tintColor={colors.textMuted}
-            size={44}
+        <Host style={styles.center} colorScheme="dark">
+          <ContentUnavailableView
+            title={t('nav.history')}
+            systemImage="clock.arrow.circlepath"
+            description={t('history.empty')}
           />
-          <Text style={styles.empty}>{t('history.empty')}</Text>
-        </View>
+        </Host>
       ) : (
         <FlatList
           data={rows}

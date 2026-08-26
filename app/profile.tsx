@@ -6,6 +6,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
+import { Button, Form, HStack, Host, Image as UIImage, Label, LabeledContent, ProgressView, Section as UISection, Spacer, Text as UIText } from '@expo/ui/swift-ui';
+import { buttonStyle, foregroundColor, frame, scrollContentBackground, tint } from '@expo/ui/swift-ui/modifiers';
 
 import * as Jellyfin from '@/api/jellyfin';
 import * as Push from '@/api/push';
@@ -13,6 +15,7 @@ import { getJellyfinUrl, getJellyseerrUrl } from '@/config';
 import { loadPrefs } from '@/store/prefs';
 import { useAuth } from '@/hooks/useAuth';
 import { loadJellyfinAuth, saveJellyfinAuth } from '@/store/auth';
+import { formatBytes } from '@/lib/bytes';
 import { colors, radius, spacing, type } from '@/theme';
 
 export default function ProfileScreen() {
@@ -184,153 +187,141 @@ export default function ProfileScreen() {
   return (
     <View style={styles.root}>
       <Stack.Screen options={{ title: t('profile.title'), headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text }, headerShadowVisible: false }} />
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <TouchableOpacity onPress={chooseImageSource} disabled={uploadingImage} activeOpacity={0.85}>
-            <View style={styles.avatarWrap}>
-              {state.auth.primaryImageTag ? (
-                <Image source={{ uri: avatarUrl }} style={styles.avatar} contentFit="cover" transition={200} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <Text style={styles.avatarInitials}>{state.auth.userName?.[0]?.toUpperCase() ?? '?'}</Text>
-                </View>
-              )}
-              {uploadingImage ? (
-                <View style={styles.avatarOverlay}><ActivityIndicator color={colors.text} /></View>
-              ) : null}
-            </View>
-          </TouchableOpacity>
-          <Text style={styles.heroName}>{state.auth.userName}</Text>
-          <Text style={styles.heroSub}>{getJellyfinUrl().replace(/^https?:\/\//, '')}</Text>
-        </View>
 
-        <Section>
-          <Row icon="person" label={t('profile.displayName')} value={user?.Name ?? state.auth.userName} onPress={editName} />
-          <Row icon="key" label={t('profile.changePassword')} onPress={() => router.push('/settings/password')} />
-          <Row icon="clock.arrow.circlepath" label={t('profile.menu.history')} onPress={() => router.push('/history')} />
-        </Section>
-
-        <SectionHeader>{t('profile.preferences')}</SectionHeader>
-        <Section>
-          <Row icon="captions.bubble" label={t('profile.menu.subtitles')} onPress={() => router.push('/settings/subtitles')} />
-          <Row icon="play.rectangle" label={t('profile.menu.playback')} onPress={() => router.push('/settings/playback')} />
-          <Row icon="eye" label={t('profile.menu.content')} onPress={() => router.push('/settings/content')} />
-          <Row icon="globe" label={t('profile.menu.language')} onPress={() => router.push('/settings/language')} />
-          <Row icon="info.circle" label={t('profile.menu.about')} onPress={() => router.push('/settings/about')} />
-        </Section>
-
-        {isAdmin ? (
-          <>
-            <SectionHeader>{t('profile.adminJellyfin')}</SectionHeader>
-            <Section>
-              <Row icon="chart.bar" label={t('profile.adminMenu.dashboard')} onPress={() => openWeb('/web/#/dashboard.html')} />
-              <Row icon="folder" label={t('profile.adminMenu.metadataManager')} onPress={() => openWeb('/web/#/dashboard/libraries')} />
-              <Row icon="person.2" label={t('profile.adminMenu.users')} onPress={() => openWeb('/web/#/dashboard/users')} />
-              <Row icon="puzzlepiece" label={t('profile.adminMenu.plugins')} onPress={() => openWeb('/web/#/dashboard/plugins')} />
-              <Row icon="doc.text" label={t('profile.adminMenu.serverLogs')} onPress={() => openWeb('/web/#/dashboard/logs')} />
-            </Section>
-
-            <SectionHeader>{t('profile.adminJellyseerr')}</SectionHeader>
-            <Section>
-              <Row icon="tray.and.arrow.down" label={t('profile.adminMenu.requests')} onPress={() => openJellyseerr('/requests')} />
-              <Row icon="person.2" label={t('profile.adminMenu.users')} onPress={() => openJellyseerr('/users')} />
-              <Row icon="gearshape" label={t('profile.adminMenu.settings')} onPress={() => openJellyseerr('/settings')} />
-            </Section>
-          </>
-        ) : null}
-
-        {storage ? (
-          <>
-            <SectionHeader>{t('profile.storage')}</SectionHeader>
-            <StorageCard info={storage} />
-          </>
-        ) : null}
-
-        <SectionHeader>{t('profile.app')}</SectionHeader>
-        <Section>
-          <Row icon="server.rack" label={t('profile.menu.servers')} onPress={() => router.push('/servers')} />
-        </Section>
-
-        <View style={styles.signOutWrap}>
-          <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.85}>
-            <Text style={styles.signOutText}>{t('profile.signOutOfServer', { name: getJellyfinUrl().replace(/^https?:\/\//, '') })}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
-
-/** Free space below this and the server's disk-guard stops qBittorrent. */
-const LOW_SPACE_BYTES = 40 * 1024 ** 3;
-
-function formatBytes(n: number): string {
-  const gb = n / 1024 ** 3;
-  if (gb >= 1024) return `${(gb / 1024).toFixed(2)} TB`;
-  return `${gb.toFixed(0)} GB`;
-}
-
-/**
- * Used/free on the media drive.
- *
- * The bar turns amber below 40 GB free, which is not an arbitrary number: it
- * is the threshold the server's own disk-guard uses to stop qBittorrent. So
- * the moment this changes colour is the moment downloads are about to halt,
- * rather than some generic "nearly full" that means nothing in particular.
- */
-function StorageCard({ info }: { info: Push.StorageInfo }) {
-  const { t } = useTranslation();
-  const ratio = info.total > 0 ? Math.max(0, Math.min(1, info.used / info.total)) : 0;
-  const low = info.free < LOW_SPACE_BYTES;
-
-  return (
-    <View style={styles.section}>
-      <View style={styles.storageWrap}>
-        <View style={styles.storageTop}>
-          <Text style={styles.storageUsed}>{formatBytes(info.used)}</Text>
-          <Text style={styles.storageTotal}>{t('profile.ofTotal', { total: formatBytes(info.total) })}</Text>
-        </View>
-        <View style={styles.storageTrack}>
-          <View style={[styles.storageFill, { width: `${ratio * 100}%` }, low && styles.storageFillLow]} />
-        </View>
-        <Text style={[styles.storageFree, low && styles.storageFreeLow]}>
-          {low
-            ? t('profile.storageLow', { free: formatBytes(info.free) })
-            : t('profile.storageFree', { free: formatBytes(info.free) })}
-        </Text>
+      {/*
+        * The avatar stays ours - it is a remote image with an upload behind
+        * it, and SwiftUI's Image takes SF Symbols and bundled assets, not a
+        * URL. It sits above the form rather than inside it.
+        */}
+      <View style={styles.hero}>
+        <TouchableOpacity onPress={chooseImageSource} disabled={uploadingImage} activeOpacity={0.85}>
+          <View style={styles.avatarWrap}>
+            {state.auth.primaryImageTag ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} contentFit="cover" transition={200} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarInitials}>{state.auth.userName?.[0]?.toUpperCase() ?? '?'}</Text>
+              </View>
+            )}
+            {uploadingImage ? (
+              <View style={styles.avatarOverlay}><ActivityIndicator color={colors.text} /></View>
+            ) : null}
+          </View>
+        </TouchableOpacity>
+        <Text style={styles.heroName}>{state.auth.userName}</Text>
+        <Text style={styles.heroSub}>{getJellyfinUrl().replace(/^https?:\/\//, '')}</Text>
       </View>
+
+      {/*
+        * Everything below is one SwiftUI Form, and it does its own scrolling.
+        *
+        * It used to sit inside a ScrollView, which is what made it invisible:
+        * a Host has no intrinsic height there, so every row rendered into a
+        * zero-tall view and the screen showed the avatar and nothing else.
+        * Measuring the content and applying the height back did not help
+        * either. One scroller, owned by SwiftUI, ends the negotiation.
+        */}
+      <Host style={styles.form} colorScheme="dark">
+        <Form modifiers={[scrollContentBackground('hidden'), tint(colors.text)]}>
+          <UISection>
+            <NavRow
+              title={t('profile.displayName')}
+              systemImage="person"
+              value={user?.Name ?? state.auth.userName}
+              onPress={editName}
+            />
+            <NavRow title={t('profile.changePassword')} systemImage="key" onPress={() => router.push('/settings/password')} />
+            <NavRow title={t('profile.menu.history')} systemImage="clock.arrow.circlepath" onPress={() => router.push('/history')} />
+          </UISection>
+
+          <UISection title={t('profile.preferences')}>
+            <NavRow title={t('profile.menu.subtitles')} systemImage="captions.bubble" onPress={() => router.push('/settings/subtitles')} />
+            <NavRow title={t('profile.menu.playback')} systemImage="play.rectangle" onPress={() => router.push('/settings/playback')} />
+            <NavRow title={t('profile.menu.content')} systemImage="eye" onPress={() => router.push('/settings/content')} />
+            <NavRow title={t('profile.menu.language')} systemImage="globe" onPress={() => router.push('/settings/language')} />
+            <NavRow title={t('profile.menu.about')} systemImage="info.circle" onPress={() => router.push('/settings/about')} />
+          </UISection>
+
+          {isAdmin ? (
+            <UISection title={t('profile.adminJellyfin')}>
+              <NavRow title={t('profile.adminMenu.dashboard')} systemImage="chart.bar" onPress={() => openWeb('/web/#/dashboard.html')} />
+              <NavRow title={t('profile.adminMenu.metadataManager')} systemImage="folder" onPress={() => openWeb('/web/#/dashboard/libraries')} />
+              <NavRow title={t('profile.adminMenu.users')} systemImage="person.2" onPress={() => openWeb('/web/#/dashboard/users')} />
+              <NavRow title={t('profile.adminMenu.plugins')} systemImage="puzzlepiece" onPress={() => openWeb('/web/#/dashboard/plugins')} />
+              <NavRow title={t('profile.adminMenu.serverLogs')} systemImage="doc.text" onPress={() => openWeb('/web/#/dashboard/logs')} />
+            </UISection>
+          ) : null}
+
+          {isAdmin ? (
+            <UISection title={t('profile.adminJellyseerr')}>
+              <NavRow title={t('profile.adminMenu.requests')} systemImage="tray.and.arrow.down" onPress={() => openJellyseerr('/requests')} />
+              <NavRow title={t('profile.adminMenu.users')} systemImage="person.2" onPress={() => openJellyseerr('/users')} />
+              <NavRow title={t('profile.adminMenu.settings')} systemImage="gearshape" onPress={() => openJellyseerr('/settings')} />
+            </UISection>
+          ) : null}
+
+          {/* The storage bar was a drawing of exactly this. */}
+          {storage ? (
+            <UISection
+              title={t('profile.storage')}
+              footer={<UIText>{`${formatBytes(storage.used)} · ${t('profile.ofTotal', { total: formatBytes(storage.total) })}`}</UIText>}
+            >
+              <ProgressView value={storage.total > 0 ? storage.used / storage.total : null} />
+            </UISection>
+          ) : null}
+
+          <UISection title={t('profile.app')}>
+            <NavRow title={t('profile.menu.servers')} systemImage="server.rack" onPress={() => router.push('/servers')} />
+          </UISection>
+
+          <UISection>
+            <Button role="destructive" onPress={signOut}>
+              <UIText>{t('profile.signOutOfServer', { name: getJellyfinUrl().replace(/^https?:\/\//, '') })}</UIText>
+            </Button>
+          </UISection>
+        </Form>
+      </Host>
     </View>
   );
 }
 
-function Section({ children }: { children: React.ReactNode }) {
-  const items = Array.isArray(children) ? children.flat() : [children];
-  return (
-    <View style={styles.section}>
-      {items.map((child, i) => (
-        <View key={i}>
-          {child}
-          {i < items.length - 1 ? <View style={styles.sep} /> : null}
-        </View>
-      ))}
-    </View>
-  );
-}
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return <Text style={styles.sectionHeader}>{children}</Text>;
 }
 
-function Row({ icon, label, value, onPress }: { icon: any; label: string; value?: string; onPress: () => void }) {
+
+/**
+ * A row that navigates, the way iOS draws one.
+ *
+ * SwiftUI has `NavigationLink` for this and it is unavailable here - the
+ * navigation belongs to expo-router, not to a SwiftUI stack. A plain `Button`
+ * is the bridge, but a button inside a list is tinted and chevron-less by
+ * default, which reads as a list of links rather than as Settings. `plain`
+ * takes the tint off and the chevron is drawn where the system would put it.
+ */
+function NavRow({ title, systemImage, value, onPress }: {
+  title: string;
+  systemImage: any;
+  value?: string;
+  onPress: () => void;
+}) {
   return (
-    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.rowIconWrap}>
-        <SymbolView name={icon} tintColor={colors.text} size={20} />
-      </View>
-      <Text style={styles.rowLabel}>{label}</Text>
-      {value ? <Text style={styles.rowValue} numberOfLines={1}>{value}</Text> : null}
-      <Text style={styles.rowArrow}>›</Text>
-    </TouchableOpacity>
+    <Button modifiers={[buttonStyle('plain')]} onPress={onPress}>
+      <HStack spacing={12}>
+        <Label title={title} systemImage={systemImage} />
+        <Spacer />
+        {value ? (
+          <UIText modifiers={[foregroundColor(colors.textMuted)]}>{value}</UIText>
+        ) : null}
+        <UIImage
+          systemName="chevron.right"
+          size={13}
+          color={colors.textDim}
+          modifiers={[foregroundColor(colors.textDim), frame({ width: 13, height: 13 })]}
+        />
+      </HStack>
+    </Button>
   );
 }
 
@@ -379,6 +370,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
+  form: { flex: 1 },
   section: {
     marginHorizontal: spacing.lg,
     borderRadius: radius.lg,

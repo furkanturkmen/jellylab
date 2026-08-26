@@ -35,7 +35,6 @@ import {
   localUriSync,
   removeDownload,
   saveLocalPosition,
-  startDownload,
 } from '@/store/downloads';
 import { drainProgressOutbox, queueProgress } from '@/store/outbox';
 import { logRequestFailure } from '@/lib/errorLog';
@@ -307,6 +306,37 @@ export default function ItemScreen() {
     setPlayback(p => (p ? { ...p, url, audioStreamIndex: streamIndex, startAt: positionSeconds } : p));
   }
 
+  /**
+   * The language this title was made in, fetched if it is not known yet.
+   *
+   * The screen looks TMDB up for artwork, but only for films and series - an
+   * episode's still would be a lookup each, so episodes are skipped. That left
+   * "original audio" resolving to nothing on exactly the content it exists
+   * for: anime, watched by the episode.
+   *
+   * So an episode asks its series. One request, only when the preference is
+   * Original, and remembered for the screen's lifetime.
+   */
+  async function resolveOriginalLanguage(): Promise<string | null> {
+    if (originalLanguage) return originalLanguage;
+    if (state.status !== 'signed-in' || !item) return null;
+
+    let tmdb = Jellyfin.tmdbId(item);
+    let kind: 'movie' | 'tv' = item.Type === 'Movie' ? 'movie' : 'tv';
+
+    if (!tmdb && item.SeriesId) {
+      const series = await Jellyfin.getItem(state.auth.userId, item.SeriesId).catch(() => null);
+      tmdb = series ? Jellyfin.tmdbId(series) : null;
+      kind = 'tv';
+    }
+    if (!tmdb) return null;
+
+    const details = await Jellyseerr.getMediaDetails(kind, tmdb).catch(() => null);
+    const resolved = audioLanguageKey(details?.originalLanguage);
+    if (resolved) setOriginalLanguage(resolved);
+    return resolved;
+  }
+
   async function play() {
     if (state.status !== 'signed-in' || !item) return;
 
@@ -385,7 +415,7 @@ export default function ItemScreen() {
      * English and wrong for all anime.
      */
     const wantedAudio = prefs.audioLanguage === 'original'
-      ? originalLanguage
+      ? await resolveOriginalLanguage()
       : prefs.audioLanguage;
 
     // The transcode carries one audio track, so the choice has to reach the
@@ -441,7 +471,8 @@ export default function ItemScreen() {
     console.log(
       `[jellylab] player:decision engine=${engine} mode=${mode} preferred=${prefs.preferredEngine}` +
       ` container=${source?.Container ?? '?'} bitrate=${source?.Bitrate ?? 0}` +
-      ` audioPref=${prefs.audioLanguage} wanted=${wantedAudio ?? 'none'} audioIndex=${audioIndex ?? 'server'}`,
+      ` audioPref=${prefs.audioLanguage} wanted=${wantedAudio ?? 'none'} audioIndex=${audioIndex ?? 'server'}` +
+      ` audioStreams=${JSON.stringify(audioStreams.map(a => ({ i: a.index, l: a.language })))}`,
     );
     setPlayback({
       url, engine, mode, mediaSourceId: source?.Id, externalSubs, audioStreams,

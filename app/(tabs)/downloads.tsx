@@ -1,23 +1,39 @@
 import { useRef } from 'react';
-import { ActivityIndicator, Alert, Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
+import {
+  Button,
+  ContentUnavailableView,
+  Host,
+  List,
+  ProgressView,
+  Section,
+  SwipeActions,
+  Text,
+  VStack,
+} from '@expo/ui/swift-ui';
+
+import { buttonStyle, scrollContentBackground, tint } from '@expo/ui/swift-ui/modifiers';
 
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useDownloads } from '@/hooks/useDownloads';
 import { formatBytes } from '@/lib/bytes';
 import { cancelDownload, removeDownload, type DownloadEntry } from '@/store/downloads';
-import { colors, radius, spacing, type } from '@/theme';
+import { colors, spacing } from '@/theme';
 
 /**
  * What is on this device.
  *
+ * A SwiftUI `List`, so the rows behave the way rows behave everywhere else on
+ * the phone: swipe left to delete, full-swipe to skip the aiming, and a real
+ * `ProgressView` for what is still arriving. What was here drew its own
+ * separators, its own progress bar, and a Delete button you had to hit.
+ *
  * Two sections in the order they matter: what is arriving, then what has
- * arrived. Everything here is read from disk rather than from the server -
- * that is the point of the tab, and it is why the store keeps a meta.json
- * beside each file.
+ * arrived. Everything is read from disk rather than from the server - that is
+ * the point of the tab, and why the store keeps a meta.json beside each file.
  */
 export default function DownloadsScreen() {
   const { t } = useTranslation();
@@ -56,17 +72,19 @@ export default function DownloadsScreen() {
       <View style={styles.root}>
         <StatusBar style="light" />
         <View style={{ height: headerHeight }} />
-        <View style={styles.center}>
-          <View style={styles.iconWrap}>
-            <SymbolView
-              name={{ ios: 'arrow.down.circle', android: 'download', web: 'download' }}
-              tintColor={colors.textMuted}
-              size={56}
-            />
-          </View>
-          <Text style={styles.title}>{t('downloads.emptyTitle')}</Text>
-          <Text style={styles.body}>{t('downloads.emptyBody')}</Text>
-        </View>
+        {/*
+          * The system's own empty state.
+          *
+          * What was here was a circle, an icon, a title and a paragraph, sized
+          * and spaced by eye to look like the one iOS draws. This is that one.
+          */}
+        <Host style={styles.center} colorScheme="dark">
+          <ContentUnavailableView
+            title={t('downloads.emptyTitle')}
+            systemImage="arrow.down.circle"
+            description={t('downloads.emptyBody')}
+          />
+        </Host>
         <TabHeader title={t('tabs.downloads')} scrollY={scrollY} />
       </View>
     );
@@ -75,126 +93,109 @@ export default function DownloadsScreen() {
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      <Animated.ScrollView
-        contentContainerStyle={{ paddingBottom: 150 }}
-        showsVerticalScrollIndicator={false}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
-        scrollEventThrottle={16}
-      >
-        <View style={{ height: headerHeight }} />
+      <View style={{ height: headerHeight }} />
+      <Host style={styles.list} colorScheme="dark">
+        <List modifiers={[scrollContentBackground('hidden'), tint(colors.text)]}>
+          {active.length > 0 ? (
+            <Section title={t('downloads.arriving')}>
+              {active.map(entry => (
+                <DownloadRow
+                  key={entry.meta.itemId}
+                  entry={entry}
+                  actionLabel={t('common.cancel')}
+                  onAction={() => cancelDownload(entry.meta.itemId)}
+                />
+              ))}
+            </Section>
+          ) : null}
 
-        <Text style={styles.total}>
-          {t('downloads.storedCount', { count: stored.length })} · {formatBytes(bytes)}
-        </Text>
+          {stored.length > 0 ? (
+            <Section
+              title={t('downloads.onThisDevice')}
+              footer={<Text>{`${t('downloads.storedCount', { count: stored.length })} · ${formatBytes(bytes)}`}</Text>}
+            >
+              {stored.map(entry => (
+                <DownloadRow
+                  key={entry.meta.itemId}
+                  entry={entry}
+                  actionLabel={t('common.delete')}
+                  onAction={() => confirmRemove(entry)}
+                  onOpen={() => router.push(`/item/${entry.meta.itemId}`)}
+                />
+              ))}
+            </Section>
+          ) : null}
 
-        {active.length > 0 ? (
-          <Section title={t('downloads.arriving')}>
-            {active.map(entry => (
-              <Row
-                key={entry.meta.itemId}
-                entry={entry}
-                action={t('common.cancel')}
-                onAction={() => cancelDownload(entry.meta.itemId)}
-              />
-            ))}
-          </Section>
-        ) : null}
-
-        {stored.length > 0 ? (
-          <Section title={t('downloads.onThisDevice')}>
-            {stored.map(entry => (
-              <Row
-                key={entry.meta.itemId}
-                entry={entry}
-                action={t('common.delete')}
-                destructive
-                onAction={() => confirmRemove(entry)}
-                onPress={() => router.push(`/item/${entry.meta.itemId}`)}
-              />
-            ))}
-          </Section>
-        ) : null}
-
-        {failed.length > 0 ? (
-          <Section title={t('downloads.failed')}>
-            {failed.map(entry => (
-              <Row
-                key={entry.meta.itemId}
-                entry={entry}
-                action={t('common.delete')}
-                destructive
-                onAction={() => removeDownload(entry.meta.itemId)}
-              />
-            ))}
-          </Section>
-        ) : null}
-      </Animated.ScrollView>
+          {failed.length > 0 ? (
+            <Section title={t('downloads.failed')}>
+              {failed.map(entry => (
+                <DownloadRow
+                  key={entry.meta.itemId}
+                  entry={entry}
+                  actionLabel={t('common.delete')}
+                  onAction={() => removeDownload(entry.meta.itemId)}
+                />
+              ))}
+            </Section>
+          ) : null}
+        </List>
+      </Host>
       <TabHeader title={t('tabs.downloads')} scrollY={scrollY} />
     </View>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {children}
-    </View>
-  );
-}
-
-function Row({ entry, action, destructive, onAction, onPress }: {
+/**
+ * One row: what it is, how it is doing, and a swipe that removes it.
+ *
+ * The row is a Button when there is somewhere to go, because a list row that
+ * navigates is a button on iOS - that is where the highlight and the
+ * accessibility come from. A failed or half-arrived download has nowhere to go
+ * and stays plain.
+ */
+function DownloadRow({ entry, actionLabel, onAction, onOpen }: {
   entry: DownloadEntry;
-  action: string;
-  destructive?: boolean;
+  actionLabel: string;
   onAction: () => void;
-  onPress?: () => void;
+  onOpen?: () => void;
 }) {
   const { t } = useTranslation();
   const { meta, status, bytesWritten, totalBytes } = entry;
-  // -1 means the server sent no Content-Length, and a bar that cannot say how
-  // far along it is should not pretend.
-  const progress = totalBytes > 0 ? Math.min(1, bytesWritten / totalBytes) : null;
+  // -1 means the server sent no Content-Length; a bar that cannot say how far
+  // along it is should not pretend, so it spins instead of filling.
+  const fraction = totalBytes > 0 ? Math.min(1, bytesWritten / totalBytes) : null;
 
   const detail =
     status === 'done' ? formatBytes(totalBytes)
       : status === 'failed' ? (entry.error ?? t('downloads.failed'))
-        : progress != null ? `${Math.round(progress * 100)}% · ${formatBytes(totalBytes)}`
+        : fraction != null ? `${Math.round(fraction * 100)}% · ${formatBytes(totalBytes)}`
           : formatBytes(bytesWritten);
 
+  const body = (
+    <VStack alignment="leading" spacing={2}>
+      <Text>{meta.title}</Text>
+      {meta.subtitle ? <Text>{meta.subtitle}</Text> : null}
+      <Text>{detail}</Text>
+      {status === 'downloading' ? <ProgressView value={fraction} /> : null}
+    </VStack>
+  );
+
   return (
-    <TouchableOpacity
-      style={styles.row}
-      onPress={onPress}
-      disabled={!onPress}
-      activeOpacity={0.7}
-      accessibilityRole={onPress ? 'button' : undefined}
-    >
-      <View style={styles.rowText}>
-        <Text style={styles.rowTitle} numberOfLines={1}>{meta.title}</Text>
-        {meta.subtitle ? <Text style={styles.rowMeta} numberOfLines={1}>{meta.subtitle}</Text> : null}
-        <Text style={styles.rowDetail}>{detail}</Text>
-        {status === 'downloading' && progress != null ? (
-          <View style={styles.track}>
-            <View style={[styles.fill, { width: `${progress * 100}%` }]} />
-          </View>
-        ) : null}
-      </View>
-      <TouchableOpacity
-        onPress={onAction}
-        style={styles.action}
-        activeOpacity={0.7}
-        accessibilityRole="button"
-        accessibilityLabel={`${action}: ${meta.title}`}
-      >
-        <Text style={[styles.actionText, destructive && styles.actionDestructive]}>{action}</Text>
-      </TouchableOpacity>
-    </TouchableOpacity>
+    <SwipeActions>
+      <SwipeActions.Actions edge="trailing" allowsFullSwipe>
+        <Button role="destructive" systemImage="trash" onPress={onAction}>
+          <Text>{actionLabel}</Text>
+        </Button>
+      </SwipeActions.Actions>
+      {/* plain, or the whole row draws in the accent colour like a link. */}
+      {onOpen ? <Button modifiers={[buttonStyle('plain')]} onPress={onOpen}>{body}</Button> : body}
+    </SwipeActions>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  list: { flex: 1 },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -202,59 +203,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xxl,
     paddingBottom: 150,
   },
-  iconWrap: {
-    width: 108,
-    height: 108,
-    borderRadius: 54,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xl,
-  },
-  title: { ...type.h1, color: colors.text, marginBottom: spacing.sm, textAlign: 'center' },
-  body: { ...type.body, color: colors.textMuted, textAlign: 'center', lineHeight: 22 },
-
-  total: {
-    ...type.caption,
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  section: { marginBottom: spacing.xl },
-  sectionTitle: { ...type.h2, color: colors.text, paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  rowText: { flex: 1, gap: 2 },
-  rowTitle: { ...type.bodyStrong, color: colors.text },
-  rowMeta: { ...type.caption, color: colors.textMuted },
-  rowDetail: { ...type.caption, color: colors.textDim },
-  track: {
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: colors.surface,
-    marginTop: spacing.xs,
-    overflow: 'hidden',
-  },
-  fill: { height: '100%', backgroundColor: colors.accent },
-  action: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  actionText: { ...type.caption, color: colors.text, textTransform: 'uppercase' },
-  actionDestructive: { color: 'rgba(255, 99, 99, 1)' },
 });

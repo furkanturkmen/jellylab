@@ -1,14 +1,37 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Form, Host, Picker, Section, Text, Toggle } from '@expo/ui/swift-ui';
+import { scrollContentBackground, tag, tint } from '@expo/ui/swift-ui/modifiers';
 
 import { loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
-import { colors, radius, spacing, type } from '@/theme';
+import { colors } from '@/theme';
 
-// These tables are module scope and t() is not, so anything that needs
-// translating is carried as a language code or a key and resolved where the row
-// is drawn. "8 Mbps" reads the same in every language and stays a literal.
+/**
+ * The first screen drawn by iOS rather than by us.
+ *
+ * What was here was a hand-built grouped list: rounded cards, rows with a tick
+ * on the selected one, a React Native Switch, and spacing chosen by eye to look
+ * like Settings.app. It looked close. It was not the same thing - it did not
+ * grow with Dynamic Type, VoiceOver read it as a pile of buttons rather than a
+ * form, and every iOS release was another chance for the resemblance to slip.
+ *
+ * `@expo/ui` renders actual SwiftUI, so this is a real `Form` with real
+ * `Section`s, `Picker`s and a `Toggle`. Everything below is the same
+ * preferences file as before; only the drawing changed.
+ *
+ * Note the shape: SwiftUI views have to live under a `Host`, which is the
+ * bridge between the React tree and the SwiftUI one. A Host that fills the
+ * screen gives the form its own scrolling, as Settings.app has.
+ *
+ * Every option carries a `tag`, and `selection` is a tag rather than an index.
+ * That is SwiftUI's own contract and it is not optional: written with indices,
+ * the picker matched nothing, handed back nothing on selection, and every
+ * choice fell through to the default - which read as the screen resetting
+ * itself and as the quality setting refusing to change.
+ */
+
 const BITRATES: { mbps: number; label?: string; labelKey?: string }[] = [
   { mbps: 0, labelKey: 'settings.labels.originalQuality' },
   { mbps: 8, label: '8 Mbps' },
@@ -18,6 +41,8 @@ const BITRATES: { mbps: number; label?: string; labelKey?: string }[] = [
 ];
 
 const AUDIO = ['original', 'eng', 'nld', 'tur', 'ger', 'jpn'];
+
+const ENGINES: Prefs['preferredEngine'][] = ['auto', 'native', 'vlc'];
 
 export default function PlaybackSettings() {
   const { t } = useTranslation();
@@ -38,120 +63,76 @@ export default function PlaybackSettings() {
     return <View style={styles.center}><ActivityIndicator color={colors.text} /></View>;
   }
 
+  const engineLabels = [
+    t('settings.labels.engineAuto'),
+    t('settings.labels.engineNative'),
+    t('settings.labels.engineVlc'),
+  ];
+
   return (
     <View style={styles.root}>
-      <Stack.Screen options={{ title: t('nav.playback'), headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text } }} />
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>{t('settings.labels.preferredAudio')}</Text>
-          {AUDIO.map(code => (
-            <OptionRow
-              key={code}
-              label={t(`trackLanguages.${code}`)}
-              selected={prefs.audioLanguage === code}
-              onPress={() => update('audioLanguage', code)}
+      <Stack.Screen options={{ title: t('nav.playback') }} />
+      {/* The app is dark whatever the phone is set to, so SwiftUI is told
+          rather than left to ask the system. */}
+      <Host style={styles.host} colorScheme="dark">
+        <Form modifiers={[scrollContentBackground('hidden'), tint(colors.text)]}>
+          <Section title={t('settings.labels.preferredAudio')}>
+            {/* The tag is the value the preferences file stores, so what comes
+                back needs no translating between the two. */}
+            <Picker
+              label={t('settings.labels.preferredAudio')}
+              selection={prefs.audioLanguage}
+              onSelectionChange={code => { if (code) update('audioLanguage', String(code)); }}
+            >
+              {AUDIO.map(code => (
+                <Text key={code} modifiers={[tag(code)]}>{t(`trackLanguages.${code}`)}</Text>
+              ))}
+            </Picker>
+          </Section>
+
+          <Section title={t('settings.labels.engine')} footer={<Text>{t('settings.playback.engineNote')}</Text>}>
+            <Picker
+              label={t('settings.labels.engine')}
+              selection={prefs.preferredEngine}
+              onSelectionChange={engine => {
+                if (engine) update('preferredEngine', String(engine) as Prefs['preferredEngine']);
+              }}
+            >
+              {ENGINES.map((engine, i) => (
+                <Text key={engine} modifiers={[tag(engine)]}>{engineLabels[i]}</Text>
+              ))}
+            </Picker>
+          </Section>
+
+          <Section title={t('settings.labels.maxQuality')} footer={<Text>{t('settings.playback.qualityNote')}</Text>}>
+            <Picker
+              label={t('settings.labels.maxQuality')}
+              selection={prefs.maxBitrateMbps}
+              onSelectionChange={mbps => { if (mbps != null) update('maxBitrateMbps', Number(mbps)); }}
+            >
+              {BITRATES.map(b => (
+                <Text key={b.mbps} modifiers={[tag(b.mbps)]}>
+                  {b.labelKey ? t(b.labelKey) : b.label ?? ''}
+                </Text>
+              ))}
+            </Picker>
+          </Section>
+
+          <Section footer={<Text>{t('settings.playback.autoplayNextDesc')}</Text>}>
+            <Toggle
+              label={t('settings.labels.autoplay')}
+              isOn={prefs.autoplayNext}
+              onIsOnChange={value => update('autoplayNext', value)}
             />
-          ))}
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>{t('settings.labels.engine')}</Text>
-          <OptionRow
-            label={t('settings.labels.engineAuto')}
-            selected={prefs.preferredEngine === 'auto'}
-            onPress={() => update('preferredEngine', 'auto')}
-          />
-          <OptionRow
-            label={t('settings.labels.engineNative')}
-            selected={prefs.preferredEngine === 'native'}
-            onPress={() => update('preferredEngine', 'native')}
-          />
-          <OptionRow
-            label={t('settings.labels.engineVlc')}
-            selected={prefs.preferredEngine === 'vlc'}
-            onPress={() => update('preferredEngine', 'vlc')}
-          />
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>{t('settings.labels.maxQuality')}</Text>
-          {BITRATES.map(b => (
-            <OptionRow
-              key={b.mbps}
-              label={b.labelKey ? t(b.labelKey) : b.label ?? ''}
-              selected={prefs.maxBitrateMbps === b.mbps}
-              onPress={() => update('maxBitrateMbps', b.mbps)}
-            />
-          ))}
-        </View>
-
-        <View style={styles.card}>
-          <ToggleRow
-            label={t('settings.labels.autoplay')}
-            description={t('settings.playback.autoplayNextDesc')}
-            value={prefs.autoplayNext}
-            onValueChange={v => update('autoplayNext', v)}
-          />
-        </View>
-
-        <Text style={styles.note}>{t('settings.playback.engineNote')}</Text>
-
-        <Text style={styles.note}>{t('settings.playback.qualityNote')}</Text>
-      </ScrollView>
-    </View>
-  );
-}
-
-function OptionRow({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  return (
-    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
-      <Text style={[styles.rowLabel, selected && styles.rowLabelSelected]}>{label}</Text>
-      {selected ? <Text style={styles.check}>✓</Text> : null}
-    </TouchableOpacity>
-  );
-}
-
-function ToggleRow({ label, description, value, onValueChange }: { label: string; description?: string; value: boolean; onValueChange: (v: boolean) => void }) {
-  return (
-    <View style={styles.toggleRow}>
-      <View style={{ flex: 1, marginRight: spacing.md }}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        {description ? <Text style={styles.toggleDesc}>{description}</Text> : null}
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ true: colors.text, false: colors.surface }}
-        thumbColor={colors.bg}
-      />
+          </Section>
+        </Form>
+      </Host>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  card: {
-    marginBottom: spacing.md,
-    padding: spacing.lg,
-    borderRadius: radius.lg,
-    backgroundColor: colors.bgElevated,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
-  cardLabel: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.md },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  rowLabel: { ...type.body, color: colors.text },
-  rowLabelSelected: { fontWeight: '600' },
-  check: { color: colors.text, fontSize: 18 },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  toggleDesc: { ...type.caption, color: colors.textMuted, marginTop: spacing.xs, lineHeight: 15 },
-  note: { ...type.small, color: colors.textMuted, marginTop: spacing.md, lineHeight: 20 },
+  host: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
 });

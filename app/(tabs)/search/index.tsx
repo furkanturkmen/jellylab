@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
+import { ContentUnavailableView, Host } from '@expo/ui/swift-ui';
 
 import * as Jellyfin from '@/api/jellyfin';
 import * as Jellyseerr from '@/api/jellyseerr';
@@ -197,9 +198,12 @@ export default function SearchScreen() {
             contentContainerStyle={{ paddingBottom: 150 }}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
-              <View style={styles.center}>
-                <Text style={styles.emptyText}>{t('search.noResults')}</Text>
-              </View>
+              <Host style={styles.center} colorScheme="dark">
+                <ContentUnavailableView
+                  title={t('search.noResults')}
+                  systemImage="magnifyingglass"
+                />
+              </Host>
             }
           />
         )

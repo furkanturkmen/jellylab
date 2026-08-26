@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Form, Host, Picker, Section, Text } from '@expo/ui/swift-ui';
+import { scrollContentBackground, tag, tint } from '@expo/ui/swift-ui/modifiers';
 
-import { DEFAULT_PREFS, loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
-import { colors, radius, spacing, type } from '@/theme';
+import { loadPrefs, savePrefs, type Prefs } from '@/store/prefs';
+import { colors } from '@/theme';
+
+/**
+ * Subtitles, drawn by SwiftUI - see settings/playback.tsx for the reasoning
+ * and for the tag contract these pickers depend on.
+ */
 
 // Codes, not labels: the names are looked up in the app's language where the
 // rows are drawn, since t() does not exist at module scope.
@@ -33,69 +40,42 @@ export default function SubtitlesSettings() {
 
   return (
     <View style={styles.root}>
-      <Stack.Screen options={{ title: t('nav.subtitles'), headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text } }} />
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>{t('settings.labels.preferredSubs')}</Text>
-          {LANGS.map(code => (
-            <OptionRow
-              key={code}
-              label={t(`trackLanguages.${code}`)}
-              selected={prefs.subtitleLanguage === code}
-              onPress={() => update('subtitleLanguage', code)}
-            />
-          ))}
-        </View>
+      <Stack.Screen options={{ title: t('nav.subtitles') }} />
+      <Host style={styles.host} colorScheme="dark">
+        <Form modifiers={[scrollContentBackground('hidden'), tint(colors.text)]}>
+          <Section title={t('settings.labels.preferredSubs')}>
+            <Picker
+              label={t('settings.labels.preferredSubs')}
+              selection={prefs.subtitleLanguage}
+              onSelectionChange={code => { if (code) update('subtitleLanguage', String(code)); }}
+            >
+              {LANGS.map(code => (
+                <Text key={code} modifiers={[tag(code)]}>{t(`trackLanguages.${code}`)}</Text>
+              ))}
+            </Picker>
+          </Section>
 
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>{t('settings.labels.textSize')}</Text>
-          {SIZES.map(size => (
-            <OptionRow
-              key={size}
-              label={t(`settings.subtitles.size.${size}`)}
-              selected={prefs.subtitleSize === size}
-              onPress={() => update('subtitleSize', size)}
-            />
-          ))}
-        </View>
-
-        <Text style={styles.note}>{t('settings.subtitles.note')}</Text>
-      </ScrollView>
+          <Section title={t('settings.labels.textSize')} footer={<Text>{t('settings.subtitles.note')}</Text>}>
+            <Picker
+              label={t('settings.labels.textSize')}
+              selection={prefs.subtitleSize}
+              onSelectionChange={size => {
+                if (size) update('subtitleSize', String(size) as Prefs['subtitleSize']);
+              }}
+            >
+              {SIZES.map(size => (
+                <Text key={size} modifiers={[tag(size)]}>{t(`settings.subtitles.size.${size}`)}</Text>
+              ))}
+            </Picker>
+          </Section>
+        </Form>
+      </Host>
     </View>
-  );
-}
-
-function OptionRow({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  return (
-    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
-      <Text style={[styles.rowLabel, selected && styles.rowLabelSelected]}>{label}</Text>
-      {selected ? <Text style={styles.check}>✓</Text> : null}
-    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  card: {
-    marginBottom: spacing.md,
-    padding: spacing.lg,
-    borderRadius: radius.lg,
-    backgroundColor: colors.bgElevated,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
-  cardLabel: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.md },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  rowLabel: { ...type.body, color: colors.text },
-  rowLabelSelected: { fontWeight: '600' },
-  check: { color: colors.text, fontSize: 18 },
-  note: { ...type.small, color: colors.textMuted, marginTop: spacing.md, lineHeight: 20 },
+  host: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
 });
