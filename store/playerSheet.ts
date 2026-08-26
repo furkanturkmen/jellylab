@@ -39,6 +39,14 @@ export type PlayerSheetRequest =
       activeExternalSubIndex: number | null;
       onPickExternal: (index: number | null) => void;
       /**
+       * What the title was made in.
+       *
+       * On direct play the list comes from AVPlayer, which reports what the
+       * file says - and a file that says nothing gives a row reading "Track
+       * 1". The servers know better; see lib/tracks.
+       */
+      originalLanguage?: string;
+      /**
        * The server's audio tracks, when the server is the one deciding.
        *
        * A transcode carries a single audio track, so AVPlayer has nothing to

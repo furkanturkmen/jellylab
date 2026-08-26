@@ -946,6 +946,10 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       setSubDelayMs(prefs.subtitleDelays?.[delayKey] ?? 0);
       setPrefsLoaded(true);
 
+      console.log(
+        `[jellylab] player:subPrefs language=${prefs.subtitleLanguage || 'unset'}` +
+        ` last=${prefs.lastSubLabel || 'none'} available=${externalSubs.length}`,
+      );
       if (prefs.lastSubLabel && prefs.lastSubLabel !== 'off') {
         const exact = externalSubs.find(s => s.label === prefs.lastSubLabel);
         if (exact) {
@@ -953,7 +957,15 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
           return;
         }
       }
-      if (prefs.lastSubLabel !== 'off' && prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
+      /**
+       * "Off" is a choice about one playback, not about every title.
+       *
+       * Tapping Off wrote lastSubLabel='off', and that suppressed the language
+       * preference from then on - so subtitles silently stopped appearing
+       * everywhere, with nothing in the log to say why. The preference decides
+       * now; Off still turns them off for the film you turned them off in.
+       */
+      if (prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
         const match = externalSubs.find(s => matchesLanguage(s.label, prefs.subtitleLanguage));
         if (match) pickExternalSub(match.index, false);
       }
@@ -1903,6 +1915,10 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
       setSubFontSize(sizeMap[prefs.subtitleSize] ?? 18);
 
       // 1. Prefer exact match on the last-picked label (persisted across sessions).
+      console.log(
+        `[jellylab] player:subPrefs language=${prefs.subtitleLanguage || 'unset'}` +
+        ` last=${prefs.lastSubLabel || 'none'} available=${externalSubs.length}`,
+      );
       if (prefs.lastSubLabel && prefs.lastSubLabel !== 'off') {
         const exact = externalSubs.find(s => s.label === prefs.lastSubLabel);
         if (exact) {
@@ -1920,7 +1936,15 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
        * asked for English. The VLC path was fixed and this one kept the old
        * copy, so the two engines disagreed about which subtitle to pick.
        */
-      if (prefs.lastSubLabel !== 'off' && prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
+      /**
+       * "Off" is a choice about one playback, not about every title.
+       *
+       * Tapping Off wrote lastSubLabel='off', and that suppressed the language
+       * preference from then on - so subtitles silently stopped appearing
+       * everywhere, with nothing in the log to say why. The preference decides
+       * now; Off still turns them off for the film you turned them off in.
+       */
+      if (prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
         const match = externalSubs.find(s => matchesLanguage(s.label, prefs.subtitleLanguage));
         if (match) {
           console.log(`[jellylab] player:subPick wanted=${prefs.subtitleLanguage} picked=${match.label}`);
@@ -2047,6 +2071,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
       externalSubs,
       activeExternalSubIndex: activeSubIndex,
       onPickExternal: pickExternalSub,
+      originalLanguage,
       /**
        * On a transcode the file has one audio track, so the picker offers the
        * server's list instead of the player's - and choosing one asks for a

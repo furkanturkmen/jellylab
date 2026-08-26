@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { cleanSubLabel, DelayButton, SubGroupLabel, TrackRow } from '@/components/TrackRow';
 import { clearPlayerSheet, pendingPlayerSheet, type PlayerSheetRequest } from '@/store/playerSheet';
+import { resolvedTrackLanguage, withLanguage } from '@/lib/tracks';
 import { colors, spacing, type } from '@/theme';
 
 /**
@@ -225,7 +226,15 @@ function NativeTracks({ request, close }: { request: Of<'tracks'>; close: () => 
         audios.map((track, i) => (
           <TrackRow
             key={`aud-${i}`}
-            label={track.label ?? track.language ?? t('player.trackNumber', { number: i + 1 })}
+            // AVPlayer reports what the file says, and this file says nothing.
+            // The title's own language is a better answer than "Track 1".
+            label={withLanguage(
+              track.label ?? t('player.trackNumber', { number: i + 1 }),
+              (() => {
+                const lang = resolvedTrackLanguage(track.language, request.originalLanguage, audios.length);
+                return lang ? t(`trackLanguages.${lang}`, { defaultValue: '' }) : null;
+              })(),
+            )}
             selected={activeAudio && (activeAudio.id === track.id || activeAudio.label === track.label)}
             onPress={() => { pickAudio(track); close(); }}
           />
