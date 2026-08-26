@@ -46,19 +46,28 @@ else
   build_cmd="$build_cmd --no-bundler"
 fi
 
-# Ask the keychain directly rather than guessing from the environment.
+# Try to sign something, because that is the question.
 #
-# SSH_CONNECTION is not enough: a shell can reach this script through a relay,
-# a tmux session or another shell's environment and still be unable to sign.
-# The question is only ever "can this session use the signing key", and the
-# keychain answers it - "User interaction is not allowed" is exactly the state
-# that makes codesign fail later with errSecInternalComponent.
+# Asking the keychain about itself does not work - `show-keychain-info` needs
+# interaction by design and fails identically in both sessions. Signing a
+# throwaway copy of /usr/bin/true takes a moment and gives the real answer:
+# either codesign can use the key from here, or it returns the same
+# errSecInternalComponent that would otherwise appear ten minutes into a build.
 can_sign() {
-  security show-keychain-info "$HOME/Library/Keychains/login.keychain-db" 2>&1 |
-    grep -qv 'User interaction is not allowed'
+  local identity probe
+  identity=$(security find-identity -v -p codesigning 2>/dev/null |
+    grep -m1 'Apple Development' | awk '{ print $2 }')
+  [ -n "$identity" ] || return 1
+
+  probe=$(mktemp -d)
+  cp /usr/bin/true "$probe/probe"
+  local ok=1
+  codesign --force --sign "$identity" "$probe/probe" >/dev/null 2>&1 && ok=0
+  rm -rf "$probe"
+  return $ok
 }
 
-if [ -n "${SSH_CONNECTION:-}" ] || ! can_sign; then
+if ! can_sign; then
   # Hand the build to the graphical session, but keep it interactive.
   #
   # A plain handoff runs the build in a window you cannot see and tails a log
