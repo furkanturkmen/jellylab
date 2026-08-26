@@ -26,6 +26,7 @@ import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/pre
 import { useDownload, useDownloads } from '@/hooks/useDownloads';
 import { formatBytes } from '@/lib/bytes';
 import { qualityFromHeight, qualityFromLabel } from '@/lib/quality';
+import { resolvedTrackLanguage, withLanguage } from '@/lib/tracks';
 import {
   cancelDownload,
   enqueueDownload,
@@ -59,6 +60,14 @@ type PlaybackConfig = {
    * "original" turned into the language TMDB says the thing was made in.
    */
   preferredAudioLanguage?: string;
+  /**
+   * What TMDB says the title was made in, whatever the preference is.
+   *
+   * Used to name a track the file left untagged: a YTS mp4 arrives with one
+   * audio stream marked "und", and "Turkish" beats "AAC - Stereo" as a label
+   * when both servers already know the film is Turkish.
+   */
+  originalLanguage?: string;
   /**
    * Where to start, when this config replaced another mid-playback.
    *
@@ -482,6 +491,7 @@ export default function ItemScreen() {
       url, engine, mode, mediaSourceId: source?.Id, externalSubs, audioStreams,
       audioStreamIndex: audioIndex,
       preferredAudioLanguage: wantedAudio ?? undefined,
+      originalLanguage: originalLanguage ?? undefined,
     });
   }
 
@@ -820,9 +830,11 @@ function OverviewCard({ text, clamp }: { text: string; clamp: boolean }) {
   );
 }
 
-function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, preferredAudioLanguage, delayKey, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', onExit }: {
+function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, preferredAudioLanguage, originalLanguage, delayKey, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', onExit }: {
   /** Already resolved by the screen, so "original" means something here too. */
   preferredAudioLanguage?: string;
+  /** What the title was made in - names a track the file left untagged. */
+  originalLanguage?: string;
   url: string;
   itemId: string;
   mediaSourceId?: string;
@@ -990,11 +1002,23 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     return fromVlc || `Track ${i + 1}`;
   }
 
-  const audioChoices = vlcAudioTracks.map((t, i) => ({
-    id: t.id,
-    label: audioTrackLabel(t, i),
-    language: audioStreams[i]?.language,
-  }));
+  const audioChoices = vlcAudioTracks.map((track, i) => {
+    // A file that never said what language it is in still has one, and the
+    // servers know it - see lib/tracks.
+    const language = resolvedTrackLanguage(
+      audioStreams[i]?.language,
+      originalLanguage,
+      vlcAudioTracks.length,
+    );
+    return {
+      id: track.id,
+      label: withLanguage(
+        audioTrackLabel(track, i),
+        language ? t(`trackLanguages.${language}`, { defaultValue: '' }) : null,
+      ),
+      language: language ?? undefined,
+    };
+  });
 
   function applyAudioTrack(id: number, persist = true) {
     desiredAudioTrack.current = id;
@@ -1762,6 +1786,7 @@ function Player({
           externalSubs={config.externalSubs}
           audioStreams={config.audioStreams}
           activeAudioStreamIndex={config.audioStreamIndex}
+          originalLanguage={config.originalLanguage}
           onSwitchAudio={config.mode === 'transcode' ? onSwitchAudio : undefined}
           title={title}
           subtitle={subtitle}
@@ -1774,6 +1799,7 @@ function Player({
       ) : (
         <VLCEnginePlayer
           preferredAudioLanguage={config.preferredAudioLanguage}
+          originalLanguage={config.originalLanguage}
           url={config.url}
           itemId={itemId}
           mediaSourceId={config.mediaSourceId}
@@ -1793,7 +1819,7 @@ function Player({
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, activeAudioStreamIndex, onSwitchAudio, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', onError, onExit }: {
+function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, activeAudioStreamIndex, onSwitchAudio, originalLanguage, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', onError, onExit }: {
   url: string;
   itemId: string;
   mediaSourceId?: string;
@@ -1803,6 +1829,8 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
   activeAudioStreamIndex?: number | null;
   /** Set only when transcoding: switching means a new stream from the server. */
   onSwitchAudio?: (streamIndex: number, positionSeconds: number) => void;
+  /** What the title was made in - names a track the file left untagged. */
+  originalLanguage?: string;
   title: string;
   subtitle?: string;
   artworkUri?: string;
@@ -1996,6 +2024,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
     }
   }
 
+  const { t } = useTranslation();
   const viewRef = useRef<VideoView>(null);
 
   /**
@@ -2025,7 +2054,13 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
        */
       serverAudio: onSwitchAudio
         ? {
-            tracks: audioStreams ?? [],
+            tracks: (audioStreams ?? []).map(track => {
+              const language = resolvedTrackLanguage(track.language, originalLanguage, (audioStreams ?? []).length);
+              return {
+                ...track,
+                label: withLanguage(track.label, language ? t(`trackLanguages.${language}`, { defaultValue: '' }) : null),
+              };
+            }),
             activeIndex: activeAudioStreamIndex ?? null,
             onPick: (streamIndex: number) => onSwitchAudio(streamIndex, player.currentTime ?? 0),
           }
