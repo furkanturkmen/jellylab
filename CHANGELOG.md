@@ -8,6 +8,36 @@ Pre-1.0 on purpose: Downloads works per item but has no eviction and no way to
 take a whole season (`docs/downloads.md`), and 1.0 should mean the tabs all do
 what they say.
 
+## 0.16.0 — drawn by iOS, not imitated
+
+Settings, Profile, the Downloads list and every empty state are real SwiftUI
+now, through `@expo/ui`. They were hand-built imitations before: rounded cards,
+rows with a tick, separators inserted between children, a progress bar drawn as
+two Views, spacing chosen by eye. What replaced them is the control iOS already
+has.
+
+- **Settings** - Playback, Subtitles and Content are `Form`s with `Section`s,
+  `Picker`s and a `Toggle`. Dynamic Type and VoiceOver come with them.
+- **Profile** - one Form: `Label`s carrying SF Symbols, a value where a value
+  belongs, storage as a real `ProgressView`, sign out as a destructive button.
+- **Downloads** - a `List`: swipe a row to delete it, full-swipe to skip the
+  aiming, and a `ProgressView` for what is still arriving.
+- **Empty states** - `ContentUnavailableView` in Downloads, search and history.
+- The rows read as Settings rows rather than as links, and the list draws on
+  the app's own black instead of over it.
+
+Alongside, on the way here:
+
+- **Watch history** under Profile: what was finished, by day.
+- **"Original" audio** resolves per title from what TMDB says it was made in -
+  Japanese for anime, French for a French film - on both engines.
+- Choosing the audio track works while transcoding, where the stream carries
+  one track and the choice has to go back to the server.
+- The download button fills as the file arrives, and stops it when pressed.
+- The library offers what is on the phone when it cannot reach the server.
+- CI runs types, lint and 120 tests on every push, and checks that a tag
+  matches the version the app reports.
+
 ## 0.15.1 — picture in picture, found
 
 - Leaving the app during an AVPlayer film now keeps it playing in a corner,

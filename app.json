@@ -2,7 +2,7 @@
   "expo": {
     "name": "JellyLab",
     "slug": "jellylab",
-    "version": "0.15.1",
+    "version": "0.16.0",
     "platforms": [
       "ios",
       "web"
@@ -37,7 +37,7 @@
           "audio"
         ]
       },
-      "buildNumber": "3"
+      "buildNumber": "4"
     },
     "android": {
       "adaptiveIcon": {
