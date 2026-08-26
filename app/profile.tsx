@@ -6,7 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Host, Label, LabeledContent, Section as UISection, Text as UIText } from '@expo/ui/swift-ui';
+import { Button, Form, Host, Label, LabeledContent, ProgressView, Section as UISection, Text as UIText } from '@expo/ui/swift-ui';
 
 import * as Jellyfin from '@/api/jellyfin';
 import * as Push from '@/api/push';
@@ -14,13 +14,12 @@ import { getJellyfinUrl, getJellyseerrUrl } from '@/config';
 import { loadPrefs } from '@/store/prefs';
 import { useAuth } from '@/hooks/useAuth';
 import { loadJellyfinAuth, saveJellyfinAuth } from '@/store/auth';
+import { formatBytes } from '@/lib/bytes';
 import { colors, radius, spacing, type } from '@/theme';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  /** What SwiftUI says the form needs; see the Host below. */
-  const [formHeight, setFormHeight] = useState(0);
   const { state, signOut } = useAuth();
   const [user, setUser] = useState<any>(null);
   const [avatarBust, setAvatarBust] = useState(Date.now());
@@ -187,190 +186,135 @@ export default function ProfileScreen() {
   return (
     <View style={styles.root}>
       <Stack.Screen options={{ title: t('profile.title'), headerStyle: { backgroundColor: colors.bg }, headerTintColor: colors.text, headerTitleStyle: { color: colors.text }, headerShadowVisible: false }} />
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <TouchableOpacity onPress={chooseImageSource} disabled={uploadingImage} activeOpacity={0.85}>
-            <View style={styles.avatarWrap}>
-              {state.auth.primaryImageTag ? (
-                <Image source={{ uri: avatarUrl }} style={styles.avatar} contentFit="cover" transition={200} />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <Text style={styles.avatarInitials}>{state.auth.userName?.[0]?.toUpperCase() ?? '?'}</Text>
-                </View>
-              )}
-              {uploadingImage ? (
-                <View style={styles.avatarOverlay}><ActivityIndicator color={colors.text} /></View>
-              ) : null}
-            </View>
-          </TouchableOpacity>
-          <Text style={styles.heroName}>{state.auth.userName}</Text>
-          <Text style={styles.heroSub}>{getJellyfinUrl().replace(/^https?:\/\//, '')}</Text>
-        </View>
 
-        {/*
-          * Every row on this screen, drawn by SwiftUI.
-          *
-          * They were hand-built: a circle for the icon, a label, an optional
-          * value, a "›" drawn as text, and separators inserted between
-          * children. This is what that was imitating - `Form` with `Section`s,
-          * `Label`s carrying SF Symbols, and `LabeledContent` for a row that
-          * shows a value.
-          *
-          * `matchContents` is what keeps the outer ScrollView in charge:
-          * without it the Form scrolls inside a scroll view, which fights the
-          * avatar above it.
-          */}
-        {/*
-          * The height is measured and then applied, rather than trusted.
-          *
-          * `matchContents` alone gave the Host no height at all inside a
-          * ScrollView - the Form rendered into nothing and the screen showed
-          * only what came after it. `onLayoutContent` reports what SwiftUI
-          * actually laid out, and that is what the view is given.
-          */}
-        <Host
-          matchContents
-          colorScheme="dark"
-          onLayoutContent={e => {
-            const next = Math.ceil(e.nativeEvent.height);
-            if (next > 0 && next !== formHeight) setFormHeight(next);
-          }}
-          style={[styles.form, formHeight ? { height: formHeight } : null]}
-        >
-          <Form>
-            <UISection>
-              <Button onPress={editName}>
-                <LabeledContent label={t('profile.displayName')}>
-                  <UIText>{user?.Name ?? state.auth.userName}</UIText>
-                </LabeledContent>
-              </Button>
-              <Button onPress={() => router.push('/settings/password')}>
-                <Label title={t('profile.changePassword')} systemImage="key" />
-              </Button>
-              <Button onPress={() => router.push('/history')}>
-                <Label title={t('profile.menu.history')} systemImage="clock.arrow.circlepath" />
-              </Button>
-            </UISection>
-
-            <UISection title={t('profile.preferences')}>
-              <Button onPress={() => router.push('/settings/subtitles')}>
-                <Label title={t('profile.menu.subtitles')} systemImage="captions.bubble" />
-              </Button>
-              <Button onPress={() => router.push('/settings/playback')}>
-                <Label title={t('profile.menu.playback')} systemImage="play.rectangle" />
-              </Button>
-              <Button onPress={() => router.push('/settings/content')}>
-                <Label title={t('profile.menu.content')} systemImage="eye" />
-              </Button>
-              <Button onPress={() => router.push('/settings/language')}>
-                <Label title={t('profile.menu.language')} systemImage="globe" />
-              </Button>
-              <Button onPress={() => router.push('/settings/about')}>
-                <Label title={t('profile.menu.about')} systemImage="info.circle" />
-              </Button>
-            </UISection>
-
-            {isAdmin ? (
-              <UISection title={t('profile.adminJellyfin')}>
-                <Button onPress={() => openWeb('/web/#/dashboard.html')}>
-                  <Label title={t('profile.adminMenu.dashboard')} systemImage="chart.bar" />
-                </Button>
-                <Button onPress={() => openWeb('/web/#/dashboard/libraries')}>
-                  <Label title={t('profile.adminMenu.metadataManager')} systemImage="folder" />
-                </Button>
-                <Button onPress={() => openWeb('/web/#/dashboard/users')}>
-                  <Label title={t('profile.adminMenu.users')} systemImage="person.2" />
-                </Button>
-                <Button onPress={() => openWeb('/web/#/dashboard/plugins')}>
-                  <Label title={t('profile.adminMenu.plugins')} systemImage="puzzlepiece" />
-                </Button>
-                <Button onPress={() => openWeb('/web/#/dashboard/logs')}>
-                  <Label title={t('profile.adminMenu.serverLogs')} systemImage="doc.text" />
-                </Button>
-              </UISection>
+      {/*
+        * The avatar stays ours - it is a remote image with an upload behind
+        * it, and SwiftUI's Image takes SF Symbols and bundled assets, not a
+        * URL. It sits above the form rather than inside it.
+        */}
+      <View style={styles.hero}>
+        <TouchableOpacity onPress={chooseImageSource} disabled={uploadingImage} activeOpacity={0.85}>
+          <View style={styles.avatarWrap}>
+            {state.auth.primaryImageTag ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatar} contentFit="cover" transition={200} />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Text style={styles.avatarInitials}>{state.auth.userName?.[0]?.toUpperCase() ?? '?'}</Text>
+              </View>
+            )}
+            {uploadingImage ? (
+              <View style={styles.avatarOverlay}><ActivityIndicator color={colors.text} /></View>
             ) : null}
-
-            {isAdmin ? (
-              <UISection title={t('profile.adminJellyseerr')}>
-                <Button onPress={() => openJellyseerr('/requests')}>
-                  <Label title={t('profile.adminMenu.requests')} systemImage="tray.and.arrow.down" />
-                </Button>
-                <Button onPress={() => openJellyseerr('/users')}>
-                  <Label title={t('profile.adminMenu.users')} systemImage="person.2" />
-                </Button>
-                <Button onPress={() => openJellyseerr('/settings')}>
-                  <Label title={t('profile.adminMenu.settings')} systemImage="gearshape" />
-                </Button>
-              </UISection>
-            ) : null}
-
-            <UISection title={t('profile.app')}>
-              <Button onPress={() => router.push('/servers')}>
-                <Label title={t('profile.menu.servers')} systemImage="server.rack" />
-              </Button>
-            </UISection>
-          </Form>
-        </Host>
-
-        {/* The storage bar stays ours: it is a drawing, not a list row. */}
-        {storage ? (
-          <>
-            <SectionHeader>{t('profile.storage')}</SectionHeader>
-            <StorageCard info={storage} />
-          </>
-        ) : null}
-
-        <View style={styles.signOutWrap}>
-          <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.85}>
-            <Text style={styles.signOutText}>{t('profile.signOutOfServer', { name: getJellyfinUrl().replace(/^https?:\/\//, '') })}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
-
-/** Free space below this and the server's disk-guard stops qBittorrent. */
-const LOW_SPACE_BYTES = 40 * 1024 ** 3;
-
-function formatBytes(n: number): string {
-  const gb = n / 1024 ** 3;
-  if (gb >= 1024) return `${(gb / 1024).toFixed(2)} TB`;
-  return `${gb.toFixed(0)} GB`;
-}
-
-/**
- * Used/free on the media drive.
- *
- * The bar turns amber below 40 GB free, which is not an arbitrary number: it
- * is the threshold the server's own disk-guard uses to stop qBittorrent. So
- * the moment this changes colour is the moment downloads are about to halt,
- * rather than some generic "nearly full" that means nothing in particular.
- */
-function StorageCard({ info }: { info: Push.StorageInfo }) {
-  const { t } = useTranslation();
-  const ratio = info.total > 0 ? Math.max(0, Math.min(1, info.used / info.total)) : 0;
-  const low = info.free < LOW_SPACE_BYTES;
-
-  return (
-    <View style={styles.section}>
-      <View style={styles.storageWrap}>
-        <View style={styles.storageTop}>
-          <Text style={styles.storageUsed}>{formatBytes(info.used)}</Text>
-          <Text style={styles.storageTotal}>{t('profile.ofTotal', { total: formatBytes(info.total) })}</Text>
-        </View>
-        <View style={styles.storageTrack}>
-          <View style={[styles.storageFill, { width: `${ratio * 100}%` }, low && styles.storageFillLow]} />
-        </View>
-        <Text style={[styles.storageFree, low && styles.storageFreeLow]}>
-          {low
-            ? t('profile.storageLow', { free: formatBytes(info.free) })
-            : t('profile.storageFree', { free: formatBytes(info.free) })}
-        </Text>
+          </View>
+        </TouchableOpacity>
+        <Text style={styles.heroName}>{state.auth.userName}</Text>
+        <Text style={styles.heroSub}>{getJellyfinUrl().replace(/^https?:\/\//, '')}</Text>
       </View>
+
+      {/*
+        * Everything below is one SwiftUI Form, and it does its own scrolling.
+        *
+        * It used to sit inside a ScrollView, which is what made it invisible:
+        * a Host has no intrinsic height there, so every row rendered into a
+        * zero-tall view and the screen showed the avatar and nothing else.
+        * Measuring the content and applying the height back did not help
+        * either. One scroller, owned by SwiftUI, ends the negotiation.
+        */}
+      <Host style={styles.form} colorScheme="dark">
+        <Form>
+          <UISection>
+            <Button onPress={editName}>
+              <LabeledContent label={t('profile.displayName')}>
+                <UIText>{user?.Name ?? state.auth.userName}</UIText>
+              </LabeledContent>
+            </Button>
+            <Button onPress={() => router.push('/settings/password')}>
+              <Label title={t('profile.changePassword')} systemImage="key" />
+            </Button>
+            <Button onPress={() => router.push('/history')}>
+              <Label title={t('profile.menu.history')} systemImage="clock.arrow.circlepath" />
+            </Button>
+          </UISection>
+
+          <UISection title={t('profile.preferences')}>
+            <Button onPress={() => router.push('/settings/subtitles')}>
+              <Label title={t('profile.menu.subtitles')} systemImage="captions.bubble" />
+            </Button>
+            <Button onPress={() => router.push('/settings/playback')}>
+              <Label title={t('profile.menu.playback')} systemImage="play.rectangle" />
+            </Button>
+            <Button onPress={() => router.push('/settings/content')}>
+              <Label title={t('profile.menu.content')} systemImage="eye" />
+            </Button>
+            <Button onPress={() => router.push('/settings/language')}>
+              <Label title={t('profile.menu.language')} systemImage="globe" />
+            </Button>
+            <Button onPress={() => router.push('/settings/about')}>
+              <Label title={t('profile.menu.about')} systemImage="info.circle" />
+            </Button>
+          </UISection>
+
+          {isAdmin ? (
+            <UISection title={t('profile.adminJellyfin')}>
+              <Button onPress={() => openWeb('/web/#/dashboard.html')}>
+                <Label title={t('profile.adminMenu.dashboard')} systemImage="chart.bar" />
+              </Button>
+              <Button onPress={() => openWeb('/web/#/dashboard/libraries')}>
+                <Label title={t('profile.adminMenu.metadataManager')} systemImage="folder" />
+              </Button>
+              <Button onPress={() => openWeb('/web/#/dashboard/users')}>
+                <Label title={t('profile.adminMenu.users')} systemImage="person.2" />
+              </Button>
+              <Button onPress={() => openWeb('/web/#/dashboard/plugins')}>
+                <Label title={t('profile.adminMenu.plugins')} systemImage="puzzlepiece" />
+              </Button>
+              <Button onPress={() => openWeb('/web/#/dashboard/logs')}>
+                <Label title={t('profile.adminMenu.serverLogs')} systemImage="doc.text" />
+              </Button>
+            </UISection>
+          ) : null}
+
+          {isAdmin ? (
+            <UISection title={t('profile.adminJellyseerr')}>
+              <Button onPress={() => openJellyseerr('/requests')}>
+                <Label title={t('profile.adminMenu.requests')} systemImage="tray.and.arrow.down" />
+              </Button>
+              <Button onPress={() => openJellyseerr('/users')}>
+                <Label title={t('profile.adminMenu.users')} systemImage="person.2" />
+              </Button>
+              <Button onPress={() => openJellyseerr('/settings')}>
+                <Label title={t('profile.adminMenu.settings')} systemImage="gearshape" />
+              </Button>
+            </UISection>
+          ) : null}
+
+          {/* The storage bar was a drawing of exactly this. */}
+          {storage ? (
+            <UISection
+              title={t('profile.storage')}
+              footer={<UIText>{`${formatBytes(storage.used)} · ${t('profile.ofTotal', { total: formatBytes(storage.total) })}`}</UIText>}
+            >
+              <ProgressView value={storage.total > 0 ? storage.used / storage.total : null} />
+            </UISection>
+          ) : null}
+
+          <UISection title={t('profile.app')}>
+            <Button onPress={() => router.push('/servers')}>
+              <Label title={t('profile.menu.servers')} systemImage="server.rack" />
+            </Button>
+          </UISection>
+
+          <UISection>
+            <Button role="destructive" onPress={signOut}>
+              <UIText>{t('profile.signOutOfServer', { name: getJellyfinUrl().replace(/^https?:\/\//, '') })}</UIText>
+            </Button>
+          </UISection>
+        </Form>
+      </Host>
     </View>
   );
 }
+
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return <Text style={styles.sectionHeader}>{children}</Text>;
@@ -421,7 +365,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
-  form: { width: '100%' },
+  form: { flex: 1 },
   section: {
     marginHorizontal: spacing.lg,
     borderRadius: radius.lg,
