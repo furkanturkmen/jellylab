@@ -20,6 +20,17 @@ export type JellyseerrAuth = {
   email: string;
 };
 
+/** One trickplay resolution, exactly as Jellyfin sends it. */
+export type TrickplayResolution = {
+  Width: number;
+  Height: number;
+  TileWidth: number;
+  TileHeight: number;
+  ThumbnailCount: number;
+  /** Milliseconds of video between thumbnails. */
+  Interval: number;
+};
+
 export type JellyfinItem = {
   Id: string;
   Name: string;
@@ -53,6 +64,14 @@ export type JellyfinItem = {
   EndDate?: string;
   /** Seasons, for a series. */
   ChildCount?: number;
+  /**
+   * Scrub previews, when the request asked for them.
+   *
+   * Keyed by media source id, then by thumbnail width as a string, because
+   * that is how it arrives as JSON. A library that has never run the
+   * extraction task sends {} rather than omitting the field.
+   */
+  Trickplay?: Record<string, Record<string, TrickplayResolution>>;
   ParentIndexNumber?: number;
 };
 

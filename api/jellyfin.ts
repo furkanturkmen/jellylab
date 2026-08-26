@@ -2,6 +2,8 @@ import axios, { AxiosInstance } from 'axios';
 import { CONFIG, getJellyfinUrl, requireJellyfinUrl } from '@/config';
 import { getDeviceId, loadJellyfinAuth, saveJellyfinAuth, clearJellyfinAuth } from '@/store/auth';
 import { logRequestFailure } from '@/lib/errorLog';
+import { pickTrickplay, type TrickplayInfo } from '@/lib/trickplay';
+
 import type { JellyfinAuth, JellyfinItem, JellyfinView } from '@/types';
 
 async function authHeader(token?: string): Promise<string> {
@@ -209,7 +211,7 @@ export async function getItem(userId: string, itemId: string): Promise<JellyfinI
   // MediaSources so the screen can say "Full HD" without a second request for
   // playback info it does not otherwise need.
   const res = await client.get(`/Users/${userId}/Items/${itemId}`, {
-    params: { Fields: 'MediaSources,Overview,ProviderIds' },
+    params: { Fields: 'MediaSources,Overview,ProviderIds,Trickplay' },
   });
   return res.data;
 }
@@ -453,6 +455,53 @@ export function subtitleUrl(
   format: 'vtt' | 'srt' = 'vtt',
 ): string {
   return `${getJellyfinUrl()}/Videos/${itemId}/${mediaSourceId}/Subtitles/${streamIndex}/0/Stream.${format}?api_key=${token}`;
+}
+
+/**
+ * The scrub previews for an item, at a width worth showing on a phone.
+ *
+ * Jellyfin keys these by media source first, so a title with two files does
+ * not mix their thumbnails. When the caller does not know which source is
+ * playing - the download path, mostly - the only one present is used, which
+ * is right for every item in practice and wrong only for multi-version rips.
+ */
+export function trickplayFor(
+  item: Pick<JellyfinItem, 'Trickplay'>,
+  mediaSourceId?: string,
+  maxWidth = 320,
+): TrickplayInfo | null {
+  const bySource = item.Trickplay ?? {};
+  const chosen = (mediaSourceId ? bySource[mediaSourceId] : undefined) ?? Object.values(bySource)[0];
+  if (!chosen) return null;
+
+  const normalised: Record<string, TrickplayInfo> = {};
+  for (const [width, r] of Object.entries(chosen)) {
+    normalised[width] = {
+      width: r.Width,
+      height: r.Height,
+      tileWidth: r.TileWidth,
+      tileHeight: r.TileHeight,
+      thumbnailCount: r.ThumbnailCount,
+      interval: r.Interval,
+    };
+  }
+  return pickTrickplay(normalised, maxWidth);
+}
+
+/**
+ * One sheet of scrub thumbnails.
+ *
+ * Sheets are the unit the server serves, so a scrub across a whole tile costs
+ * a single request and everything after it is a crop of what is already
+ * cached.
+ */
+export function trickplayTileUrl(
+  itemId: string,
+  width: number,
+  tileIndex: number,
+  token: string,
+): string {
+  return `${getJellyfinUrl()}/Videos/${itemId}/Trickplay/${width}/${tileIndex}.jpg?api_key=${token}`;
 }
 
 export async function fetchSubtitleVtt(url: string): Promise<string> {

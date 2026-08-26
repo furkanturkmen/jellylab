@@ -43,6 +43,8 @@ import { logRequestFailure } from '@/lib/errorLog';
 import { formatDate } from '@/lib/date';
 import { jellyfinKind, kindKey } from '@/lib/kind';
 import { metadataLanguage, plainText, oneLine } from '@/lib/text';
+import { TrickplayPreview } from '@/components/TrickplayPreview';
+import { type TrickplayInfo } from '@/lib/trickplay';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem } from '@/types';
 
@@ -76,6 +78,15 @@ type PlaybackConfig = {
    * time someone changed track.
    */
   startAt?: number;
+  /**
+   * Scrub previews for this source, when the server has generated them.
+   *
+   * Resolved here rather than in the player because it depends on which
+   * media source is playing, which is a decision this screen already made.
+   * The token rides along because the players only load auth lazily, inside
+   * async work, and a scrub cannot wait for that.
+   */
+  trickplay?: { info: TrickplayInfo; token: string } | null;
 };
 
 /** An audio track as Jellyfin describes it, before VLC has opened the file. */
@@ -487,11 +498,13 @@ export default function ItemScreen() {
       ` audioPref=${prefs.audioLanguage} wanted=${wantedAudio ?? 'none'} audioIndex=${audioIndex ?? 'server'}` +
       ` audioStreams=${JSON.stringify(audioStreams.map(a => ({ i: a.index, l: a.language })))}`,
     );
+    const trickplayInfo = Jellyfin.trickplayFor(item, source?.Id);
     setPlayback({
       url, engine, mode, mediaSourceId: source?.Id, externalSubs, audioStreams,
       audioStreamIndex: audioIndex,
       preferredAudioLanguage: wantedAudio ?? undefined,
       originalLanguage: originalLanguage ?? undefined,
+      trickplay: trickplayInfo ? { info: trickplayInfo, token: state.auth.accessToken } : null,
     });
   }
 
@@ -830,7 +843,7 @@ function OverviewCard({ text, clamp }: { text: string; clamp: boolean }) {
   );
 }
 
-function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, preferredAudioLanguage, originalLanguage, delayKey, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', onExit }: {
+function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, preferredAudioLanguage, originalLanguage, delayKey, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', trickplay, onExit }: {
   /** Already resolved by the screen, so "original" means something here too. */
   preferredAudioLanguage?: string;
   /** What the title was made in - names a track the file left untagged. */
@@ -845,6 +858,8 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   resumeSeconds: number;
   initialDuration: number;
   playMethod?: Jellyfin.PlayMethod;
+  /** Scrub previews, with the token needed to fetch a sheet. */
+  trickplay?: { info: TrickplayInfo; token: string } | null;
   onExit: () => void;
 }) {
   const vlcRef = useRef<any>(null);
@@ -1464,6 +1479,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
                 <Scrubber
                   position={scrubbing ? scrubValue : position}
                   duration={duration}
+                  trickplay={trickplay ? { itemId, info: trickplay.info, token: trickplay.token } : null}
                   onScrubStart={() => setScrubbing(true)}
                   onScrub={(t) => setScrubValue(t)}
                   onScrubEnd={(t) => {
@@ -1805,6 +1821,7 @@ function Player({
           artworkUri={artworkUri}
           resumeSeconds={resumeSeconds}
           playMethod={config.mode === 'transcode' ? 'Transcode' : 'DirectPlay'}
+          trickplay={config.trickplay}
           onError={onNativeError}
           onExit={onExit}
         />
@@ -1822,6 +1839,7 @@ function Player({
           resumeSeconds={resumeSeconds}
           initialDuration={initialDuration}
           playMethod={config.mode === 'transcode' ? 'Transcode' : 'DirectPlay'}
+          trickplay={config.trickplay}
           onExit={onExit}
         />
       )}
@@ -1831,7 +1849,7 @@ function Player({
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, activeAudioStreamIndex, onSwitchAudio, originalLanguage, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', onError, onExit }: {
+function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, activeAudioStreamIndex, onSwitchAudio, originalLanguage, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', trickplay, onError, onExit }: {
   url: string;
   itemId: string;
   mediaSourceId?: string;
@@ -1848,6 +1866,8 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
   artworkUri?: string;
   resumeSeconds: number;
   playMethod?: Jellyfin.PlayMethod;
+  /** Scrub previews, with the token needed to fetch a sheet. */
+  trickplay?: { info: TrickplayInfo; token: string } | null;
   onError: () => void;
   onExit: () => void;
 }) {
@@ -2209,6 +2229,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
                 <Scrubber
                   position={scrubbing ? scrubValue : position}
                   duration={duration}
+                  trickplay={trickplay ? { itemId, info: trickplay.info, token: trickplay.token } : null}
                   onScrubStart={() => setScrubbing(true)}
                   onScrub={(t) => setScrubValue(t)}
                   onScrubEnd={(t) => {
@@ -2275,15 +2296,19 @@ function formatTime(seconds: number): string {
 }
 
 function Scrubber({
-  position, duration, onScrubStart, onScrub, onScrubEnd,
+  position, duration, trickplay, onScrubStart, onScrub, onScrubEnd,
 }: {
   position: number;
   duration: number;
+  /** Scrub previews, when the server has them for what is playing. */
+  trickplay?: { itemId: string; info: TrickplayInfo; token: string } | null;
   onScrubStart: () => void;
   onScrub: (t: number) => void;
   onScrubEnd: (t: number) => void;
 }) {
   const [width, setWidth] = useState(0);
+  // Whether a finger is down, which is the only time a preview is wanted.
+  const [dragging, setDragging] = useState(false);
   const durationRef = useRef(duration);
   const widthRef = useRef(width);
   const startXRef = useRef(0);
@@ -2303,6 +2328,7 @@ function Scrubber({
     onPanResponderGrant: (e) => {
       const x = (e.nativeEvent as any).locationX ?? 0;
       startXRef.current = x;
+      setDragging(true);
       onScrubStart();
       onScrub(xToTime(x));
     },
@@ -2312,10 +2338,12 @@ function Scrubber({
     },
     onPanResponderRelease: (_e, gs) => {
       const x = startXRef.current + gs.dx;
+      setDragging(false);
       onScrubEnd(xToTime(x));
     },
     onPanResponderTerminate: (_e, gs) => {
       const x = startXRef.current + gs.dx;
+      setDragging(false);
       onScrubEnd(xToTime(x));
     },
   }), []);
@@ -2328,6 +2356,34 @@ function Scrubber({
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       {...pan.panHandlers}
     >
+      {/*
+        * The preview follows the thumb but stops at either end, so it never
+        * hangs off the screen with half of it invisible.
+        */}
+      {dragging && trickplay ? (
+        <View
+          style={[
+            styles.scrubberPreview,
+            {
+              left: Math.max(
+                0,
+                Math.min(
+                  (pct / 100) * width - trickplay.info.width / 2,
+                  Math.max(0, width - trickplay.info.width),
+                ),
+              ),
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <TrickplayPreview
+            itemId={trickplay.itemId}
+            info={trickplay.info}
+            token={trickplay.token}
+            seconds={position}
+          />
+        </View>
+      ) : null}
       <View style={styles.scrubberTrack}>
         <View style={[styles.scrubberFill, { width: `${pct}%` }]} />
         <View style={[styles.scrubberThumb, { left: `${pct}%` }]} />
@@ -2582,6 +2638,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scrubberFill: { height: '100%', backgroundColor: colors.text, borderRadius: 2 },
+  // Clear of the 32pt hit area, so a thumb never covers the frame it picked.
+  scrubberPreview: { position: 'absolute', bottom: 34 },
   scrubberThumb: {
     position: 'absolute',
     width: 14,
