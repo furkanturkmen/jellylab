@@ -35,7 +35,6 @@ import {
   localUriSync,
   removeDownload,
   saveLocalPosition,
-  startDownload,
 } from '@/store/downloads';
 import { drainProgressOutbox, queueProgress } from '@/store/outbox';
 import { logRequestFailure } from '@/lib/errorLog';

@@ -2,8 +2,9 @@ import { useRef } from 'react';
 import { ActivityIndicator, Alert, Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
+
+import { ContentUnavailableView, Host } from '@expo/ui/swift-ui';
 
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useDownloads } from '@/hooks/useDownloads';
@@ -56,17 +57,19 @@ export default function DownloadsScreen() {
       <View style={styles.root}>
         <StatusBar style="light" />
         <View style={{ height: headerHeight }} />
-        <View style={styles.center}>
-          <View style={styles.iconWrap}>
-            <SymbolView
-              name={{ ios: 'arrow.down.circle', android: 'download', web: 'download' }}
-              tintColor={colors.textMuted}
-              size={56}
-            />
-          </View>
-          <Text style={styles.title}>{t('downloads.emptyTitle')}</Text>
-          <Text style={styles.body}>{t('downloads.emptyBody')}</Text>
-        </View>
+        {/*
+          * The system's own empty state.
+          *
+          * What was here was a circle, an icon, a title and a paragraph, sized
+          * and spaced by eye to look like the one iOS draws. This is that one.
+          */}
+        <Host style={styles.center} colorScheme="dark">
+          <ContentUnavailableView
+            title={t('downloads.emptyTitle')}
+            systemImage="arrow.down.circle"
+            description={t('downloads.emptyBody')}
+          />
+        </Host>
         <TabHeader title={t('tabs.downloads')} scrollY={scrollY} />
       </View>
     );
