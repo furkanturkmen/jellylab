@@ -43,8 +43,8 @@ import { logRequestFailure } from '@/lib/errorLog';
 import { formatDate } from '@/lib/date';
 import { jellyfinKind, kindKey } from '@/lib/kind';
 import { metadataLanguage, plainText, oneLine } from '@/lib/text';
-import { TrickplayPreview } from '@/components/TrickplayPreview';
-import { type TrickplayInfo } from '@/lib/trickplay';
+import { PREVIEW_WIDTH, TrickplayPreview } from '@/components/TrickplayPreview';
+import { trickplayTileAt, type TrickplayInfo } from '@/lib/trickplay';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem } from '@/types';
 
@@ -2349,6 +2349,10 @@ function Scrubber({
   }), []);
 
   const pct = duration > 0 ? Math.max(0, Math.min(1, position / duration)) * 100 : 0;
+  // Worked out here rather than inside the preview so the preview can be
+  // memoised on the cell: a drag that has not crossed into the next thumbnail
+  // then costs nothing to draw.
+  const cell = dragging && trickplay ? trickplayTileAt(position, trickplay.info) : null;
 
   return (
     <View
@@ -2360,7 +2364,7 @@ function Scrubber({
         * The preview follows the thumb but stops at either end, so it never
         * hangs off the screen with half of it invisible.
         */}
-      {dragging && trickplay ? (
+      {cell && trickplay ? (
         <View
           style={[
             styles.scrubberPreview,
@@ -2368,8 +2372,8 @@ function Scrubber({
               left: Math.max(
                 0,
                 Math.min(
-                  (pct / 100) * width - trickplay.info.width / 2,
-                  Math.max(0, width - trickplay.info.width),
+                  (pct / 100) * width - PREVIEW_WIDTH / 2,
+                  Math.max(0, width - PREVIEW_WIDTH),
                 ),
               ),
             },
@@ -2380,7 +2384,9 @@ function Scrubber({
             itemId={trickplay.itemId}
             info={trickplay.info}
             token={trickplay.token}
-            seconds={position}
+            tileIndex={cell.tileIndex}
+            x={cell.x}
+            y={cell.y}
           />
         </View>
       ) : null}

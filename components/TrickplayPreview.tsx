@@ -1,42 +1,55 @@
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 
 import { trickplayTileUrl } from '@/api/jellyfin';
-import { trickplayTileAt, type TrickplayInfo } from '@/lib/trickplay';
+import { type TrickplayInfo } from '@/lib/trickplay';
 import { colors, radius } from '@/theme';
 
+/** How wide the preview is drawn, in points. */
+export const PREVIEW_WIDTH = 176;
+
 /**
- * The frame at a given moment, cropped out of a trickplay sheet.
+ * One frame, cropped out of a trickplay sheet.
  *
- * The server does not serve single thumbnails - it serves sheets of a hundred,
- * so this draws the whole sheet inside a window one thumbnail wide and slides
- * it so the wanted cell lands in view. Scrubbing across a sheet is therefore
- * one request and ninety-nine crops of what is already in the image cache,
- * which is what makes it feel instant on a phone.
+ * The server serves sheets of a hundred thumbnails rather than single images,
+ * so this draws the whole sheet inside a one-thumbnail window and slides it
+ * until the wanted cell is in view. A scrub across a sheet is therefore one
+ * request and ninety-nine crops of what is already cached.
  *
- * `cachePolicy` is memory-and-disk on purpose: the sheets are small, and a
- * scrub back and forth over the same stretch should not go to the network
- * twice.
+ * Three things keep a drag at sixty frames:
+ *
+ * - the slide is a `transform`, not `left`/`top`, so moving it never triggers
+ *   a layout pass - and this moves on every pointer event;
+ * - the component takes a cell rather than a time, and is memoised on it, so
+ *   a drag that has not crossed into the next thumbnail does not re-render a
+ *   3200px image at all;
+ * - it is drawn smaller than the source. The thumbnails are 320px wide, so at
+ *   full width on a 3x screen they are upscaled and soft as well as costly.
  */
-export function TrickplayPreview({ itemId, info, token, seconds }: {
+function TrickplayPreviewImpl({ itemId, info, token, tileIndex, x, y }: {
   itemId: string;
   info: TrickplayInfo;
   token: string;
-  seconds: number;
+  /** Which sheet, and the cell within it - see lib/trickplay. */
+  tileIndex: number;
+  x: number;
+  y: number;
 }) {
-  const cell = trickplayTileAt(seconds, info);
-  if (!cell) return null;
+  const scale = PREVIEW_WIDTH / info.width;
+  const height = info.height * scale;
 
   return (
-    <View style={[styles.window, { width: info.width, height: info.height }]}>
+    <View style={[styles.window, { width: PREVIEW_WIDTH, height }]}>
       <Image
-        source={{ uri: trickplayTileUrl(itemId, info.width, cell.tileIndex, token) }}
+        source={{ uri: trickplayTileUrl(itemId, info.width, tileIndex, token) }}
         style={{
-          position: 'absolute',
-          left: -cell.x * info.width,
-          top: -cell.y * info.height,
-          width: info.width * info.tileWidth,
-          height: info.height * info.tileHeight,
+          width: info.width * info.tileWidth * scale,
+          height: info.height * info.tileHeight * scale,
+          transform: [
+            { translateX: -x * PREVIEW_WIDTH },
+            { translateY: -y * height },
+          ],
         }}
         contentFit="cover"
         cachePolicy="memory-disk"
@@ -45,6 +58,8 @@ export function TrickplayPreview({ itemId, info, token, seconds }: {
     </View>
   );
 }
+
+export const TrickplayPreview = memo(TrickplayPreviewImpl);
 
 const styles = StyleSheet.create({
   window: {
