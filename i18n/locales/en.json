@@ -382,7 +382,11 @@
     "removeBody": "This removes the media from Jellyseerr and asks Radarr/Sonarr to remove the file. Irreversible.",
     "removeFailed": "Remove failed",
     "waitingCinema": "Still in cinemas. Nothing to download until the digital release on {{date}} - your server will pick it up automatically then.",
-    "waitingMatch": "Approved and waiting for a match. Your server keeps searching, so this can take a while if nothing good is available yet."
+    "waitingMatch": "Approved and waiting for a match. Your server keeps searching, so this can take a while if nothing good is available yet.",
+    "waitingDays_one": "Waiting {{count}} day - nothing downloading",
+    "waitingDays_other": "Waiting {{count}} days - nothing downloading",
+    "stalled": "Nothing found yet",
+    "stalledBody": "Approved {{days}} days ago and nothing has started downloading. Usually that means no release exists that fits your quality rules, or the ones that do have no seeders."
   },
   "badge": {
     "available": "Available",

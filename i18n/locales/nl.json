@@ -382,7 +382,11 @@
     "removeBody": "Dit verwijdert de media uit Jellyseerr en vraagt Radarr/Sonarr het bestand te verwijderen. Onomkeerbaar.",
     "removeFailed": "Verwijderen mislukt",
     "waitingCinema": "Draait nog in de bioscoop. Er valt niets te downloaden tot de digitale release op {{date}} - je server pakt het dan automatisch op.",
-    "waitingMatch": "Goedgekeurd en wachtend op een match. Je server blijft zoeken, dus dit kan even duren als er nog niets goeds beschikbaar is."
+    "waitingMatch": "Goedgekeurd en wachtend op een match. Je server blijft zoeken, dus dit kan even duren als er nog niets goeds beschikbaar is.",
+    "waitingDays_one": "Wacht {{count}} dag - er wordt niets gedownload",
+    "waitingDays_other": "Wacht {{count}} dagen - er wordt niets gedownload",
+    "stalled": "Nog niets gevonden",
+    "stalledBody": "Al {{days}} dagen geleden goedgekeurd en er is nog niets begonnen met downloaden. Meestal betekent dat: geen release die aan je kwaliteitsregels voldoet, of wel een, maar zonder seeders."
   },
   "badge": {
     "available": "Beschikbaar",

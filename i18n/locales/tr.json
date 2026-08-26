@@ -382,7 +382,11 @@
     "removeBody": "Bu, medyayı Jellyseerr’den kaldırır ve Radarr/Sonarr’dan dosyayı silmesini ister. Geri alınamaz.",
     "removeFailed": "Kaldırma başarısız",
     "waitingCinema": "Hâlâ sinemalarda. {{date}} tarihindeki dijital çıkışa kadar indirilecek bir şey yok - sunucun o zaman otomatik olarak alacak.",
-    "waitingMatch": "Onaylandı ve eşleşme bekleniyor. Sunucun aramayı sürdürüyor, uygun bir şey yoksa bu biraz zaman alabilir."
+    "waitingMatch": "Onaylandı ve eşleşme bekleniyor. Sunucun aramayı sürdürüyor, uygun bir şey yoksa bu biraz zaman alabilir.",
+    "waitingDays_one": "{{count}} gündür bekliyor - hiçbir şey inmiyor",
+    "waitingDays_other": "{{count}} gündür bekliyor - hiçbir şey inmiyor",
+    "stalled": "Henüz bir şey bulunamadı",
+    "stalledBody": "{{days}} gün önce onaylandı ve hâlâ indirme başlamadı. Genelde bu, kalite kurallarına uyan bir sürüm olmadığı ya da olanların seed edilmediği anlamına gelir."
   },
   "badge": {
     "available": "Mevcut",

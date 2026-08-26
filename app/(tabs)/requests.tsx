@@ -10,6 +10,7 @@ import * as Jellyseerr from '@/api/jellyseerr';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/lib/date';
+import { requestProgress } from '@/lib/requests';
 import { getSeerrError } from '@/store/seerrStatus';
 import { type JellyseerrRequest } from '@/types';
 import { colors, radius, spacing, type as t } from '@/theme';
@@ -183,6 +184,7 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
   // Seerr carries the Sonarr/Radarr queue on each request, and those read their
   // figures straight from qBittorrent - so this is the same percentage the
   // torrent client shows, without the app needing to talk to it.
+  const progress = requestProgress(r);
   const queue = r.media.downloadStatus ?? [];
   const totals = queue.reduce<{ size: number; left: number }>(
     (acc, d) => ({ size: acc.size + (d.size ?? 0), left: acc.left + (d.sizeLeft ?? 0) }),
@@ -269,6 +271,16 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
                 {pct}%{timeLeft && timeLeft !== '00:00:00' ? ` · ${timeLeft}` : ''}
               </Text>
             </View>
+          ) : progress.state === 'waiting' && progress.stalled ? (
+            /*
+             * Approved, nothing queued, and no longer new.
+             *
+             * The card showed who asked and when, which reads the same on day
+             * one as on day thirty - and "Processing" alongside it suggests
+             * work is happening. Usually nothing is: no release fits the
+             * quality rules, or the ones that do have no seeders.
+             */
+            <Text style={styles.waiting}>{t('request.waitingDays', { count: progress.days })}</Text>
           ) : (
             <Text style={styles.by}>
               {r.requestedBy.displayName} · {formatDate(r.createdAt)}
@@ -330,6 +342,7 @@ const styles = StyleSheet.create({
   },
   pillAvailable: { backgroundColor: colors.successTint, borderColor: colors.successBorder },
   pillText: { color: colors.text, ...t.caption, textTransform: 'uppercase' },
+  waiting: { fontSize: 12, fontWeight: '600', color: colors.pink },
   by: { ...t.small, color: colors.textDim, marginTop: spacing.xs },
   progressWrap: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
   barTrack: { flex: 1, height: 5, borderRadius: 3, backgroundColor: colors.surface, overflow: 'hidden' },
