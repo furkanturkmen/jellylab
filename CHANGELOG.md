@@ -8,6 +8,37 @@ Pre-1.0 on purpose: Downloads works per item but has no eviction and no way to
 take a whole season (`docs/downloads.md`), and 1.0 should mean the tabs all do
 what they say.
 
+## 0.17.0 - the name the file forgot
+
+A file can be wrong about itself, or say nothing at all: an audio track tagged
+`und`, a release called `WEBRip-1080p v1`, a download claiming 100% while bytes
+are still arriving. This release is mostly the app saying what is actually true.
+
+- **An untagged track still gets a name.** Audio tagged `und`, `zxx` or `mul`
+  falls back to the language TMDB says the title was made in, so a Turkish film
+  whose file never said so reads Turkish rather than "Unknown language".
+- **One language matcher, not two.** Two places compared languages by different
+  rules, so a track could be selected and then not ticked, or ticked and not
+  playing. They agree now, and a lone track is shown as the one playing.
+- **Off is a choice, not a verdict.** Turning subtitles off once was remembered
+  as a standing preference and quietly suppressed them on later titles.
+- **Quality in words.** Full HD and HD, rather than `WEBRip-1080p v1`, wherever
+  a release is described.
+- **A request waiting on nothing says so.** A download with no seeders reads as
+  waiting rather than sitting at 0% looking healthy.
+- **Percentages stop rounding up.** 99.7% shows as 99.7%; nothing announces
+  100% until the last byte is in.
+
+For working on the app:
+
+- `npm run ios:device` survives being run over ssh. It works out whether the
+  keychain can sign by signing a throwaway binary rather than reading the
+  environment and guessing, finds the phone itself since the picker cannot be
+  reached from a non-GUI session, and hands the build to tmux so the terminal
+  stays yours.
+
+CI runs types, lint and 146 tests.
+
 ## 0.16.0 — drawn by iOS, not imitated
 
 Settings, Profile, the Downloads list and every empty state are real SwiftUI
