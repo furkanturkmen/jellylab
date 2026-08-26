@@ -32,12 +32,18 @@ import { colors } from '@/theme';
  * itself and as the quality setting refusing to change.
  */
 
-const BITRATES: { mbps: number; label?: string; labelKey?: string }[] = [
+/**
+ * Named by what you get, not by megabits.
+ *
+ * "8 Mbps" means nothing to anyone who has not thought about bitrates; "Full
+ * HD (uses more data)" is the same choice, described.
+ */
+const BITRATES: { mbps: number; labelKey: string }[] = [
   { mbps: 0, labelKey: 'settings.labels.originalQuality' },
-  { mbps: 8, label: '8 Mbps' },
-  { mbps: 4, label: '4 Mbps' },
-  { mbps: 2, label: '2 Mbps' },
-  { mbps: 1, label: '1 Mbps' },
+  { mbps: 8, labelKey: 'settings.labels.quality8' },
+  { mbps: 4, labelKey: 'settings.labels.quality4' },
+  { mbps: 2, labelKey: 'settings.labels.quality2' },
+  { mbps: 1, labelKey: 'settings.labels.quality1' },
 ];
 
 const AUDIO = ['original', 'eng', 'nld', 'tur', 'ger', 'jpn'];
@@ -111,9 +117,7 @@ export default function PlaybackSettings() {
               onSelectionChange={mbps => { if (mbps != null) update('maxBitrateMbps', Number(mbps)); }}
             >
               {BITRATES.map(b => (
-                <Text key={b.mbps} modifiers={[tag(b.mbps)]}>
-                  {b.labelKey ? t(b.labelKey) : b.label ?? ''}
-                </Text>
+                <Text key={b.mbps} modifiers={[tag(b.mbps)]}>{t(b.labelKey)}</Text>
               ))}
             </Picker>
           </Section>

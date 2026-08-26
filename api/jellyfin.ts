@@ -206,7 +206,11 @@ export async function getItems(
 
 export async function getItem(userId: string, itemId: string): Promise<JellyfinItem> {
   const client = await authClient();
-  const res = await client.get(`/Users/${userId}/Items/${itemId}`);
+  // MediaSources so the screen can say "Full HD" without a second request for
+  // playback info it does not otherwise need.
+  const res = await client.get(`/Users/${userId}/Items/${itemId}`, {
+    params: { Fields: 'MediaSources,Overview,ProviderIds' },
+  });
   return res.data;
 }
 

@@ -261,7 +261,7 @@
       "preferVLCDesc": "Sla AVPlayer helemaal over. Iets langzamere start, werkt met alle codecs en containers.",
       "note": "De speler kiest sowieso VLC als de container of codec niet AVPlayer-compatibel is. Met 'Altijd VLC' sla je AVPlayer ook over voor MP4/H.264 bestanden.",
       "engineNote": "Auto kiest AVPlayer als de container en codec van het bestand worden ondersteund en valt anders terug op VLC. Kies AVPlayer als je altijd de native iOS-speler wilt; kies VLC voor maximale compatibiliteit (MKV, DTS, TrueHD, VP9, AV1) ten koste van een tragere start.",
-      "qualityNote": "Originele kwaliteit streamt het bestand onbewerkt - het beste beeld en geen werk voor de server, maar het vraagt een verbinding die de bronbitrate aankan. Een limiet laat de server alles daarboven transcoderen, wat je op mobiel wilt. Bestanden die al onder de limiet vallen worden hoe dan ook onbewerkt gestreamd.",
+      "qualityNote": "Beste beschikbaar stuurt het bestand precies zoals het op de server staat: het mooiste beeld en de meeste data. De rest laat de server het verkleinen, handig op mobiel of een trage verbinding. Wat al kleiner is dan je keuze wordt onbewerkt gestuurd.",
       "originalNote": "Origineel kiest de taal waarin het gemaakt is - Japans voor anime, Frans voor een Franse film - zodat je niet één taal voor alles hoeft in te stellen."
     },
     "content": {
@@ -299,7 +299,11 @@
       "engineAuto": "Automatisch (aanbevolen)",
       "engineNative": "AVPlayer (native)",
       "engineVlc": "VLC",
-      "originalQuality": "Originele kwaliteit"
+      "originalQuality": "Beste beschikbaar",
+      "quality8": "Full HD (gebruikt meer data)",
+      "quality4": "Full HD, lichter",
+      "quality2": "HD, zuinig met data",
+      "quality1": "Laagste - voor een slechte verbinding"
     }
   },
   "languages": {
@@ -449,5 +453,11 @@
     "empty": "Nog niets uitgekeken. Wat je tot het einde kijkt verschijnt hier.",
     "count_one": "{{count}} bekeken",
     "count_other": "{{count}} bekeken"
+  },
+  "quality": {
+    "4k": "4K",
+    "fullHd": "Full HD",
+    "hd": "HD",
+    "sd": "SD"
   }
 }

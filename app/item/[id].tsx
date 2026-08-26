@@ -25,6 +25,7 @@ import { openPlayerSheet } from '@/store/playerSheet';
 import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/prefs';
 import { useDownload, useDownloads } from '@/hooks/useDownloads';
 import { formatBytes } from '@/lib/bytes';
+import { qualityFromHeight, qualityFromLabel } from '@/lib/quality';
 import {
   cancelDownload,
   enqueueDownload,
@@ -98,6 +99,9 @@ export default function ItemScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const { width: screenWidth } = useWindowDimensions();
   const download = useDownload(id);
+  /** "Full HD" and friends, from the file the server holds. */
+  const video = item?.MediaSources?.[0]?.MediaStreams?.find(s => s.Type === 'Video');
+  const qualityKey = qualityFromHeight(video?.Height) ?? qualityFromLabel(video?.DisplayTitle);
   const downloading = download?.status === 'downloading' || download?.status === 'queued';
   /**
    * How far along, or null while the size is unknown.
@@ -688,6 +692,11 @@ export default function ItemScreen() {
               <Text style={styles.title}>{item.Name}</Text>
               <View style={styles.pillRow}>
                 <View style={styles.pill}><Text style={styles.pillText}>{kind}</Text></View>
+                {/* Full HD, not "1080p - HEVC - SDR". Nobody watching has ever
+                    needed the codec on the poster. */}
+                {qualityKey ? (
+                  <View style={styles.pill}><Text style={styles.pillText}>{t(qualityKey)}</Text></View>
+                ) : null}
                 {years ? (
                   <View style={styles.pill}><Text style={styles.pillText}>{years}</Text></View>
                 ) : null}

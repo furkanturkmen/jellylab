@@ -35,6 +35,13 @@ export type JellyfinItem = {
   };
   ImageTags?: Record<string, string>;
   BackdropImageTags?: string[];
+  /**
+   * The file's own streams, when the request asked for them.
+   *
+   * Only the video height is read here, and only to say "Full HD" on the
+   * screen - see lib/quality.
+   */
+  MediaSources?: { MediaStreams?: { Type?: string; Height?: number; DisplayTitle?: string }[] }[];
   /** Scraper ids - Tmdb, Imdb, Tvdb - present only when asked for in Fields. */
   ProviderIds?: Record<string, string>;
   SeriesId?: string;
