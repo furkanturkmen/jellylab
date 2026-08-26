@@ -2,7 +2,8 @@ import { StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Host, Section, Text } from '@expo/ui/swift-ui';
+import { Button, Form, HStack, Host, Image as UIImage, Label, Section, Spacer, Text } from '@expo/ui/swift-ui';
+import { buttonStyle, foregroundColor } from '@expo/ui/swift-ui/modifiers';
 
 import { getJellyseerrUrl } from '@/config';
 import { useAuth } from '@/hooks/useAuth';
@@ -34,10 +35,19 @@ export default function ContentSettings() {
           {isAdmin ? (
             <Section title={t('settings.content.adminHeading')}>
               <Button
-                systemImage="person.2"
+                modifiers={[buttonStyle('plain')]}
                 onPress={() => WebBrowser.openBrowserAsync(`${getJellyseerrUrl()}/users`)}
               >
-                <Text>{t('settings.content.perUserPermissions')}</Text>
+                <HStack spacing={12}>
+                  <Label title={t('settings.content.perUserPermissions')} systemImage="person.2" />
+                  <Spacer />
+                  {/* Leaving the app, so the arrow says so rather than a chevron. */}
+                  <UIImage
+                    systemName="arrow.up.right"
+                    size={13}
+                    modifiers={[foregroundColor(colors.textDim)]}
+                  />
+                </HStack>
               </Button>
             </Section>
           ) : null}

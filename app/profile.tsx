@@ -6,7 +6,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as WebBrowser from 'expo-web-browser';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, Host, Label, LabeledContent, ProgressView, Section as UISection, Text as UIText } from '@expo/ui/swift-ui';
+import { Button, Form, HStack, Host, Image as UIImage, Label, LabeledContent, ProgressView, Section as UISection, Spacer, Text as UIText } from '@expo/ui/swift-ui';
+import { buttonStyle, foregroundColor, frame } from '@expo/ui/swift-ui/modifiers';
 
 import * as Jellyfin from '@/api/jellyfin';
 import * as Push from '@/api/push';
@@ -223,68 +224,39 @@ export default function ProfileScreen() {
       <Host style={styles.form} colorScheme="dark">
         <Form>
           <UISection>
-            <Button onPress={editName}>
-              <LabeledContent label={t('profile.displayName')}>
-                <UIText>{user?.Name ?? state.auth.userName}</UIText>
-              </LabeledContent>
-            </Button>
-            <Button onPress={() => router.push('/settings/password')}>
-              <Label title={t('profile.changePassword')} systemImage="key" />
-            </Button>
-            <Button onPress={() => router.push('/history')}>
-              <Label title={t('profile.menu.history')} systemImage="clock.arrow.circlepath" />
-            </Button>
+            <NavRow
+              title={t('profile.displayName')}
+              systemImage="person"
+              value={user?.Name ?? state.auth.userName}
+              onPress={editName}
+            />
+            <NavRow title={t('profile.changePassword')} systemImage="key" onPress={() => router.push('/settings/password')} />
+            <NavRow title={t('profile.menu.history')} systemImage="clock.arrow.circlepath" onPress={() => router.push('/history')} />
           </UISection>
 
           <UISection title={t('profile.preferences')}>
-            <Button onPress={() => router.push('/settings/subtitles')}>
-              <Label title={t('profile.menu.subtitles')} systemImage="captions.bubble" />
-            </Button>
-            <Button onPress={() => router.push('/settings/playback')}>
-              <Label title={t('profile.menu.playback')} systemImage="play.rectangle" />
-            </Button>
-            <Button onPress={() => router.push('/settings/content')}>
-              <Label title={t('profile.menu.content')} systemImage="eye" />
-            </Button>
-            <Button onPress={() => router.push('/settings/language')}>
-              <Label title={t('profile.menu.language')} systemImage="globe" />
-            </Button>
-            <Button onPress={() => router.push('/settings/about')}>
-              <Label title={t('profile.menu.about')} systemImage="info.circle" />
-            </Button>
+            <NavRow title={t('profile.menu.subtitles')} systemImage="captions.bubble" onPress={() => router.push('/settings/subtitles')} />
+            <NavRow title={t('profile.menu.playback')} systemImage="play.rectangle" onPress={() => router.push('/settings/playback')} />
+            <NavRow title={t('profile.menu.content')} systemImage="eye" onPress={() => router.push('/settings/content')} />
+            <NavRow title={t('profile.menu.language')} systemImage="globe" onPress={() => router.push('/settings/language')} />
+            <NavRow title={t('profile.menu.about')} systemImage="info.circle" onPress={() => router.push('/settings/about')} />
           </UISection>
 
           {isAdmin ? (
             <UISection title={t('profile.adminJellyfin')}>
-              <Button onPress={() => openWeb('/web/#/dashboard.html')}>
-                <Label title={t('profile.adminMenu.dashboard')} systemImage="chart.bar" />
-              </Button>
-              <Button onPress={() => openWeb('/web/#/dashboard/libraries')}>
-                <Label title={t('profile.adminMenu.metadataManager')} systemImage="folder" />
-              </Button>
-              <Button onPress={() => openWeb('/web/#/dashboard/users')}>
-                <Label title={t('profile.adminMenu.users')} systemImage="person.2" />
-              </Button>
-              <Button onPress={() => openWeb('/web/#/dashboard/plugins')}>
-                <Label title={t('profile.adminMenu.plugins')} systemImage="puzzlepiece" />
-              </Button>
-              <Button onPress={() => openWeb('/web/#/dashboard/logs')}>
-                <Label title={t('profile.adminMenu.serverLogs')} systemImage="doc.text" />
-              </Button>
+              <NavRow title={t('profile.adminMenu.dashboard')} systemImage="chart.bar" onPress={() => openWeb('/web/#/dashboard.html')} />
+              <NavRow title={t('profile.adminMenu.metadataManager')} systemImage="folder" onPress={() => openWeb('/web/#/dashboard/libraries')} />
+              <NavRow title={t('profile.adminMenu.users')} systemImage="person.2" onPress={() => openWeb('/web/#/dashboard/users')} />
+              <NavRow title={t('profile.adminMenu.plugins')} systemImage="puzzlepiece" onPress={() => openWeb('/web/#/dashboard/plugins')} />
+              <NavRow title={t('profile.adminMenu.serverLogs')} systemImage="doc.text" onPress={() => openWeb('/web/#/dashboard/logs')} />
             </UISection>
           ) : null}
 
           {isAdmin ? (
             <UISection title={t('profile.adminJellyseerr')}>
-              <Button onPress={() => openJellyseerr('/requests')}>
-                <Label title={t('profile.adminMenu.requests')} systemImage="tray.and.arrow.down" />
-              </Button>
-              <Button onPress={() => openJellyseerr('/users')}>
-                <Label title={t('profile.adminMenu.users')} systemImage="person.2" />
-              </Button>
-              <Button onPress={() => openJellyseerr('/settings')}>
-                <Label title={t('profile.adminMenu.settings')} systemImage="gearshape" />
-              </Button>
+              <NavRow title={t('profile.adminMenu.requests')} systemImage="tray.and.arrow.down" onPress={() => openJellyseerr('/requests')} />
+              <NavRow title={t('profile.adminMenu.users')} systemImage="person.2" onPress={() => openJellyseerr('/users')} />
+              <NavRow title={t('profile.adminMenu.settings')} systemImage="gearshape" onPress={() => openJellyseerr('/settings')} />
             </UISection>
           ) : null}
 
@@ -299,9 +271,7 @@ export default function ProfileScreen() {
           ) : null}
 
           <UISection title={t('profile.app')}>
-            <Button onPress={() => router.push('/servers')}>
-              <Label title={t('profile.menu.servers')} systemImage="server.rack" />
-            </Button>
+            <NavRow title={t('profile.menu.servers')} systemImage="server.rack" onPress={() => router.push('/servers')} />
           </UISection>
 
           <UISection>
@@ -318,6 +288,41 @@ export default function ProfileScreen() {
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return <Text style={styles.sectionHeader}>{children}</Text>;
+}
+
+
+/**
+ * A row that navigates, the way iOS draws one.
+ *
+ * SwiftUI has `NavigationLink` for this and it is unavailable here - the
+ * navigation belongs to expo-router, not to a SwiftUI stack. A plain `Button`
+ * is the bridge, but a button inside a list is tinted and chevron-less by
+ * default, which reads as a list of links rather than as Settings. `plain`
+ * takes the tint off and the chevron is drawn where the system would put it.
+ */
+function NavRow({ title, systemImage, value, onPress }: {
+  title: string;
+  systemImage: any;
+  value?: string;
+  onPress: () => void;
+}) {
+  return (
+    <Button modifiers={[buttonStyle('plain')]} onPress={onPress}>
+      <HStack spacing={12}>
+        <Label title={title} systemImage={systemImage} />
+        <Spacer />
+        {value ? (
+          <UIText modifiers={[foregroundColor(colors.textMuted)]}>{value}</UIText>
+        ) : null}
+        <UIImage
+          systemName="chevron.right"
+          size={13}
+          color={colors.textDim}
+          modifiers={[foregroundColor(colors.textDim), frame({ width: 13, height: 13 })]}
+        />
+      </HStack>
+    </Button>
+  );
 }
 
 const AVATAR_SIZE = 120;

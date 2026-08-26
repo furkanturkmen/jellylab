@@ -15,6 +15,8 @@ import {
   VStack,
 } from '@expo/ui/swift-ui';
 
+import { buttonStyle } from '@expo/ui/swift-ui/modifiers';
+
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useDownloads } from '@/hooks/useDownloads';
 import { formatBytes } from '@/lib/bytes';
@@ -185,7 +187,8 @@ function DownloadRow({ entry, actionLabel, onAction, onOpen }: {
           <Text>{actionLabel}</Text>
         </Button>
       </SwipeActions.Actions>
-      {onOpen ? <Button onPress={onOpen}>{body}</Button> : body}
+      {/* plain, or the whole row draws in the accent colour like a link. */}
+      {onOpen ? <Button modifiers={[buttonStyle('plain')]} onPress={onOpen}>{body}</Button> : body}
     </SwipeActions>
   );
 }
