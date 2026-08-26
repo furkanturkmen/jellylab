@@ -20,6 +20,7 @@ import { buttonStyle, scrollContentBackground, tint } from '@expo/ui/swift-ui/mo
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useDownloads } from '@/hooks/useDownloads';
 import { formatBytes } from '@/lib/bytes';
+import { formatPercent } from '@/lib/percent';
 import { cancelDownload, removeDownload, type DownloadEntry } from '@/store/downloads';
 import { colors, spacing } from '@/theme';
 
@@ -168,7 +169,7 @@ function DownloadRow({ entry, actionLabel, onAction, onOpen }: {
   const detail =
     status === 'done' ? formatBytes(totalBytes)
       : status === 'failed' ? (entry.error ?? t('downloads.failed'))
-        : fraction != null ? `${Math.round(fraction * 100)}% · ${formatBytes(totalBytes)}`
+        : fraction != null ? `${formatPercent(fraction)} · ${formatBytes(totalBytes)}`
           : formatBytes(bytesWritten);
 
   const body = (

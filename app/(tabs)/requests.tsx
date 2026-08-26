@@ -10,6 +10,7 @@ import * as Jellyseerr from '@/api/jellyseerr';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/lib/date';
+import { formatPercent } from '@/lib/percent';
 import { requestProgress } from '@/lib/requests';
 import { getSeerrError } from '@/store/seerrStatus';
 import { type JellyseerrRequest } from '@/types';
@@ -190,7 +191,11 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
     (acc, d) => ({ size: acc.size + (d.size ?? 0), left: acc.left + (d.sizeLeft ?? 0) }),
     { size: 0, left: 0 }
   );
-  const pct = totals.size > 0 ? Math.round(((totals.size - totals.left) / totals.size) * 100) : null;
+  // Floored and given a decimal near the end - see lib/percent. Rounding is
+  // what made a download at 99.7% announce itself as finished.
+  const fraction = totals.size > 0 ? (totals.size - totals.left) / totals.size : null;
+  const pct = fraction != null ? Math.round(fraction * 100) : null;
+  const pctLabel = formatPercent(fraction);
   // one entry has a real ETA; a season pack split over many does not
   const timeLeft = queue.length === 1 ? queue[0].timeLeft : undefined;
   // Seerr files one request per season selection, so a series can appear
@@ -268,7 +273,7 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
                 <View style={[styles.barFill, { width: `${pct}%` }]} />
               </View>
               <Text style={styles.progressText}>
-                {pct}%{timeLeft && timeLeft !== '00:00:00' ? ` · ${timeLeft}` : ''}
+                {pctLabel}{timeLeft && timeLeft !== '00:00:00' ? ` · ${timeLeft}` : ''}
               </Text>
             </View>
           ) : progress.state === 'waiting' && progress.stalled ? (
