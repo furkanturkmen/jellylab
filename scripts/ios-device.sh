@@ -26,8 +26,20 @@ build_cmd="cd '$REPO' && caffeinate -s npx expo run:ios --device"
 [ -n "$DEVICE" ] && build_cmd="$build_cmd $DEVICE"
 build_cmd="$build_cmd --no-bundler 2>&1 | tee '$LOG'"
 
-if [ -n "${SSH_CONNECTION:-}" ]; then
-  echo "over ssh - handing the build to the Mac's own Terminal, which can sign"
+# Ask the keychain directly rather than guessing from the environment.
+#
+# SSH_CONNECTION is not enough: a shell can reach this script through a relay,
+# a tmux session or another shell's environment and still be unable to sign.
+# The question is only ever "can this session use the signing key", and the
+# keychain answers it - "User interaction is not allowed" is exactly the state
+# that makes codesign fail later with errSecInternalComponent.
+can_sign() {
+  security show-keychain-info "$HOME/Library/Keychains/login.keychain-db" 2>&1 |
+    grep -qv 'User interaction is not allowed'
+}
+
+if [ -n "${SSH_CONNECTION:-}" ] || ! can_sign; then
+  echo "this session cannot sign - handing the build to the Mac's own Terminal"
   osascript -e "tell application \"Terminal\" to do script \"$build_cmd\"" >/dev/null
   echo "watching $LOG - ctrl-c stops watching, not the build"
   # -F rather than -f: the build recreates the file.
