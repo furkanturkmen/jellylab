@@ -29,9 +29,19 @@ export function resolvedTrackLanguage(
  * A label that already names the language - "Japanese - AAC - Stereo" - is
  * left alone; repeating it would read as a stutter.
  */
+/**
+ * What a player says when it has nothing to say.
+ *
+ * AVPlayer labels an untagged track "Unknown language", and prefixing that
+ * produced "Turkish · Unknown language" - which manages to be both right and
+ * useless in the same breath.
+ */
+const PLACEHOLDER = /^(unknown|und|undefined|unknown language|track \d+)$/i;
+
 export function withLanguage(label: string, languageName: string | null): string {
   const text = (label ?? '').trim();
   if (!languageName) return text;
+  if (PLACEHOLDER.test(text)) return languageName;
   if (text.toLowerCase().includes(languageName.toLowerCase())) return text;
   return text ? `${languageName} · ${text}` : languageName;
 }

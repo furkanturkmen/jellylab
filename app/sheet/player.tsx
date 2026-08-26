@@ -235,7 +235,15 @@ function NativeTracks({ request, close }: { request: Of<'tracks'>; close: () => 
                 return lang ? t(`trackLanguages.${lang}`, { defaultValue: '' }) : null;
               })(),
             )}
-            selected={activeAudio && (activeAudio.id === track.id || activeAudio.label === track.label)}
+            /*
+             * With one track, that track is what you are hearing - AVPlayer
+             * simply has not reported a selection yet, and a list with nothing
+             * ticked reads as broken.
+             */
+            selected={
+              audios.length === 1 ||
+              (activeAudio && (activeAudio.id === track.id || activeAudio.label === track.label))
+            }
             onPress={() => { pickAudio(track); close(); }}
           />
         ))

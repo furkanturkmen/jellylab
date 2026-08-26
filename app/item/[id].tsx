@@ -2109,6 +2109,9 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
   async function pickExternalSub(streamIndex: number | null, persistPref = true) {
     setActiveSubIndex(streamIndex);
     if (streamIndex == null || !mediaSourceId) {
+      // Ticking the row while quietly clearing the cues is the shape of "the
+      // subtitle is selected and nothing appears", so say which it was.
+      console.log(`[jellylab] player:externalSub index=${streamIndex} skipped source=${mediaSourceId ?? 'missing'}`);
       setExternalCues([]);
       setActiveCue(null);
       if (persistPref) {
@@ -2126,6 +2129,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
       const url = Jellyfin.subtitleUrl(itemId, mediaSourceId, streamIndex, auth.accessToken, 'vtt');
       const vtt = await Jellyfin.fetchSubtitleVtt(url);
       const cues = parseVtt(vtt);
+      console.log(`[jellylab] player:externalSub index=${streamIndex} bytes=${vtt.length} cues=${cues.length}`);
       setExternalCues(cues);
 
       if (persistPref) {

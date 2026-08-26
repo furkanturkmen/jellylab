@@ -39,3 +39,16 @@ describe('withLanguage', () => {
     expect(withLanguage('', 'Turkish')).toBe('Turkish');
   });
 });
+
+describe('withLanguage on placeholder labels', () => {
+  // AVPlayer's own words for a track the file never labelled.
+  it('replaces a placeholder rather than decorating it', () => {
+    expect(withLanguage('Unknown language', 'Turkish')).toBe('Turkish');
+    expect(withLanguage('und', 'Turkish')).toBe('Turkish');
+    expect(withLanguage('Track 1', 'Turkish')).toBe('Turkish');
+  });
+
+  it('still keeps a label that says something', () => {
+    expect(withLanguage('AAC - Stereo', 'Turkish')).toBe('Turkish · AAC - Stereo');
+  });
+});
