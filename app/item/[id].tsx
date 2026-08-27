@@ -1205,6 +1205,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       if (prefs.lastSubLabel && prefs.lastSubLabel !== 'off') {
         const exact = externalSubs.find(s => s.label === prefs.lastSubLabel);
         if (exact) {
+          console.log(`[jellylab] player:subPick via=remembered picked=${exact.label}`);
           pickExternalSub(exact.index, false);
           return;
         }
@@ -1219,7 +1220,12 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
        */
       if (prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
         const match = pickSubtitle(externalSubs, prefs.subtitleLanguage);
-        if (match) pickExternalSub(match.index, false);
+        if (match) {
+          console.log(`[jellylab] player:subPick via=language wanted=${prefs.subtitleLanguage} picked=${match.label}`);
+          pickExternalSub(match.index, false);
+        } else {
+          console.log(`[jellylab] player:subPick via=language wanted=${prefs.subtitleLanguage} picked=none of ${externalSubs.length}`);
+        }
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2265,6 +2271,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
       if (prefs.lastSubLabel && prefs.lastSubLabel !== 'off') {
         const exact = externalSubs.find(s => s.label === prefs.lastSubLabel);
         if (exact) {
+          console.log(`[jellylab] player:subPick via=remembered picked=${exact.label}`);
           pickExternalSub(exact.index, /* persistPref */ false);
           return;
         }
@@ -2294,10 +2301,10 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
       if (prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
         const match = pickSubtitle(externalSubs, prefs.subtitleLanguage);
         if (match) {
-          console.log(`[jellylab] player:subPick wanted=${prefs.subtitleLanguage} picked=${match.label}`);
+          console.log(`[jellylab] player:subPick via=language wanted=${prefs.subtitleLanguage} picked=${match.label}`);
           pickExternalSub(match.index, /* persistPref */ false);
         } else {
-          console.log(`[jellylab] player:subPick wanted=${prefs.subtitleLanguage} picked=none of ${externalSubs.length}`);
+          console.log(`[jellylab] player:subPick via=language wanted=${prefs.subtitleLanguage} picked=none of ${externalSubs.length}`);
         }
       }
     })();
