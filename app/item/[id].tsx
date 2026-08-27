@@ -1077,6 +1077,34 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
    */
   const desiredTextTrack = useRef(-1);
   const desiredAudioTrack = useRef<number | null>(null);
+  /**
+   * Where the media itself should begin, handed to libVLC rather than seeked
+   * to afterwards.
+   *
+   * Opening something part-watched used to play the opening seconds and then
+   * jump: VLC started at zero because that is where a file starts, and the
+   * resume point was only applied once onLoad had fired. `--start-time` is an
+   * input option, read when the media is created, so the first frame drawn is
+   * already the right one.
+   *
+   * Read from a ref at media-creation time, not from state: on a rebuild
+   * (switching to an external subtitle) the film is mid-play, and the position
+   * to come back to is wherever it had reached, not the resume point the route
+   * was opened with.
+   */
+  const startAtRef = useRef(resumeSeconds);
+  const source = useMemo(() => {
+    const startAt = positionRef.current > 0 ? positionRef.current : resumeSeconds;
+    startAtRef.current = startAt;
+    return {
+      uri: url,
+      // Kept stable so a re-render does not hand the native side a new media.
+      initOptions: startAt > 0 ? [`--start-time=${startAt.toFixed(3)}`] : [],
+    };
+    // positionRef is deliberately absent: this is meant to be read at the
+    // moment a media is built, which is exactly when url or vlcKey change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url, vlcKey, resumeSeconds]);
   const audioAutoPicked = useRef(false);
 
   // Keep positionRef synced so background/foreground can restore.
@@ -1583,10 +1611,20 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       reassert(wantAudio, setVlcAudioTrackId, other);
     }
 
-    const seekSecs = positionRef.current > 0 ? positionRef.current : resumeSeconds;
+    /*
+     * Fallback for the start position, not the mechanism.
+     *
+     * `--start-time` on the media is what actually puts playback at the resume
+     * point (see startAtRef). This stays because an option VLC declines to
+     * honour for some container would otherwise put us back at zero silently -
+     * but it only seeks when VLC is demonstrably not where it was asked to be,
+     * so in the normal case nothing here fires and there is no jump to see.
+     */
+    const seekSecs = startAtRef.current;
     if (seekSecs > 0 && durSecs > 0) {
       const ratio = Math.max(0, Math.min(1, seekSecs / durSecs));
       setTimeout(() => {
+        if (Math.abs(positionRef.current - seekSecs) < 2) return;
         try {
           lastSeekAt.current = Date.now();
           lastSeekTo.current = seekSecs;
@@ -1642,7 +1680,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
           key={vlcKey}
           ref={vlcRef}
           style={{ flex: 1 }}
-          source={{ uri: url }}
+          source={source}
           autoplay
           paused={paused}
           rate={rate}
