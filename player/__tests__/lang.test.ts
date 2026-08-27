@@ -1,4 +1,4 @@
-import { audioLanguageKey, languageNeedles, matchesLanguage, preferredAudioIndex } from '../lang';
+import { audioLanguageKey, languageNeedles, matchesLanguage, pickSubtitle, preferredAudioIndex, subtitleRank } from '../lang';
 
 /**
  * Track labels are written by whoever released the file, so matching them is
@@ -108,5 +108,85 @@ describe('audioLanguageKey', () => {
   it('has nothing to say about nothing', () => {
     expect(audioLanguageKey(undefined)).toBeNull();
     expect(audioLanguageKey('')).toBeNull();
+  });
+});
+
+/**
+ * A language match alone is not a choice: a release carries several English
+ * tracks and the first one listed is often the hearing-impaired one.
+ */
+describe('subtitleRank', () => {
+  it('puts a plain dialogue track first', () => {
+    expect(subtitleRank('English')).toBe(0);
+    expect(subtitleRank('Dialogue@CR - English - ASS')).toBe(0);
+    expect(subtitleRank('English - SUBRIP - External')).toBe(0);
+  });
+
+  it('ranks hearing impaired below plain, however it is written', () => {
+    expect(subtitleRank('English - Hearing Impaired - SUBRIP - External')).toBe(1);
+    expect(subtitleRank('English SDH')).toBe(1);
+    expect(subtitleRank('English [CC]')).toBe(1);
+    expect(subtitleRank('English (Closed Caption)')).toBe(1);
+  });
+
+  it('ranks forced below hearing impaired', () => {
+    // Forced carries only what a viewer of the dubbed audio cannot follow, so
+    // for someone who asked for subtitles in this language it is nearly empty.
+    expect(subtitleRank('Nederlands (Forced)')).toBe(2);
+  });
+
+  it('ranks commentary last', () => {
+    expect(subtitleRank('Commentary [en]')).toBe(3);
+  });
+
+  it('will not let a short marker fire inside another word', () => {
+    // The same rule matchesLanguage needs: 'hi' is inside "Higurashi", 'cc'
+    // is inside "Occitan", and neither names a hearing-impaired track.
+    expect(subtitleRank('Higurashi - English')).toBe(0);
+    expect(subtitleRank('Occitan')).toBe(0);
+  });
+
+  it('takes the worst marker when a label carries more than one', () => {
+    expect(subtitleRank('English SDH (Forced)')).toBe(2);
+  });
+});
+
+describe('pickSubtitle', () => {
+  const subs = [
+    { index: 0, label: 'English - Hearing Impaired - SUBRIP - External' },
+    { index: 1, label: 'English - SUBRIP - External' },
+    { index: 2, label: 'Nederlands' },
+  ];
+
+  it('prefers plain dialogue over the hearing-impaired track listed first', () => {
+    // The reported case: the server listed HI first and it was taken on sight.
+    expect(pickSubtitle(subs, 'eng')?.index).toBe(1);
+  });
+
+  it('still returns the hearing-impaired track when it is the only English one', () => {
+    expect(pickSubtitle([subs[0], subs[2]], 'eng')?.index).toBe(0);
+  });
+
+  it('keeps the order given when nothing separates two tracks', () => {
+    const two = [
+      { index: 4, label: 'English - SUBRIP' },
+      { index: 5, label: 'English - ASS' },
+    ];
+    expect(pickSubtitle(two, 'eng')?.index).toBe(4);
+  });
+
+  it('returns null when no track is in the language', () => {
+    expect(pickSubtitle(subs, 'jpn')).toBeNull();
+    expect(pickSubtitle([], 'eng')).toBeNull();
+  });
+
+  it('never picks for "off" or an empty preference', () => {
+    expect(pickSubtitle(subs, 'off')).toBeNull();
+    expect(pickSubtitle(subs, '')).toBeNull();
+  });
+
+  it('does not cross languages to find a better-ranked track', () => {
+    // A plain Dutch track must not win when English was asked for.
+    expect(pickSubtitle(subs, 'nld')?.index).toBe(2);
   });
 });

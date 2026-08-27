@@ -17,7 +17,7 @@ import * as Jellyseerr from '@/api/jellyseerr';
 import { ButtonRow, CircleButton, PrimaryButton } from '@/components/AppleButton';
 import { decideEngine, decidePlayback, FORCED_TRANSCODE_BITRATE, type Engine, type PlayMode } from '@/player/decide';
 import { parseVtt, findActiveCue, type VttCue } from '@/player/vtt';
-import { audioLanguageKey, matchesLanguage, preferredAudioIndex } from '@/player/lang';
+import { audioLanguageKey, matchesLanguage, pickSubtitle, preferredAudioIndex } from '@/player/lang';
 import { useAuth } from '@/hooks/useAuth';
 import { getDeviceId } from '@/store/auth';
 import { cleanSubLabel } from '@/components/TrackRow';
@@ -1211,7 +1211,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
        * now; Off still turns them off for the film you turned them off in.
        */
       if (prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
-        const match = externalSubs.find(s => matchesLanguage(s.label, prefs.subtitleLanguage));
+        const match = pickSubtitle(externalSubs, prefs.subtitleLanguage);
         if (match) pickExternalSub(match.index, false);
       }
     })();
@@ -2271,6 +2271,10 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
        * inside "French", so a French track could be chosen for someone who
        * asked for English. The VLC path was fixed and this one kept the old
        * copy, so the two engines disagreed about which subtitle to pick.
+       *
+       * Both call `pickSubtitle` now, which is also where the choice between
+       * several tracks in the same language is made - so a fix to either lands
+       * on both engines, which is the half that went wrong last time.
        */
       /**
        * "Off" is a choice about one playback, not about every title.
@@ -2281,7 +2285,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
        * now; Off still turns them off for the film you turned them off in.
        */
       if (prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
-        const match = externalSubs.find(s => matchesLanguage(s.label, prefs.subtitleLanguage));
+        const match = pickSubtitle(externalSubs, prefs.subtitleLanguage);
         if (match) {
           console.log(`[jellylab] player:subPick wanted=${prefs.subtitleLanguage} picked=${match.label}`);
           pickExternalSub(match.index, /* persistPref */ false);
