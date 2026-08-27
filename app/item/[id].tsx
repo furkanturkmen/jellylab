@@ -1093,14 +1093,21 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
    * was opened with.
    */
   const startAtRef = useRef(resumeSeconds);
-  const source = useMemo(() => {
+  /*
+   * Only the options are memoised, and the object wrapping them is built fresh
+   * in the JSX below.
+   *
+   * VLCPlayer writes to the source it is handed - isNetwork, autoplay and
+   * initOptions are all assigned onto it - and a value that survives a render
+   * has been frozen by then, so the second render threw "attempted to set the
+   * key `isNetwork` ... on an object that is meant to be immutable". Handing
+   * it a new object each time is what the library expects, and is what the
+   * plain `{{ uri: url }}` here did before.
+   */
+  const initOptions = useMemo(() => {
     const startAt = positionRef.current > 0 ? positionRef.current : resumeSeconds;
     startAtRef.current = startAt;
-    return {
-      uri: url,
-      // Kept stable so a re-render does not hand the native side a new media.
-      initOptions: startAt > 0 ? [`--start-time=${startAt.toFixed(3)}`] : [],
-    };
+    return startAt > 0 ? [`--start-time=${startAt.toFixed(3)}`] : [];
     // positionRef is deliberately absent: this is meant to be read at the
     // moment a media is built, which is exactly when url or vlcKey change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1680,7 +1687,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
           key={vlcKey}
           ref={vlcRef}
           style={{ flex: 1 }}
-          source={source}
+          source={{ uri: url, initOptions }}
           autoplay
           paused={paused}
           rate={rate}
