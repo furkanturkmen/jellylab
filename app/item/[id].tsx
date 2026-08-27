@@ -45,6 +45,7 @@ import { formatDate } from '@/lib/date';
 import { jellyfinKind, kindKey } from '@/lib/kind';
 import { metadataLanguage, plainText, oneLine } from '@/lib/text';
 import { PREVIEW_WIDTH, TrickplayPreview } from '@/components/TrickplayPreview';
+import { TrackPicker, type PickerRow } from '@/components/TrackPicker';
 import { UpNextCard } from '@/components/UpNextCard';
 import { trickplayTileAt, type TrickplayInfo } from '@/lib/trickplay';
 import { colors, radius, spacing, type } from '@/theme';
@@ -1075,6 +1076,11 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   const [duration, setDuration] = useState(initialDuration);
   const [seekTarget, setSeekTarget] = useState<number | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
+  // Drawn over the film rather than pushed as a route - see components/TrackPicker.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  // Whether the film was running when the picker opened, so closing it can put
+  // things back rather than deciding for you.
+  const resumeAfterPicker = useRef(false);
   const [scrubbing, setScrubbing] = useState(false);
   const [scrubValue, setScrubValue] = useState(0);
   // Read off the window rather than remembered. A lock set at mount, a
@@ -1542,45 +1548,68 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
    * callbacks says anything about closing.
    */
   /**
-   * One sheet for both lists.
+   * One picker for both lists, drawn over the film.
    *
-   * The audio button and the subtitle button open the same thing now: the
-   * sheet shows what you hear beside what you read, so whichever you pressed,
-   * the other is already in front of you. Two buttons for one sheet is on
-   * purpose - they are still two different intentions, and the overlay reads
-   * better with an ear and a speech bubble than with one shared glyph.
+   * The audio button and the subtitle button open the same thing: what you
+   * hear beside what you read, so whichever you pressed the other is already
+   * in front of you. Two buttons for one picker is on purpose - they are still
+   * two intentions, and the overlay reads better with an ear and a speech
+   * bubble than with one shared glyph.
+   *
+   * Not a route. Pushing one took the player off screen to answer a question
+   * about the film that was playing, and left the glass with nothing to be
+   * glass over.
+   *
+   * The film pauses while the picker is up. Reading nine track names takes
+   * long enough to miss something, and a subtitle choice you cannot see
+   * applied is worth less than the seconds it costs. Whether it was running is
+   * remembered, so closing the picker over an already-paused film leaves it
+   * paused.
    */
-  function showTrackSheet() {
-    openPlayerSheet({
-      kind: 'vlcTracks',
-      externalSubs,
-      internalTracks: vlcTextTracks,
-      activeExternalIndex: activeSubIndex,
-      /**
-       * One tick, always.
-       *
-       * The overlay and VLC's own track are separate pieces of state, and on
-       * load they can both be set for a moment: our overlay is chosen from the
-       * saved preference while VLC reselects the container's default track -
-       * "Signs & Songs" here, since the file marks it default. The picker was
-       * showing a tick against each. An external track wins, because that is
-       * the one being drawn.
-       */
-      activeInternalId: activeSubIndex != null ? -1 : vlcTextTrackId,
-      subDelayMs,
-      delayEnabled: externalCues.length > 0,
-      onDelayChange: changeSubDelay,
-      onPickExternal: pickExternalSub,
-      onPickInternal: pickInternalSub,
-      // pickExternalSub(null) already forces a remount with textTrack -1.
-      onOff: () => pickExternalSub(null),
-      audioTracks: audioChoices,
-      activeAudioId: vlcAudioTrackId,
-      declaredAudioCount: audioStreams.length,
-      onPickAudio: applyAudioTrack,
-    });
-    router.push('/sheet/player');
+  function showTrackPicker() {
+    resumeAfterPicker.current = !pausedRef.current;
+    setPaused(true);
+    setPickerOpen(true);
+    setControlsVisible(true);
   }
+
+  function closeTrackPicker() {
+    setPickerOpen(false);
+    if (resumeAfterPicker.current) setPaused(false);
+  }
+
+  /*
+   * Off, then whatever VLC found inside the file, then the sidecars.
+   *
+   * One tick, always. The overlay and VLC's own track are separate pieces of
+   * state and on load both can be set for a moment: our overlay is chosen from
+   * the saved preference while VLC reselects the container's default. An
+   * external track wins, because that is the one being drawn.
+   */
+  const subtitleIsOff = activeSubIndex == null && vlcTextTrackId === -1;
+  const vlcSubtitleRows: PickerRow[] = [
+    {
+      key: 'sub-off',
+      label: t('player.off'),
+      selected: subtitleIsOff,
+      // pickExternalSub(null) already forces a remount with textTrack -1.
+      onPick: () => { pickExternalSub(null); closeTrackPicker(); },
+    },
+    ...vlcTextTracks.map((track, i) => ({
+      key: `int-${track.id}`,
+      label: cleanSubLabel(track.name ?? t('player.trackNumber', { number: track.id })),
+      selected: activeSubIndex == null && vlcTextTrackId === track.id,
+      onPick: () => { pickInternalSub(track.id); closeTrackPicker(); },
+      group: i === 0 ? t('player.embedded') : undefined,
+    })),
+    ...externalSubs.map((sub, i) => ({
+      key: `ext-${sub.index}`,
+      label: cleanSubLabel(sub.label),
+      selected: activeSubIndex === sub.index,
+      onPick: () => { pickExternalSub(sub.index); closeTrackPicker(); },
+      group: i === 0 ? t('player.external') : undefined,
+    })),
+  ];
 
   function showSpeedSheet() {
     openPlayerSheet({ kind: 'speed', current: rate, rates: SPEEDS, onPick: changeSpeed });
@@ -1817,11 +1846,11 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
               <View style={styles.actionsRow} pointerEvents="box-none">
                 <View style={{ flex: 1 }} />
                 {audioChoices.length > 1 ? (
-                  <TouchableOpacity style={styles.overlayIconBtn} onPress={showTrackSheet} activeOpacity={0.7}>
+                  <TouchableOpacity style={styles.overlayIconBtn} onPress={showTrackPicker} activeOpacity={0.7}>
                     <SymbolView name={{ ios: 'waveform', android: 'graphic_eq', web: 'graphic_eq' }} tintColor={colors.text} size={22} />
                   </TouchableOpacity>
                 ) : null}
-                <TouchableOpacity style={styles.overlayIconBtn} onPress={showTrackSheet} activeOpacity={0.7}>
+                <TouchableOpacity style={styles.overlayIconBtn} onPress={showTrackPicker} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.overlayIconBtn} onPress={showSpeedSheet} activeOpacity={0.7}>
@@ -1870,6 +1899,28 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
               </View>
             </View>
           </View>
+        ) : null}
+        {pickerOpen ? (
+          <TrackPicker
+            onClose={closeTrackPicker}
+            audio={audioChoices.map(track => ({
+              key: `aud-${track.id}`,
+              label: track.label,
+              selected: vlcAudioTrackId === track.id,
+              onPick: () => { applyAudioTrack(track.id); closeTrackPicker(); },
+            }))}
+            audioNote={
+              audioStreams.length > audioChoices.length && audioChoices.length > 0
+                ? t('player.transcodedAudio', { tracks: audioStreams.length })
+                : null
+            }
+            subtitles={vlcSubtitleRows}
+            timing={{
+              delayMs: subDelayMs,
+              enabled: externalCues.length > 0,
+              onChange: changeSubDelay,
+            }}
+          />
         ) : null}
       </View>
     </>
@@ -2251,6 +2302,13 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
   });
 
   const [controlsVisible, setControlsVisible] = useState(true);
+  // Drawn over the film rather than pushed as a route - see components/TrackPicker.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const resumeAfterPicker = useRef(false);
+  // AVPlayer publishes its track lists as properties, not events, so they are
+  // read when the picker opens rather than watched.
+  const [nativeSubs, setNativeSubs] = useState<any[]>([]);
+  const [nativeAudios, setNativeAudios] = useState<any[]>([]);
   const [playing, setPlaying] = useState(true);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -2463,35 +2521,105 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
   }
 
   /** Same handoff as the VLC player's, with the live player object attached. */
-  function showTracksSheet() {
-    openPlayerSheet({
-      kind: 'tracks',
-      player,
-      externalSubs,
-      activeExternalSubIndex: activeSubIndex,
-      onPickExternal: pickExternalSub,
-      originalLanguage,
-      /**
-       * On a transcode the file has one audio track, so the picker offers the
-       * server's list instead of the player's - and choosing one asks for a
-       * new stream rather than flipping a track that is not there.
-       */
-      serverAudio: onSwitchAudio
-        ? {
-            tracks: (audioStreams ?? []).map(track => {
-              const language = resolvedTrackLanguage(track.language, originalLanguage, (audioStreams ?? []).length);
-              return {
-                ...track,
-                label: withLanguage(track.label, language ? t(`trackLanguages.${language}`, { defaultValue: '' }) : null),
-              };
-            }),
-            activeIndex: activeAudioStreamIndex ?? null,
-            onPick: (streamIndex: number) => onSwitchAudio(streamIndex, player.currentTime ?? 0),
-          }
-        : undefined,
-    });
-    router.push('/sheet/player');
+  /**
+   * The picker, over the film rather than pushed as a route.
+   *
+   * Same reasoning as the VLC engine next door, and deliberately the same
+   * component: these two pickers drifted apart once before, when only one of
+   * them was fixed.
+   *
+   * The film pauses while it is up and goes back to what it was doing after.
+   */
+  function showTrackPicker() {
+    setNativeSubs(player?.availableSubtitleTracks ?? []);
+    setNativeAudios(player?.availableAudioTracks ?? []);
+    resumeAfterPicker.current = !!player?.playing;
+    try { player.pause(); } catch {}
+    setPickerOpen(true);
+    setControlsVisible(true);
   }
+
+  function closeTrackPicker() {
+    setPickerOpen(false);
+    if (resumeAfterPicker.current) {
+      try { player.play(); } catch {}
+    }
+  }
+
+  function pickEmbeddedSub(track: any | null) {
+    try {
+      player.subtitleTrack = track;
+      // An embedded track replaces the overlay, and vice versa.
+      if (track) pickExternalSub(null);
+    } catch {}
+    closeTrackPicker();
+  }
+
+  const activeNativeSub = player?.subtitleTrack ?? null;
+  const activeNativeAudio = player?.audioTrack ?? null;
+
+  const nativeSubtitleRows: PickerRow[] = [
+    {
+      key: 'sub-off',
+      label: t('player.off'),
+      selected: !activeNativeSub && activeSubIndex == null,
+      onPick: () => { pickExternalSub(null); pickEmbeddedSub(null); },
+    },
+    ...nativeSubs.map((track: any, i: number) => ({
+      key: `emb-${i}`,
+      label: track.label ?? track.language ?? t('player.trackNumber', { number: i + 1 }),
+      selected: !!activeNativeSub && (activeNativeSub.id === track.id || activeNativeSub.label === track.label),
+      onPick: () => pickEmbeddedSub(track),
+      group: i === 0 ? t('player.embedded') : undefined,
+    })),
+    ...externalSubs.map((sub, i) => ({
+      key: `ext-${sub.index}`,
+      label: sub.label,
+      selected: activeSubIndex === sub.index,
+      onPick: () => { pickEmbeddedSub(null); pickExternalSub(sub.index); },
+      group: i === 0 ? t('player.external') : undefined,
+    })),
+  ];
+
+  /*
+   * On a transcode the file carries one audio track and AVPlayer has nothing
+   * to switch between, so the server's list is the real one: choosing from it
+   * asks for a new stream, resumed where this one is.
+   */
+  const nativeAudioRows: PickerRow[] = onSwitchAudio
+    ? (audioStreams ?? []).map(track => {
+        const language = resolvedTrackLanguage(track.language, originalLanguage, (audioStreams ?? []).length);
+        return {
+          key: `srv-${track.index}`,
+          label: withLanguage(track.label, language ? t(`trackLanguages.${language}`, { defaultValue: '' }) : null),
+          selected: activeAudioStreamIndex === track.index,
+          onPick: () => { onSwitchAudio(track.index, player.currentTime ?? 0); closeTrackPicker(); },
+        };
+      })
+    : nativeAudios.map((track: any, i: number) => ({
+        key: `aud-${i}`,
+        // AVPlayer reports what the file says, and this file says nothing.
+        // The title's own language is a better answer than "Track 1".
+        label: withLanguage(
+          track.label ?? t('player.trackNumber', { number: i + 1 }),
+          (() => {
+            const lang = resolvedTrackLanguage(track.language, originalLanguage, nativeAudios.length);
+            return lang ? t(`trackLanguages.${lang}`, { defaultValue: '' }) : null;
+          })(),
+        ),
+        /*
+         * With one track, that track is what you are hearing - AVPlayer has
+         * simply not reported a selection yet, and a list with nothing ticked
+         * reads as broken.
+         */
+        selected:
+          nativeAudios.length === 1 ||
+          (!!activeNativeAudio && (activeNativeAudio.id === track.id || activeNativeAudio.label === track.label)),
+        onPick: () => {
+          try { player.audioTrack = track; } catch {}
+          closeTrackPicker();
+        },
+      }));
 
   function showSpeedSheet() {
     openPlayerSheet({ kind: 'speed', current: speed, rates: SPEEDS, onPick: changeSpeed });
@@ -2624,7 +2752,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
 
               <View style={styles.actionsRow} pointerEvents="box-none">
                 <View style={{ flex: 1 }} />
-                <TouchableOpacity style={styles.overlayIconBtn} onPress={showTracksSheet} activeOpacity={0.7}>
+                <TouchableOpacity style={styles.overlayIconBtn} onPress={showTrackPicker} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.overlayIconBtn} onPress={showSpeedSheet} activeOpacity={0.7}>
@@ -2667,6 +2795,17 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
               {activeCue.text}
             </Text>
           </View>
+        ) : null}
+        {pickerOpen ? (
+          <TrackPicker
+            onClose={closeTrackPicker}
+            audio={nativeAudioRows}
+            audioNote={nativeAudioRows.length === 0 ? t('player.noAlternateAudio') : null}
+            subtitles={nativeSubtitleRows}
+            // The overlay this engine draws is the only subtitle it can shift;
+            // an embedded AVPlayer track has no timing control to offer.
+            timing={null}
+          />
         ) : null}
       </View>
     </>

@@ -31,26 +31,6 @@ describe('season sheet handoff', () => {
   });
 });
 
-function vlcTracksRequest() {
-  return {
-    kind: 'vlcTracks' as const,
-    externalSubs: [{ index: 0, label: 'English' }],
-    internalTracks: [],
-    activeExternalIndex: null,
-    activeInternalId: -1,
-    subDelayMs: 0,
-    delayEnabled: false,
-    onDelayChange: jest.fn(),
-    onPickExternal: jest.fn(),
-    onPickInternal: jest.fn(),
-    onOff: jest.fn(),
-    audioTracks: [{ id: 1, label: 'Japanese' }],
-    activeAudioId: 1,
-    declaredAudioCount: 1,
-    onPickAudio: jest.fn(),
-  };
-}
-
 describe('player sheet handoff', () => {
   afterEach(() => clearPlayerSheet());
 
@@ -63,23 +43,14 @@ describe('player sheet handoff', () => {
   // than queueing behind it.
   it('keeps only the most recent request', () => {
     openPlayerSheet({ kind: 'speed', current: 1, rates: [1], onPick: jest.fn() });
-    openPlayerSheet(vlcTracksRequest());
-    expect(pendingPlayerSheet()?.kind).toBe('vlcTracks');
+    openPlayerSheet({ kind: 'speed', current: 2, rates: [2], onPick: jest.fn() });
+    expect(pendingPlayerSheet()?.current).toBe(2);
   });
 
-  // Audio and subtitles travel as one request: the sheet shows both lists, so
-  // splitting them would mean the picker could open with half its content.
-  it('carries both track lists in one request', () => {
-    openPlayerSheet(vlcTracksRequest());
-    const req = pendingPlayerSheet();
-    expect(req?.kind).toBe('vlcTracks');
-    if (req?.kind !== 'vlcTracks') throw new Error('wrong kind');
-    expect(req.audioTracks).toEqual([{ id: 1, label: 'Japanese' }]);
-    expect(req.externalSubs).toEqual([{ index: 0, label: 'English' }]);
-  });
-
-  it('lets go of the player handle when cleared', () => {
-    openPlayerSheet({ kind: 'tracks', player: {}, externalSubs: [], activeExternalSubIndex: null, onPickExternal: jest.fn() });
+  // The callback closes over a mounted player, so a stale one keeps the player
+  // alive after the sheet is gone.
+  it('lets go of the callback when cleared', () => {
+    openPlayerSheet({ kind: 'speed', current: 1, rates: [1], onPick: jest.fn() });
     clearPlayerSheet();
     expect(pendingPlayerSheet()).toBeNull();
   });
