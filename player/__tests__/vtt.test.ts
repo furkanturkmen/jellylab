@@ -1,4 +1,4 @@
-import { findActiveCue, parseVtt } from '../vtt';
+import { isAssDrawing, findActiveCue, parseVtt } from '../vtt';
 
 /**
  * Subtitles arrive from release groups, not from a spec author: SRT with comma
@@ -173,5 +173,48 @@ describe('ASS styling that survives Jellyfin conversion', () => {
   it('drops a cue that was nothing but styling', () => {
     const vtt = 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n{\\pos(960,540)}';
     expect(parseVtt(vtt)).toHaveLength(0);
+  });
+});
+
+/**
+ * ASS can carry vector shapes in the text, and a heavily typeset episode opens
+ * with several. They are not words and must never reach the screen.
+ */
+describe('ASS drawing commands', () => {
+  const drawn = (raw: string) => parseVtt(`WEBVTT\n\n00:00:01.000 --> 00:00:04.000\n${raw}\n`);
+
+  it('drops a cue that is a drawing', () => {
+    // The exact shape that opened an episode with coordinates across the
+    // middle of the picture.
+    expect(drawn('{\\p1}m 0 0 l 100 0 l 100 -1 l 0 -1{\\p0}')).toEqual([]);
+  });
+
+  it('drops one whose tag rides along with other overrides', () => {
+    expect(drawn('{\\fad(200,200)\\p1}m 0 0 l 50 0 l 50 -1{\\p0}')).toEqual([]);
+  });
+
+  it('drops one whose converter dropped the tag', () => {
+    expect(drawn('m 0 22 l 100 22 l 100 23 l 0 23')).toEqual([]);
+  });
+
+  it('keeps the dialogue around it', () => {
+    const cues = parseVtt(
+      'WEBVTT\n\n' +
+      '00:00:01.000 --> 00:00:04.000\n{\\p1}m 0 0 l 100 0 l 100 -1 l 0 -1{\\p0}\n\n' +
+      '00:00:05.000 --> 00:00:08.000\nWhat was that?\n',
+    );
+    expect(cues).toHaveLength(1);
+    expect(cues[0].text).toBe('What was that?');
+  });
+
+  it('does not mistake words for a path', () => {
+    // \p0 is the switch back to text, not a drawing.
+    expect(isAssDrawing('{\\p0}Run.', 'Run.')).toBe(false);
+    expect(isAssDrawing('', 'I said no')).toBe(false);
+    expect(isAssDrawing('', 'b')).toBe(false);
+    // Numbers alone are a line someone might actually say.
+    expect(isAssDrawing('', '100 200 300 400')).toBe(false);
+    // A single command with too little behind it is not worth the risk.
+    expect(isAssDrawing('', 'm 0 0')).toBe(false);
   });
 });

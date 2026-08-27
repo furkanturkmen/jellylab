@@ -831,6 +831,17 @@ export default function ItemScreen() {
     <View style={styles.root}>
       <Stack.Screen
         options={{
+          /*
+           * Portrait, said out loud, because the player is this same route.
+           *
+           * When playback ends the branch above simply stops rendering, and a
+           * screen that declares nothing leaves the last mask standing - so
+           * backing out of a film left this page, and everything reached from
+           * it, on its side. The root stack's portrait cannot help here: this
+           * screen overrode it, and an override that disappears is not the
+           * same as one that reverts.
+           */
+          orientation: IS_TABLET ? 'all' : 'portrait',
           title: '',
           headerShown: true,
           headerTransparent: true,

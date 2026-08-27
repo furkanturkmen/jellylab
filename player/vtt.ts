@@ -24,6 +24,42 @@ function stripAssTags(text: string): string {
     .replace(/\\h/g, ' ');
 }
 
+/**
+ * Whether a cue is a drawing rather than a line of dialogue.
+ *
+ * ASS can carry vector shapes in the text: `{\p1}` switches the renderer into
+ * drawing mode and what follows is a path - `m 0 0 l 100 0 l 100 -1 l 0 -1` -
+ * until `{\p0}` switches back. Typesetters use them for the boxes and masks
+ * behind signs, and a heavily typeset episode opens with several.
+ *
+ * Stripping the override tags leaves the coordinates standing, so they were
+ * drawn as if they were words: an episode began with two lines of
+ * `m 0 0 l 100 0 l 100 -1 l 0 -1 m 0 22 ...` across the middle of the picture.
+ *
+ * The tag is the real signal; the token test is there for a converter that
+ * dropped it. A token that is neither a drawing command nor a number means
+ * words, and words are never a drawing - which is what keeps a line of
+ * dialogue that happens to be numbers, or a one-letter answer, out of this.
+ */
+// `{\p1}`, and `{\fad(200,200)\p1}` where it rides along with other overrides:
+// an opening brace, a backslash, anything ending in another backslash, then p
+// and a scale of 1 or more. `\p0` is the switch back to text and must not match.
+const DRAWING_TAG = /\{\\(?:[^}]*\\)?p\s*[1-9]/;
+
+export function isAssDrawing(raw: string, stripped: string): boolean {
+  if (DRAWING_TAG.test(raw)) return true;
+  const tokens = stripped.split(/\s+/).filter(Boolean);
+  if (tokens.length < 4) return false;
+  let commands = 0;
+  let numbers = 0;
+  for (const token of tokens) {
+    if (/^[mnlbspc]$/i.test(token)) { commands++; continue; }
+    if (/^-?\d+(?:\.\d+)?$/.test(token)) { numbers++; continue; }
+    return false;
+  }
+  return commands > 0 && numbers >= 2;
+}
+
 function parseTs(s: string): number {
   // Accept HH:MM:SS.mmm or MM:SS.mmm (WebVTT allows both; SRT sometimes uses ',')
   const clean = s.trim().replace(',', '.');
@@ -69,6 +105,8 @@ export function parseVtt(source: string): VttCue[] {
       .join('\n')
       .trim();
     if (!body) continue;
+    // A shape is not something to read out over the picture.
+    if (isAssDrawing(bodyLines.join('\n'), body)) continue;
 
     cues.push({ start, end, text: body });
   }
