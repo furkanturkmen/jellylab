@@ -105,6 +105,16 @@ export default function ItemScreen() {
   /** The episode after this one, and whether this one has finished. */
   const [nextEpisode, setNextEpisode] = useState<JellyfinItem | null>(null);
   const [ended, setEnded] = useState(false);
+  /**
+   * What the player is actually playing, when that is no longer what the
+   * screen is for.
+   *
+   * Up Next hands the player the following episode in place rather than
+   * navigating to it. The route still names the episode you opened, and this
+   * names the one running - they part company for as long as you keep
+   * watching, and the route is brought back into line on the way out.
+   */
+  const [playingItem, setPlayingItem] = useState<JellyfinItem | null>(null);
 
   const castClient = useRemoteMediaClient();
   const castState = useCastState();
@@ -194,17 +204,20 @@ export default function ItemScreen() {
   // play, and the ref is what stops a re-render from starting it twice.
   // Looked up when playback starts rather than on every visit to an item
   // screen: only the card at the end ever wants it.
+  // Asked of whatever is playing, not of the screen: after Up Next hands over
+  // an episode in place, the one that follows is the one after *that*.
   useEffect(() => {
-    if (!playback || !item || item.Type !== 'Episode' || !item.SeriesId || state.status !== 'signed-in') {
+    const from = playingItem ?? item;
+    if (!playback || !from || from.Type !== 'Episode' || !from.SeriesId || state.status !== 'signed-in') {
       return;
     }
     let cancelled = false;
-    Jellyfin.getNextEpisode(state.auth.userId, item.SeriesId, item.Id)
+    Jellyfin.getNextEpisode(state.auth.userId, from.SeriesId, from.Id)
       .then(next => { if (!cancelled) setNextEpisode(next); })
       .catch(() => { if (!cancelled) setNextEpisode(null); });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playback, item?.Id]);
+  }, [playback, item?.Id, playingItem?.Id]);
 
   const autoplayed = useRef(false);
 
@@ -228,8 +241,10 @@ export default function ItemScreen() {
     setPlayback(null);
     setEnded(false);
     setNextEpisode(null);
+    setPlayingItem(null);
     autoplayed.current = false;
   }, [id]);
+
 
   useEffect(() => {
     // item.Id !== id is the stale one: the item on hand is still the previous
@@ -389,15 +404,15 @@ export default function ItemScreen() {
    * So an episode asks its series. One request, only when the preference is
    * Original, and remembered for the screen's lifetime.
    */
-  async function resolveOriginalLanguage(): Promise<string | null> {
+  async function resolveOriginalLanguage(target: JellyfinItem | null): Promise<string | null> {
     if (originalLanguage) return originalLanguage;
-    if (state.status !== 'signed-in' || !item) return null;
+    if (state.status !== 'signed-in' || !target) return null;
 
-    let tmdb = Jellyfin.tmdbId(item);
-    let kind: 'movie' | 'tv' = item.Type === 'Movie' ? 'movie' : 'tv';
+    let tmdb = Jellyfin.tmdbId(target);
+    let kind: 'movie' | 'tv' = target.Type === 'Movie' ? 'movie' : 'tv';
 
-    if (!tmdb && item.SeriesId) {
-      const series = await Jellyfin.getItem(state.auth.userId, item.SeriesId).catch(() => null);
+    if (!tmdb && target.SeriesId) {
+      const series = await Jellyfin.getItem(state.auth.userId, target.SeriesId).catch(() => null);
       tmdb = series ? Jellyfin.tmdbId(series) : null;
       kind = 'tv';
     }
@@ -409,8 +424,16 @@ export default function ItemScreen() {
     return resolved;
   }
 
-  async function play() {
-    if (state.status !== 'signed-in' || !item) return;
+  /**
+   * Play something, by default whatever this screen is for.
+   *
+   * Taking the item as an argument is what lets Up Next hand the player
+   * the following episode without leaving the screen: the alternative was
+   * navigating, which tears the player down, shows the detail page of the
+   * episode nobody asked for, and builds a new player from nothing.
+   */
+  async function play(target: JellyfinItem | null = item) {
+    if (state.status !== 'signed-in' || !target) return;
 
     /**
      * A stored copy wins, and it wins before anything asks the server.
@@ -421,10 +444,10 @@ export default function ItemScreen() {
      * as unplayable to AVPlayer as an mkv on the server - but the choice can
      * be made from the container alone, which the download wrote down.
      */
-    const local = localUriSync(item.Id);
+    const local = localUriSync(target.Id);
     if (local) {
       const prefs = await loadPrefs();
-      const stored = getDownloadSync(item.Id)?.meta;
+      const stored = getDownloadSync(target.Id)?.meta;
       const engine: Engine = prefs.preferredEngine === 'vlc'
         ? 'vlc'
         // Not decidePlayback: its answer for a file AVPlayer cannot open is
@@ -439,9 +462,9 @@ export default function ItemScreen() {
        * existed - a download made yesterday has no sidecars beside it, and
        * losing the subtitle picker was not the trade anyone agreed to.
        */
-      let externalSubs = localSubtitlesSync(item.Id);
+      let externalSubs = localSubtitlesSync(target.Id);
       if (externalSubs.length === 0) {
-        const sources = await Jellyfin.getPlaybackInfo(state.auth.userId, item.Id).catch(() => []);
+        const sources = await Jellyfin.getPlaybackInfo(state.auth.userId, target.Id).catch(() => []);
         externalSubs = (sources[0]?.MediaStreams ?? [])
           .filter(stream => stream.Type === 'Subtitle' && typeof stream.Index === 'number')
           .map(stream => ({
@@ -457,7 +480,7 @@ export default function ItemScreen() {
         url: local,
         engine,
         mode: 'direct',
-        mediaSourceId: item.Id,
+        mediaSourceId: target.Id,
         externalSubs,
         audioStreams: [],
       });
@@ -466,7 +489,7 @@ export default function ItemScreen() {
 
     const [deviceId, sources, prefs] = await Promise.all([
       getDeviceId(),
-      Jellyfin.getPlaybackInfo(state.auth.userId, item.Id).catch(() => []),
+      Jellyfin.getPlaybackInfo(state.auth.userId, target.Id).catch(() => []),
       loadPrefs(),
     ]);
     // The setting goes into the decision rather than being applied on top of
@@ -487,7 +510,7 @@ export default function ItemScreen() {
      * English and wrong for all anime.
      */
     const wantedAudio = prefs.audioLanguage === 'original'
-      ? await resolveOriginalLanguage()
+      ? await resolveOriginalLanguage(target)
       : prefs.audioLanguage;
 
     // The transcode carries one audio track, so the choice has to reach the
@@ -499,8 +522,8 @@ export default function ItemScreen() {
         )
       : null;
     const url = transcoding
-      ? Jellyfin.transcodeUrl(item.Id, source.Id, state.auth.accessToken, deviceId, decision.maxBitrate!, audioIndex)
-      : Jellyfin.streamUrl(item.Id, state.auth.accessToken, deviceId);
+      ? Jellyfin.transcodeUrl(target.Id, source.Id, state.auth.accessToken, deviceId, decision.maxBitrate!, audioIndex)
+      : Jellyfin.streamUrl(target.Id, state.auth.accessToken, deviceId);
     const externalSubs = (source?.MediaStreams ?? [])
       .filter(s => s.Type === 'Subtitle' && typeof s.Index === 'number')
       .map(s => ({
@@ -526,9 +549,9 @@ export default function ItemScreen() {
             contentType: transcoding ? 'application/x-mpegURL' : 'video/mp4',
             metadata: {
               type: 'movie',
-              title: item.Name,
-              images: item.ImageTags?.Primary
-                ? [{ url: Jellyfin.imageUrl(item.Id, item.ImageTags.Primary, 'Primary', 600) }]
+              title: target.Name,
+              images: target.ImageTags?.Primary
+                ? [{ url: Jellyfin.imageUrl(target.Id, target.ImageTags.Primary, 'Primary', 600) }]
                 : undefined,
             },
           },
@@ -546,7 +569,7 @@ export default function ItemScreen() {
       ` audioPref=${prefs.audioLanguage} wanted=${wantedAudio ?? 'none'} audioIndex=${audioIndex ?? 'server'}` +
       ` audioStreams=${JSON.stringify(audioStreams.map(a => ({ i: a.index, l: a.language })))}`,
     );
-    const trickplayInfo = Jellyfin.trickplayFor(item, source?.Id);
+    const trickplayInfo = Jellyfin.trickplayFor(target, source?.Id);
     setPlayback({
       url, engine, mode, mediaSourceId: source?.Id, externalSubs, audioStreams,
       audioStreamIndex: audioIndex,
@@ -560,7 +583,23 @@ export default function ItemScreen() {
     return <View style={styles.center}><ActivityIndicator color={colors.text} /></View>;
   }
 
+  /**
+   * Close the player, and leave the screen showing what was actually watched.
+   *
+   * Up Next changes what is playing without changing the route, so after a few
+   * episodes the two disagree. Squaring them here means Back lands on the
+   * episode you stopped on rather than the one you opened an hour ago.
+   */
+  function leavePlayer() {
+    setPlayback(null);
+    if (playingItem && playingItem.Id !== item?.Id) {
+      router.replace(`/item/${playingItem.Id}`);
+    }
+  }
+
   if (playback) {
+    // item is non-null by here, so this is the one the player is working from.
+    const playing = playingItem ?? item;
     return (
       <>
         {/*
@@ -580,23 +619,27 @@ export default function ItemScreen() {
           key={playback.url}
           config={playback}
           onSwitchAudio={switchTranscodeAudio}
-          itemId={item.Id}
-          delayKey={item.SeriesId ?? item.Id}
-          title={item.Name}
+          // Everything below names what is playing, which after Up Next hands
+          // over an episode is no longer what the screen is for. Progress in
+          // particular: reporting it against the route would credit the wrong
+          // episode for every one watched after the first.
+          itemId={playing.Id}
+          delayKey={playing.SeriesId ?? playing.Id}
+          title={playing.Name}
           // What the lock screen shows under the title: the series for an
           // episode, the year for a film.
-          subtitle={item.Type === 'Episode'
-            ? [item.SeriesName, item.ParentIndexNumber != null && item.IndexNumber != null
-                ? `S${item.ParentIndexNumber} · E${item.IndexNumber}` : null].filter(Boolean).join(' · ')
-            : String(item.ProductionYear ?? '')}
-          artworkUri={tmdbArt.poster ?? (item.ImageTags?.Primary
-            ? Jellyfin.imageUrl(item.Id, item.ImageTags.Primary, 'Primary', 600)
-            : undefined)}
-          resumeSeconds={playback.startAt ?? Jellyfin.ticksToSeconds(item.UserData?.PlaybackPositionTicks ?? 0)}
-          initialDuration={Jellyfin.ticksToSeconds(item.RunTimeTicks ?? 0)}
-          onExit={() => setPlayback(null)}
+          subtitle={playing.Type === 'Episode'
+            ? [playing.SeriesName, playing.ParentIndexNumber != null && playing.IndexNumber != null
+                ? `S${playing.ParentIndexNumber} · E${playing.IndexNumber}` : null].filter(Boolean).join(' · ')
+            : String(playing.ProductionYear ?? '')}
+          artworkUri={playingItem ? undefined : (tmdbArt.poster ?? (playing.ImageTags?.Primary
+            ? Jellyfin.imageUrl(playing.Id, playing.ImageTags.Primary, 'Primary', 600)
+            : undefined))}
+          resumeSeconds={playback.startAt ?? Jellyfin.ticksToSeconds(playing.UserData?.PlaybackPositionTicks ?? 0)}
+          initialDuration={Jellyfin.ticksToSeconds(playing.RunTimeTicks ?? 0)}
+          onExit={leavePlayer}
           // A film, or a last episode, still just closes.
-          onEnded={nextEpisode ? () => setEnded(true) : () => setPlayback(null)}
+          onEnded={nextEpisode ? () => setEnded(true) : leavePlayer}
           // AVPlayer failing and VLC quietly taking over is why "Always use
           // AVPlayer" looked like it did nothing. It still falls back - better
           // than a dead screen - but it says so first.
@@ -615,14 +658,21 @@ export default function ItemScreen() {
           <UpNextCard
             item={nextEpisode}
             onPlay={() => {
-              // Stop drawing this episode before asking for the next one.
-              // Navigating alone left the finished player on screen over its
-              // replacement.
+              /*
+               * Handed to the player in place, rather than navigated to.
+               *
+               * Going through the router meant leaving this screen, so the
+               * player came down, the next episode's detail page appeared for
+               * as long as its request took, and a fresh player was built to
+               * replace the one just discarded. Playing it here keeps the
+               * screen, and only the source changes.
+               */
               setEnded(false);
-              setPlayback(null);
-              router.replace(`/item/${nextEpisode.Id}?play=1`);
+              setPlayingItem(nextEpisode);
+              setNextEpisode(null);
+              play(nextEpisode);
             }}
-            onDismiss={() => { setEnded(false); setPlayback(null); }}
+            onDismiss={() => { setEnded(false); leavePlayer(); }}
           />
         ) : null}
       </>
