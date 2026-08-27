@@ -56,6 +56,18 @@ export function Scrubber({
   // of no width sends every leftward move to 00:00.
   const activeRef = useRef(false);
 
+  /*
+   * The callbacks, through refs.
+   *
+   * The responder below is built once and would otherwise hold the callbacks
+   * from the first render - which close over the state of that render, when
+   * the duration is still zero and the seek it performs is against nothing.
+   * Rebuilding the responder on every render is the alternative, and that
+   * drops the gesture mid-drag.
+   */
+  const handlers = useRef({ onScrubStart, onScrub, onScrubEnd });
+  handlers.current = { onScrubStart, onScrub, onScrubEnd };
+
   const pan = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => widthRef.current > 0,
     onMoveShouldSetPanResponder: () => widthRef.current > 0,
@@ -66,27 +78,27 @@ export function Scrubber({
       startXRef.current = x;
       activeRef.current = true;
       setDragging(true);
-      onScrubStart();
-      onScrub(xToTime(x));
+      handlers.current.onScrubStart();
+      handlers.current.onScrub(xToTime(x));
     },
     onPanResponderMove: (_e, gs) => {
       if (!activeRef.current) return;
       const x = startXRef.current + gs.dx;
-      onScrub(xToTime(x));
+      handlers.current.onScrub(xToTime(x));
     },
     onPanResponderRelease: (_e, gs) => {
       if (!activeRef.current) return;
       const x = startXRef.current + gs.dx;
       activeRef.current = false;
       setDragging(false);
-      onScrubEnd(xToTime(x));
+      handlers.current.onScrubEnd(xToTime(x));
     },
     onPanResponderTerminate: (_e, gs) => {
       if (!activeRef.current) return;
       const x = startXRef.current + gs.dx;
       activeRef.current = false;
       setDragging(false);
-      onScrubEnd(xToTime(x));
+      handlers.current.onScrubEnd(xToTime(x));
     },
   }), []);
 
@@ -132,7 +144,16 @@ export function Scrubber({
           />
         </View>
       ) : null}
-      <View style={styles.scrubberTrack}>
+      {/*
+        * Nothing in here may be the touch target.
+        *
+        * locationX is measured against whichever view was actually touched,
+        * not against the one holding the responder - so grabbing the thumb,
+        * which is fourteen points wide, reported an x of about seven and sent
+        * every drag from there to the start of the film. Grabbing the thumb is
+        * how you scrub.
+        */}
+      <View style={styles.scrubberTrack} pointerEvents="none">
         <View style={[styles.scrubberFill, { width: `${pct}%` }]} />
         <View style={[styles.scrubberThumb, { left: `${pct}%` }]} />
       </View>
