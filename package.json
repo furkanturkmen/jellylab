@@ -58,7 +58,8 @@
     "ios:device": "bash scripts/ios-device.sh",
     "brand": "node scripts/brand-sync.mjs",
     "lint": "expo lint",
-    "test": "jest"
+    "test": "jest",
+    "metro:stop": "bash scripts/metro-stop.sh"
   },
   "private": true,
   "jest": {
