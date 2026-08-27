@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, AppState, PanResponder, PixelRatio, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, AppState, PanResponder, PixelRatio, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -9,7 +9,6 @@ import GoogleCast, { useCastState, useRemoteMediaClient } from 'react-native-goo
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import * as Device from 'expo-device';
 
 import { useTranslation } from 'react-i18next';
 
@@ -49,6 +48,14 @@ import { UpNextCard } from '@/components/UpNextCard';
 import { trickplayTileAt, type TrickplayInfo } from '@/lib/trickplay';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem } from '@/types';
+
+/**
+ * A tablet, where a film in portrait is a reasonable thing to want.
+ *
+ * Narrowed on OS because isPad only exists on the iOS half of Platform, and
+ * the type is a union across every platform React Native supports.
+ */
+const IS_TABLET = Platform.OS === 'ios' && Platform.isPad;
 
 type PlaybackConfig = {
   url: string;
@@ -618,15 +625,27 @@ export default function ItemScreen() {
     return (
       <>
         {/*
-          * The screen has to allow rotation before anything can rotate it.
+          * The screen declares its own supported orientations, and that beats
+          * an app-level lock - which is why `ScreenOrientation.lockAsync` was
+          * being ignored rather than failing, back when this said portrait.
           *
-          * A native stack screen declares its own supported orientations, and
-          * that beats an app-level lock - so `ScreenOrientation.lockAsync` was
-          * being ignored rather than failing, which is why the fullscreen
-          * button did nothing and nothing was logged. The plist has listed
-          * both landscapes all along; it was this that said no.
+          * A phone says landscape and means it. Saying "all" and then turning
+          * the screen with a JS lock worked, but the lock does not survive
+          * backgrounding: iOS handed the app back in portrait and the film
+          * visibly rotated itself every time you returned to it. Declared
+          * here, iOS restores the screen the right way round on its own and
+          * there is nothing to correct.
+          *
+          * A tablet keeps both. There is room for a film in portrait on an
+          * iPad and people watch that way.
           */}
-        <Stack.Screen options={{ headerShown: false, gestureEnabled: false, orientation: 'all' }} />
+        <Stack.Screen
+          options={{
+            headerShown: false,
+            gestureEnabled: false,
+            orientation: IS_TABLET ? 'all' : 'landscape',
+          }}
+        />
         <Player
           // The key is the URL: a new stream is a new player, which is what
           // makes the switch actually take effect rather than being ignored by
@@ -1722,17 +1741,27 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
                     size={22}
                   />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
-                  <SymbolView
-                    name={{
-                      ios: isLandscape ? 'arrow.down.right.and.arrow.up.left' : 'arrow.up.left.and.arrow.down.right',
-                      android: 'fullscreen',
-                      web: 'fullscreen',
-                    }}
-                    tintColor={colors.text}
-                    size={22}
-                  />
-                </TouchableOpacity>
+                {/*
+                  * Only where there is something to toggle.
+                  *
+                  * A phone plays landscape and nothing else - the screen says
+                  * so - which leaves this button unable to do the one thing it
+                  * offers. Netflix does not draw it either; the video is
+                  * fullscreen and that is the whole of it.
+                  */}
+                {IS_TABLET ? (
+                  <TouchableOpacity style={styles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
+                    <SymbolView
+                      name={{
+                        ios: isLandscape ? 'arrow.down.right.and.arrow.up.left' : 'arrow.up.left.and.arrow.down.right',
+                        android: 'fullscreen',
+                        web: 'fullscreen',
+                      }}
+                      tintColor={colors.text}
+                      size={22}
+                    />
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
           </View>
@@ -2001,36 +2030,22 @@ function Player({
    * properly, and people genuinely watch that way.
    */
   useEffect(() => {
-    async function apply() {
-      try {
-        const tablet = await Device.getDeviceTypeAsync();
-        if (tablet === Device.DeviceType.TABLET) {
-          await ScreenOrientation.unlockAsync();
-        } else {
-          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-        }
-      } catch {}
-    }
-    apply();
-
     /*
-     * And again on the way back into the app.
+     * Nothing to lock on a phone: the screen itself declares landscape, so iOS
+     * puts it there and keeps it there across backgrounding. A JS lock was
+     * what made the film rotate in front of you on every return, since the
+     * lock is dropped while the app is away and re-applied once it is back and
+     * visible.
      *
-     * The lock does not survive backgrounding: iOS hands the app back at the
-     * orientation it defaults to, which for this one is portrait, and the
-     * screen then turns itself sideways again in front of you. Re-applying it
-     * as the app becomes active settles that while it is still off screen
-     * rather than after you are looking at it.
+     * A tablet is unlocked so both ways round remain available.
      */
-    const sub = AppState.addEventListener('change', s => { if (s === 'active') apply(); });
-
+    if (IS_TABLET) {
+      ScreenOrientation.unlockAsync().catch(() => {});
+    }
     return () => {
-      sub.remove();
-      (async () => {
-        try {
-          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-        } catch {}
-      })();
+      // The rest of the app is portrait, and the screen behind this one does
+      // not declare an orientation of its own.
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
     };
   }, []);
 
@@ -2508,17 +2523,27 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
                 <TouchableOpacity style={styles.overlayIconBtn} onPress={togglePip} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'pip.enter', android: 'picture_in_picture_alt', web: 'picture_in_picture_alt' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
-                  <SymbolView
-                    name={{
-                      ios: isLandscape ? 'arrow.down.right.and.arrow.up.left' : 'arrow.up.left.and.arrow.down.right',
-                      android: 'fullscreen',
-                      web: 'fullscreen',
-                    }}
-                    tintColor={colors.text}
-                    size={22}
-                  />
-                </TouchableOpacity>
+                {/*
+                  * Only where there is something to toggle.
+                  *
+                  * A phone plays landscape and nothing else - the screen says
+                  * so - which leaves this button unable to do the one thing it
+                  * offers. Netflix does not draw it either; the video is
+                  * fullscreen and that is the whole of it.
+                  */}
+                {IS_TABLET ? (
+                  <TouchableOpacity style={styles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
+                    <SymbolView
+                      name={{
+                        ios: isLandscape ? 'arrow.down.right.and.arrow.up.left' : 'arrow.up.left.and.arrow.down.right',
+                        android: 'fullscreen',
+                        web: 'fullscreen',
+                      }}
+                      tintColor={colors.text}
+                      size={22}
+                    />
+                  </TouchableOpacity>
+                ) : null}
               </View>
             </View>
           </View>
