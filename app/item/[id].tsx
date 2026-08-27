@@ -1211,12 +1211,23 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     ).catch(() => {});
   }, [paused, itemId, playMethod]);
 
-  // Auto-hide controls
+  // A drag that never ended would freeze position for good, so anything that
+  // takes the controls away mid-gesture - an error, a rotation - ends it.
   useEffect(() => {
-    if (!controlsVisible || paused) return;
+    if (!controlsVisible && scrubbing) setScrubbing(false);
+  }, [controlsVisible, scrubbing]);
+
+  // Auto-hide controls.
+  //
+  // Not while scrubbing: the timer is reset by position changing, and position
+  // is frozen for the length of a drag, so a held scrubber would hide the
+  // controls under the finger holding it - taking the Scrubber, and the end of
+  // its gesture, with them.
+  useEffect(() => {
+    if (!controlsVisible || paused || scrubbing) return;
     const t = setTimeout(() => setControlsVisible(false), 4000);
     return () => clearTimeout(t);
-  }, [controlsVisible, paused, position]);
+  }, [controlsVisible, paused, position, scrubbing]);
 
   function togglePlay() {
     setPaused(p => !p);
@@ -2024,12 +2035,21 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
     return () => clearInterval(id);
   }, [player, scrubbing, externalCues, activeCue]);
 
-  // Auto-hide controls after 4s when playing
+  // A drag that never ended would freeze position for good, so anything that
+  // takes the controls away mid-gesture - an error, a rotation - ends it.
   useEffect(() => {
-    if (!controlsVisible || !playing) return;
+    if (!controlsVisible && scrubbing) setScrubbing(false);
+  }, [controlsVisible, scrubbing]);
+
+  // Auto-hide controls after 4s when playing.
+  //
+  // Not while scrubbing - see the same guard in the VLC player: position is
+  // what resets this timer, and a drag freezes position.
+  useEffect(() => {
+    if (!controlsVisible || !playing || scrubbing) return;
     const t = setTimeout(() => setControlsVisible(false), 4000);
     return () => clearTimeout(t);
-  }, [controlsVisible, playing, position]);
+  }, [controlsVisible, playing, position, scrubbing]);
 
   function togglePlay() {
     if (playing) player.pause();
@@ -2316,33 +2336,45 @@ function Scrubber({
   widthRef.current = width;
 
   function xToTime(x: number): number {
-    const w = widthRef.current || 1;
+    const w = widthRef.current;
     const ratio = Math.max(0, Math.min(1, x / w));
     return ratio * durationRef.current;
   }
 
+  // Whether the gesture in progress is one this bar accepted. A remount puts
+  // width back to zero until onLayout runs, and a drag measured against a bar
+  // of no width sends every leftward move to 00:00.
+  const activeRef = useRef(false);
+
   const pan = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponder: () => widthRef.current > 0,
+    onMoveShouldSetPanResponder: () => widthRef.current > 0,
     onPanResponderTerminationRequest: () => false,
     onPanResponderGrant: (e) => {
+      if (widthRef.current <= 0) return;
       const x = (e.nativeEvent as any).locationX ?? 0;
       startXRef.current = x;
+      activeRef.current = true;
       setDragging(true);
       onScrubStart();
       onScrub(xToTime(x));
     },
     onPanResponderMove: (_e, gs) => {
+      if (!activeRef.current) return;
       const x = startXRef.current + gs.dx;
       onScrub(xToTime(x));
     },
     onPanResponderRelease: (_e, gs) => {
+      if (!activeRef.current) return;
       const x = startXRef.current + gs.dx;
+      activeRef.current = false;
       setDragging(false);
       onScrubEnd(xToTime(x));
     },
     onPanResponderTerminate: (_e, gs) => {
+      if (!activeRef.current) return;
       const x = startXRef.current + gs.dx;
+      activeRef.current = false;
       setDragging(false);
       onScrubEnd(xToTime(x));
     },
