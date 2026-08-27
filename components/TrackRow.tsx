@@ -95,12 +95,20 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm + 2,
+    // Air between the lines. With no rules to separate them, the spacing is
+    // the only thing telling one track from the next.
+    paddingVertical: spacing.md,
   },
   check: { width: 26, alignItems: 'flex-start' },
-  // Unselected sits back rather than competing: in a list this long, the one
-  // you are on should be the only thing at full strength.
-  label: { ...type.body, color: colors.textMuted, flex: 1 },
+  /*
+   * Unselected sits back rather than competing: in a list this long, the one
+   * you are on should be the only thing at full strength.
+   *
+   * Its own value rather than textMuted, which is dimmer than this wants. A
+   * track name is something you read and choose between, not a caption - at
+   * 0.6 the list looked switched off.
+   */
+  label: { ...type.body, color: 'rgba(245, 245, 247, 0.72)', flex: 1 },
   labelOn: { color: colors.text, fontWeight: '600' },
   group: {
     ...type.caption,

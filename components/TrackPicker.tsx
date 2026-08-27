@@ -1,12 +1,11 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GlassView } from 'expo-glass-effect';
+import { BlurView } from 'expo-blur';
 import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
 
 import { DelayButton, SubGroupLabel, TrackRow } from '@/components/TrackRow';
-import { HAS_LIQUID_GLASS } from '@/lib/device';
 import { colors, spacing, type } from '@/theme';
 
 /**
@@ -17,9 +16,12 @@ import { colors, spacing, type } from '@/theme';
  * over - it sampled the sheet's own backdrop and read as flat grey. It also
  * meant navigating away from a playing film to answer a question about it.
  *
- * Drawn here it is just another layer of the player, like the play button. The
- * film keeps running underneath and the glass has something to show through,
- * which is the whole point of glass.
+ * Drawn here it is just another layer of the player, like the play button.
+ *
+ * A heavy dark blur rather than liquid glass. Glass refracts - it bends what is
+ * behind it and keeps it legible, which over a bright frame meant reading track
+ * names off someone's face. Blur destroys the detail instead: the film is still
+ * there as soft light and colour, and nothing in it competes with the list.
  */
 
 /** One line in either column. The engines differ; a row does not. */
@@ -104,18 +106,16 @@ export function TrackPicker({ onClose, audio, subtitles, audioNote, timing }: Tr
   return (
     <Animated.View style={[StyleSheet.absoluteFill, style]}>
       {/*
-        * Glass, then a scrim over it.
+        * Blur first, then a tint over it.
         *
-        * Clear glass alone let too much through: over a bright frame the track
-        * names sat on someone's face and the film went on moving behind the
-        * list you were reading. The scrim is what makes it a surface - dark
-        * enough to read against anything, light enough that the picture is
-        * still there underneath rather than replaced by a black box.
+        * The blur is what makes the film stop competing: at full intensity a
+        * face becomes a soft shape and a bright frame becomes a glow, and
+        * neither reads as something you might be missing. The tint on top is
+        * what takes it to near-black, so a white title has the same contrast
+        * over a snow scene as over a night one.
         */}
-      {HAS_LIQUID_GLASS ? (
-        <GlassView style={StyleSheet.absoluteFill} glassEffectStyle="regular" colorScheme="dark" />
-      ) : null}
-      <View style={[StyleSheet.absoluteFill, HAS_LIQUID_GLASS ? styles.scrim : styles.fallback]} />
+      <BlurView intensity={100} tint="dark" style={StyleSheet.absoluteFill} />
+      <View style={[StyleSheet.absoluteFill, styles.tint]} />
 
       {/* Anywhere off the lists closes it, the way tapping beside a sheet did. */}
       <Pressable style={StyleSheet.absoluteFill} onPress={() => dismiss()} accessibilityLabel={t('common.close')} />
@@ -216,17 +216,15 @@ function Timing({ timing }: { timing: NonNullable<TrackPickerProps['timing']> })
 
 const styles = StyleSheet.create({
   /*
-   * Over the glass, and heavier than it looks like it needs to be.
+   * Over the blur, and most of the way to black.
    *
-   * Regular glass lightens what is behind it, so a scrim reads paler than its
-   * own alpha suggests: 0.72 landed at somewhere near four tenths on screen.
-   * This is the number that puts the surface where 0.7 looks like it should,
-   * with the picture still there behind it rather than blacked out.
+   * The blur alone leaves the film's brightness behind: a snow scene under a
+   * heavy blur is still a bright grey field, and light text on it is unreadable
+   * while the same text over a night scene is fine. The tint is what makes the
+   * surface the same whatever is playing, and it is the film's colour rather
+   * than pure black so the picture is still faintly there.
    */
-  scrim: { backgroundColor: 'rgba(14, 14, 16, 0.88)' },
-  // Where there is no liquid glass to draw, the scrim is the whole surface and
-  // has to carry the legibility on its own.
-  fallback: { backgroundColor: 'rgba(10, 10, 12, 0.92)' },
+  tint: { backgroundColor: 'rgba(11, 11, 13, 0.82)' },
   frame: { flex: 1 },
   close: { position: 'absolute', top: spacing.lg, right: spacing.lg, zIndex: 2, padding: spacing.xs },
   columns: { flex: 1, flexDirection: 'row', gap: spacing.xxl, paddingTop: spacing.lg },
