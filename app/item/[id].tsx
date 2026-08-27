@@ -207,11 +207,40 @@ export default function ItemScreen() {
   }, [playback, item?.Id]);
 
   const autoplayed = useRef(false);
+
+  /*
+   * Everything here belongs to one item, and the screen is reused when only
+   * the [id] changes - which is exactly what Up Next does on its way to the
+   * next episode. Left alone, the next episode inherits the last one's
+   * playback and goes on drawing it: two players stacked, the finished one on
+   * top, the new one revealed by pressing Back.
+   *
+   * The item is cleared too. It is replaced by a fetch rather than emptied, so
+   * for as long as that request is in flight the screen still holds the
+   * episode that just ended - and something has to stop the autoplay latch
+   * starting it over.
+   */
+  const routedId = useRef(id);
   useEffect(() => {
-    if (autoplay !== '1' || autoplayed.current || !item || item.Type === 'Series') return;
+    if (routedId.current === id) return;
+    routedId.current = id;
+    setItem(null);
+    setPlayback(null);
+    setEnded(false);
+    setNextEpisode(null);
+    autoplayed.current = false;
+  }, [id]);
+
+  useEffect(() => {
+    // item.Id !== id is the stale one: the item on hand is still the previous
+    // episode while the new one is being fetched, and playing it would restart
+    // what has just finished.
+    if (autoplay !== '1' || autoplayed.current || !item || item.Id !== id || item.Type === 'Series') {
+      return;
+    }
     autoplayed.current = true;
     play();
-  }, [autoplay, item]);
+  }, [autoplay, item, id]);
 
   useEffect(() => {
     if (state.status !== 'signed-in' || !item || item.Type !== 'Series') return;
@@ -586,7 +615,11 @@ export default function ItemScreen() {
           <UpNextCard
             item={nextEpisode}
             onPlay={() => {
+              // Stop drawing this episode before asking for the next one.
+              // Navigating alone left the finished player on screen over its
+              // replacement.
               setEnded(false);
+              setPlayback(null);
               router.replace(`/item/${nextEpisode.Id}?play=1`);
             }}
             onDismiss={() => { setEnded(false); setPlayback(null); }}
