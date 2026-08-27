@@ -1,5 +1,5 @@
-import { Fragment } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GlassView } from 'expo-glass-effect';
 import { SymbolView } from 'expo-symbols';
@@ -50,8 +50,59 @@ export function TrackPicker({ onClose, audio, subtitles, audioNote, timing }: Tr
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
+  /*
+   * Up from the bottom, and back down on the way out.
+   *
+   * The exit is why this component owns the closing rather than the player:
+   * the player unmounting it on a choice would cut the animation off at its
+   * first frame. It calls the row's action, plays itself out, and only then
+   * tells the player it is done.
+   */
+  // useState rather than a ref: the value is read while building the style
+  // below, and reading a ref during render is exactly what the compiler warns
+  // about. Held in state it is created once and never set again.
+  const [slide] = useState(() => new Animated.Value(0));
+  const leaving = useRef(false);
+
+  useEffect(() => {
+    Animated.timing(slide, {
+      toValue: 1,
+      duration: 260,
+      useNativeDriver: true,
+    }).start();
+  }, [slide]);
+
+  function dismiss(after?: () => void) {
+    // A second press while it is already on its way out would start the
+    // animation again and call back twice.
+    if (leaving.current) return;
+    leaving.current = true;
+    after?.();
+    Animated.timing(slide, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) onClose();
+    });
+  }
+
+  const style = {
+    opacity: slide,
+    transform: [
+      {
+        translateY: slide.interpolate({
+          inputRange: [0, 1],
+          // A short rise. The whole panel travelling the height of the screen
+          // reads as a page arriving rather than a control opening.
+          outputRange: [64, 0],
+        }),
+      },
+    ],
+  };
+
   return (
-    <View style={StyleSheet.absoluteFill}>
+    <Animated.View style={[StyleSheet.absoluteFill, style]}>
       {/*
         * Glass, then a scrim over it.
         *
@@ -67,7 +118,7 @@ export function TrackPicker({ onClose, audio, subtitles, audioNote, timing }: Tr
       <View style={[StyleSheet.absoluteFill, HAS_LIQUID_GLASS ? styles.scrim : styles.fallback]} />
 
       {/* Anywhere off the lists closes it, the way tapping beside a sheet did. */}
-      <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t('common.close')} />
+      <Pressable style={StyleSheet.absoluteFill} onPress={() => dismiss()} accessibilityLabel={t('common.close')} />
 
       <View
         style={[
@@ -85,7 +136,7 @@ export function TrackPicker({ onClose, audio, subtitles, audioNote, timing }: Tr
       >
         <TouchableOpacity
           style={styles.close}
-          onPress={onClose}
+          onPress={() => dismiss()}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel={t('common.close')}
@@ -95,21 +146,23 @@ export function TrackPicker({ onClose, audio, subtitles, audioNote, timing }: Tr
         </TouchableOpacity>
 
         <View style={styles.columns}>
-          <Column title={t('player.audio')} rows={audio} empty={t('player.noAudio')} note={audioNote} />
-          <Column title={t('player.subtitles')} rows={subtitles} empty={t('player.noSubtitles')} />
+          <Column title={t('player.audio')} rows={audio} empty={t('player.noAudio')} note={audioNote} onPicked={dismiss} />
+          <Column title={t('player.subtitles')} rows={subtitles} empty={t('player.noSubtitles')} onPicked={dismiss} />
         </View>
 
         {timing ? <Timing timing={timing} /> : null}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
-function Column({ title, rows, empty, note }: {
+function Column({ title, rows, empty, note, onPicked }: {
   title: string;
   rows: PickerRow[];
   empty: string;
   note?: string | null;
+  /** Runs the choice, then plays the panel out. */
+  onPicked: (after: () => void) => void;
 }) {
   return (
     <View style={styles.column}>
@@ -123,7 +176,7 @@ function Column({ title, rows, empty, note }: {
           {rows.map(row => (
             <Fragment key={row.key}>
               {row.group ? <SubGroupLabel>{row.group}</SubGroupLabel> : null}
-              <TrackRow label={row.label} selected={row.selected} onPress={row.onPick} />
+              <TrackRow label={row.label} selected={row.selected} onPress={() => onPicked(row.onPick)} />
             </Fragment>
           ))}
         </ScrollView>

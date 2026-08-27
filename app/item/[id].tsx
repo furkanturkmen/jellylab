@@ -1076,6 +1076,24 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   const [duration, setDuration] = useState(initialDuration);
   const [seekTarget, setSeekTarget] = useState<number | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
+  /*
+   * The controls fade rather than blink.
+   *
+   * They were mounted and unmounted outright, so a tap swapped them in whole
+   * and the auto-hide four seconds later swapped them out again - over a
+   * moving picture that reads as a flicker rather than a control appearing.
+   * Kept mounted and faded instead, with pointerEvents following the state so
+   * a hidden overlay cannot swallow the tap meant to bring it back.
+   */
+  const [controlsFade] = useState(() => new Animated.Value(1));
+  useEffect(() => {
+    Animated.timing(controlsFade, {
+      toValue: controlsVisible ? 1 : 0,
+      duration: controlsVisible ? 160 : 220,
+      useNativeDriver: true,
+    }).start();
+  }, [controlsVisible, controlsFade]);
+
   // Drawn over the film rather than pushed as a route - see components/TrackPicker.
   const [pickerOpen, setPickerOpen] = useState(false);
   // Whether the film was running when the picker opened, so closing it can put
@@ -1597,20 +1615,20 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       label: t('player.off'),
       selected: subtitleIsOff,
       // pickExternalSub(null) already forces a remount with textTrack -1.
-      onPick: () => { pickExternalSub(null); closeTrackPicker(); },
+      onPick: () => pickExternalSub(null),
     },
     ...vlcTextTracks.map((track, i) => ({
       key: `int-${track.id}`,
       label: cleanSubLabel(track.name ?? t('player.trackNumber', { number: track.id })),
       selected: activeSubIndex == null && vlcTextTrackId === track.id,
-      onPick: () => { pickInternalSub(track.id); closeTrackPicker(); },
+      onPick: () => pickInternalSub(track.id),
       group: i === 0 ? t('player.embedded') : undefined,
     })),
     ...externalSubs.map((sub, i) => ({
       key: `ext-${sub.index}`,
       label: cleanSubLabel(sub.label),
       selected: activeSubIndex === sub.index,
-      onPick: () => { pickExternalSub(sub.index); closeTrackPicker(); },
+      onPick: () => pickExternalSub(sub.index),
       group: i === 0 ? t('player.external') : undefined,
     })),
   ];
@@ -1786,14 +1804,16 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
           </View>
         ) : null}
         {activeCue ? (
-          <View style={[styles.subOverlay, { bottom: controlsVisible ? 130 : 40 }]} pointerEvents="none">
+          <View style={styles.subOverlay} pointerEvents="none">
             <Text style={[styles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
               {activeCue.text}
             </Text>
           </View>
         ) : null}
-        {controlsVisible ? (
-          <View style={styles.overlay} pointerEvents="box-none">
+        <Animated.View
+          style={[styles.overlay, { opacity: controlsFade }]}
+          pointerEvents={controlsVisible ? 'box-none' : 'none'}
+        >
             <LinearGradient
               colors={['rgba(0,0,0,0.7)', 'transparent', 'rgba(0,0,0,0.8)']}
               locations={[0, 0.4, 1]}
@@ -1902,8 +1922,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
                 ) : null}
               </View>
             </View>
-          </View>
-        ) : null}
+        </Animated.View>
         {pickerOpen ? (
           <TrackPicker
             onClose={closeTrackPicker}
@@ -1911,7 +1930,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
               key: `aud-${track.id}`,
               label: track.label,
               selected: vlcAudioTrackId === track.id,
-              onPick: () => { applyAudioTrack(track.id); closeTrackPicker(); },
+              onPick: () => applyAudioTrack(track.id),
             }))}
             audioNote={
               audioStreams.length > audioChoices.length && audioChoices.length > 0
@@ -2306,6 +2325,24 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
   });
 
   const [controlsVisible, setControlsVisible] = useState(true);
+  /*
+   * The controls fade rather than blink.
+   *
+   * They were mounted and unmounted outright, so a tap swapped them in whole
+   * and the auto-hide four seconds later swapped them out again - over a
+   * moving picture that reads as a flicker rather than a control appearing.
+   * Kept mounted and faded instead, with pointerEvents following the state so
+   * a hidden overlay cannot swallow the tap meant to bring it back.
+   */
+  const [controlsFade] = useState(() => new Animated.Value(1));
+  useEffect(() => {
+    Animated.timing(controlsFade, {
+      toValue: controlsVisible ? 1 : 0,
+      duration: controlsVisible ? 160 : 220,
+      useNativeDriver: true,
+    }).start();
+  }, [controlsVisible, controlsFade]);
+
   // Drawn over the film rather than pushed as a route - see components/TrackPicker.
   const [pickerOpen, setPickerOpen] = useState(false);
   const resumeAfterPicker = useRef(false);
@@ -2558,7 +2595,6 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
       // An embedded track replaces the overlay, and vice versa.
       if (track) pickExternalSub(null);
     } catch {}
-    closeTrackPicker();
   }
 
   const activeNativeSub = player?.subtitleTrack ?? null;
@@ -2599,7 +2635,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
           key: `srv-${track.index}`,
           label: withLanguage(track.label, language ? t(`trackLanguages.${language}`, { defaultValue: '' }) : null),
           selected: activeAudioStreamIndex === track.index,
-          onPick: () => { onSwitchAudio(track.index, player.currentTime ?? 0); closeTrackPicker(); },
+          onPick: () => onSwitchAudio(track.index, player.currentTime ?? 0),
         };
       })
     : nativeAudios.map((track: any, i: number) => ({
@@ -2623,7 +2659,6 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
           (!!activeNativeAudio && (activeNativeAudio.id === track.id || activeNativeAudio.label === track.label)),
         onPick: () => {
           try { player.audioTrack = track; } catch {}
-          closeTrackPicker();
         },
       }));
 
@@ -2701,8 +2736,17 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
           style={StyleSheet.absoluteFill}
           onPress={() => setControlsVisible(v => !v)}
         />
-        {controlsVisible ? (
-          <View style={styles.overlay} pointerEvents="box-none">
+        {activeCue ? (
+          <View style={styles.subOverlay} pointerEvents="none">
+            <Text style={[styles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
+              {activeCue.text}
+            </Text>
+          </View>
+        ) : null}
+        <Animated.View
+          style={[styles.overlay, { opacity: controlsFade }]}
+          pointerEvents={controlsVisible ? 'box-none' : 'none'}
+        >
             <LinearGradient
               colors={['rgba(0,0,0,0.7)', 'transparent', 'rgba(0,0,0,0.8)']}
               locations={[0, 0.4, 1]}
@@ -2790,18 +2834,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
                 ) : null}
               </View>
             </View>
-          </View>
-        ) : null}
-        {activeCue ? (
-          <View
-            style={[styles.subOverlay, { bottom: controlsVisible ? 130 : 40 }]}
-            pointerEvents="none"
-          >
-            <Text style={[styles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
-              {activeCue.text}
-            </Text>
-          </View>
-        ) : null}
+        </Animated.View>
         {pickerOpen ? (
           <TrackPicker
             onClose={closeTrackPicker}
@@ -3263,11 +3296,20 @@ const styles = StyleSheet.create({
   epTitle: { ...type.bodyStrong, color: colors.text },
   epMeta: { ...type.caption, color: colors.textMuted, marginTop: 2, textTransform: 'uppercase' },
   epOverview: { ...type.small, color: colors.textMuted, marginTop: spacing.xs },
+  /*
+   * One place, always.
+   *
+   * The line used to jump from 40 to 130 the moment the controls appeared and
+   * back again when they faded, so a tap anywhere on the screen made the
+   * subtitles hop while you were reading them. They sit still now and the
+   * controls are drawn over the top - which is what the layering is for:
+   * picture, then subtitles, then controls.
+   */
   subOverlay: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 110,
+    bottom: 40,
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
   },
