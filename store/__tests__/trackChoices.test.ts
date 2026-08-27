@@ -1,4 +1,4 @@
-import { DEFAULT_PREFS, withSubtitleChoice } from '../prefs';
+import { DEFAULT_PREFS, withAudioChoice, withSubtitleChoice } from '../prefs';
 
 /**
  * English by default everywhere; a choice made about one title wins for that
@@ -54,5 +54,36 @@ describe('withSubtitleChoice', () => {
     const after = withSubtitleChoice(before, 'film-b', 'English');
     expect(before.subtitleChoices['film-b']).toBeUndefined();
     expect(after.subtitleChoices['film-b']).toBe('English');
+  });
+});
+
+/**
+ * Audio has the same shape and had the same fault: one label for the whole
+ * library, so an English dub picked on one series became the choice on every
+ * title carrying a track by that name.
+ */
+describe('withAudioChoice', () => {
+  it('files a choice under the title it was made about', () => {
+    const prefs = withAudioChoice(DEFAULT_PREFS, 'series-1', 'English - AAC');
+    expect(prefs.audioTrackChoices).toEqual({ 'series-1': 'English - AAC' });
+  });
+
+  it('leaves every other title on the language preference', () => {
+    const prefs = withAudioChoice(DEFAULT_PREFS, 'series-1', 'English - AAC');
+    expect(prefs.audioTrackChoices['series-2']).toBeUndefined();
+  });
+
+  it('keeps its own map, not the subtitle one', () => {
+    let prefs = withAudioChoice(DEFAULT_PREFS, 'film-a', 'Japanese - FLAC');
+    prefs = withSubtitleChoice(prefs, 'film-a', 'English - SUBRIP');
+    expect(prefs.audioTrackChoices['film-a']).toBe('Japanese - FLAC');
+    expect(prefs.subtitleChoices['film-a']).toBe('English - SUBRIP');
+  });
+
+  it('drops the oldest once it is holding fifty', () => {
+    let prefs = DEFAULT_PREFS;
+    for (let i = 0; i < 55; i++) prefs = withAudioChoice(prefs, `t-${i}`, 'Japanese');
+    expect(Object.keys(prefs.audioTrackChoices)).toHaveLength(50);
+    expect(Object.keys(prefs.audioTrackChoices)[0]).toBe('t-5');
   });
 });

@@ -33,8 +33,18 @@ export type Prefs = {
    */
   subtitleDelays: Record<string, number>;
   audioLanguage: string;
-  /** exact label of the last-picked audio track, remembered across sessions */
-  lastAudioLabel: string;
+  /**
+   * The audio track chosen by hand, keyed the same way as subtitleChoices.
+   *
+   * Per title for the same reason: this was one label for the whole library,
+   * so picking an English dub on one series made it the choice on every title
+   * carrying a track by that name, over the top of the language preference.
+   *
+   * Named audioTrackChoices rather than audioChoices because the player
+   * already calls its list of available tracks audioChoices, and one of those
+   * two reading as the other is a mistake waiting to happen.
+   */
+  audioTrackChoices: Record<string, string>;
   autoplayNext: boolean;
   preferredEngine: PlayerEngine;
   uiLanguage: string; // 'system' or one of SUPPORTED_LANGS
@@ -49,7 +59,7 @@ export const DEFAULT_PREFS: Prefs = {
   subtitleChoices: {},
   subtitleDelays: {},
   audioLanguage: 'original',
-  lastAudioLabel: '',
+  audioTrackChoices: {},
   autoplayNext: true,
   preferredEngine: 'auto',
   uiLanguage: 'system',
@@ -93,6 +103,18 @@ export function withSubtitleChoice(prefs: Prefs, key: string, label: string): Pr
     delete next[stale];
   }
   return { ...prefs, subtitleChoices: next };
+}
+
+/** The audio equivalent of withSubtitleChoice, bounded the same way. */
+export function withAudioChoice(prefs: Prefs, key: string, label: string): Prefs {
+  const next = { ...(prefs.audioTrackChoices ?? {}) };
+  delete next[key];
+  if (label) next[key] = label;
+  const keys = Object.keys(next);
+  for (const stale of keys.slice(0, Math.max(0, keys.length - MAX_SUBTITLE_DELAYS))) {
+    delete next[stale];
+  }
+  return { ...prefs, audioTrackChoices: next };
 }
 
 export function withSubtitleDelay(prefs: Prefs, key: string, ms: number): Prefs {

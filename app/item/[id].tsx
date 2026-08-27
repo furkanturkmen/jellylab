@@ -22,7 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { getDeviceId } from '@/store/auth';
 import { cleanSubLabel } from '@/components/TrackRow';
 import { openPlayerSheet } from '@/store/playerSheet';
-import { loadPrefs, savePrefs, type Prefs, withSubtitleChoice, withSubtitleDelay } from '@/store/prefs';
+import { loadPrefs, savePrefs, type Prefs, withAudioChoice, withSubtitleChoice, withSubtitleDelay } from '@/store/prefs';
 import { useDownload } from '@/hooks/useDownloads';
 import { formatBytes } from '@/lib/bytes';
 import { qualityFromHeight, qualityFromLabel } from '@/lib/quality';
@@ -1345,7 +1345,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     (async () => {
       try {
         const prefs = prefsRef.current ?? (await loadPrefs());
-        prefsRef.current = { ...prefs, lastAudioLabel: picked.label };
+        prefsRef.current = withAudioChoice(prefs, delayKey, picked.label);
         await savePrefs(prefsRef.current);
       } catch {}
     })();
@@ -1365,8 +1365,11 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     audioAutoPicked.current = true;
     const prefs = prefsRef.current;
     if (!prefs) return;
-    const byLastUsed = prefs.lastAudioLabel
-      ? audioChoices.find(t => t.label === prefs.lastAudioLabel)
+    // What was chosen for THIS title, if anything. It was one label for the
+    // whole library, which made a dub picked once the choice everywhere.
+    const chosen = prefs.audioTrackChoices?.[delayKey];
+    const byLastUsed = chosen
+      ? audioChoices.find(t => t.label === chosen)
       : undefined;
     /**
      * The language comes resolved from the screen, so "original" is already a
