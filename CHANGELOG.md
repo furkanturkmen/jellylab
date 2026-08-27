@@ -8,6 +8,60 @@ Pre-1.0 on purpose: Downloads works per item but has no eviction and no way to
 take a whole season (`docs/downloads.md`), and 1.0 should mean the tabs all do
 what they say.
 
+## 0.18.0 - knowing where you are, and what comes next
+
+Two things a video app is expected to do and this one could not: show you the
+frame you are scrubbing to, and offer the next episode when one ends.
+
+- **Scrub previews.** Dragging the progress bar shows the frame at that moment.
+  The server bakes its thumbnails into sheets of a hundred, so a preview is a
+  crop of a sheet and a scrub across seventeen minutes of film costs a single
+  request. Needs `Generate Trickplay Images` enabled on the library - and on
+  older hardware, key-frame-only extraction, since decoding every frame of an
+  HEVC film to keep one per ten seconds takes hours per title.
+- **Next Up.** A row for the episode after the one you finished. The server's
+  own endpoint offers the first episode of every series in the library whether
+  or not you have started it, and ignores the flag that is meant to say
+  otherwise, so that is filtered here - a list of things to begin is what the
+  library rows already are.
+- **What comes after this one**, offered over the player when an episode ends
+  rather than dropping you back to the detail screen of the episode you have
+  just watched. It starts by itself after ten seconds, shown as a line that
+  fills rather than a number counting down, and Close stops it.
+- **A phone turns to landscape by itself** when playback starts. The button in
+  the controls still goes back, so it is a default rather than a rule. A tablet
+  keeps free rotation.
+
+Subtitles, twice:
+
+- **Styling is not dialogue.** An anime line arrived on screen reading
+  `{\fad(984,1)\blur9\t(25,984,1 \blur0.75)}Episode 3:`. Jellyfin converts
+  SSA/ASS by rewriting the timings and leaving the text alone, so the override
+  blocks come through intact and were drawn as words.
+- **A search that assumed cues never overlap.** Subtitles worked on some
+  episodes and vanished on others, and the ones that failed were the heavily
+  typeset ones: signs, karaoke and dialogue run at the same time, and an
+  episode arrives with three and a half thousand cues for twenty minutes. The
+  search for "the cue containing this moment" is only sound when cues do not
+  overlap; given overlap it found nothing while a line was plainly on screen.
+
+Smaller, and all of them found by using the thing:
+
+- The controls could hide themselves while a finger was still on the scrubber,
+  which left the drag unfinished, froze the bar at a time the film had long
+  passed, and sent the next backwards drag to 00:00.
+- The scrub preview no longer fights the drag: it slides with a transform
+  rather than a layout pass, redraws only when the thumbnail changes, and is
+  drawn at a size the source can actually fill.
+- Episode cards are titled by series. Episode titles are stored in whatever
+  language the library scraped, and the anime rows read as Japanese.
+- Web is gone from the platforms it claims. Nothing here can run in a browser,
+  and pressing `w` in Metro took the dev server down with it.
+- `npm run metro:stop` ends every Metro on every port, including the pipes that
+  outlive their tmux session and make a dead one look alive.
+
+CI runs types, lint and 165 tests.
+
 ## 0.17.0 - the name the file forgot
 
 A file can be wrong about itself, or say nothing at all: an audio track tagged
