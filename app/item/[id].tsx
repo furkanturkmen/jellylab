@@ -311,6 +311,36 @@ export default function ItemScreen() {
   }, [item, i18n.language]);
 
   /**
+   * One line per playback rather than one per render.
+   *
+   * This log lived in the render body, so it printed again every time the
+   * screen re-rendered - nine times for a single episode - and a line saying
+   * "mount" over and over reads as the player rebuilding itself, which is
+   * exactly the bug it exists to rule out. It said nothing untrue; it was
+   * just answering a different question than its name implies.
+   *
+   * The last line is remembered rather than a mounted flag, so a genuine
+   * change - Up Next handing over an episode, a switch between engines -
+   * still prints, while a re-render carrying the same values stays quiet.
+   */
+  const loggedPlayback = useRef<string | null>(null);
+  useEffect(() => {
+    if (!playback) {
+      loggedPlayback.current = null;
+      return;
+    }
+    const playing = playingItem ?? item;
+    if (!playing) return;
+    const line =
+      `[jellylab] player:mount item=${playing.Id} engine=${playback.engine}` +
+      ` resume=${Math.round(playback.startAt ?? Jellyfin.ticksToSeconds(playing.UserData?.PlaybackPositionTicks ?? 0))}s` +
+      ` runtime=${Math.round(Jellyfin.ticksToSeconds(playing.RunTimeTicks ?? 0))}s`;
+    if (loggedPlayback.current === line) return;
+    loggedPlayback.current = line;
+    console.log(line);
+  }, [playback, playingItem, item]);
+
+  /**
    * Store this item on the device.
    *
    * The size comes from the server rather than being guessed, and it is said
@@ -617,11 +647,6 @@ export default function ItemScreen() {
   if (playback) {
     // item is non-null by here, so this is the one the player is working from.
     const playing = playingItem ?? item;
-    console.log(
-      `[jellylab] player:mount item=${playing.Id} engine=${playback.engine}` +
-      ` resume=${Math.round(playback.startAt ?? Jellyfin.ticksToSeconds(playing.UserData?.PlaybackPositionTicks ?? 0))}s` +
-      ` runtime=${Math.round(Jellyfin.ticksToSeconds(playing.RunTimeTicks ?? 0))}s`,
-    );
     return (
       <>
         {/*
