@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { CONFIG, getJellyfinUrl, requireJellyfinUrl } from '@/config';
+import { episodeAfter } from '@/player/upnext';
 import { getDeviceId, loadJellyfinAuth, saveJellyfinAuth, clearJellyfinAuth } from '@/store/auth';
 import { logRequestFailure } from '@/lib/errorLog';
 import { pickTrickplay, type TrickplayInfo } from '@/lib/trickplay';
@@ -394,8 +395,9 @@ export async function getNextEpisode(
     params: { userId, adjacentTo: episodeId, Fields: 'PrimaryImageAspectRatio,Overview' },
   });
   const items: JellyfinItem[] = res.data.Items ?? [];
-  const at = items.findIndex(i => i.Id === episodeId);
-  return at >= 0 ? items[at + 1] ?? null : null;
+  // The choosing is in player/upnext, where it can be tested without playing
+  // an episode to the end to find out what the card would have offered.
+  return episodeAfter(items, episodeId);
 }
 
 export async function getResumeItems(userId: string, limit = 12): Promise<JellyfinItem[]> {
