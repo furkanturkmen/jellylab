@@ -1238,7 +1238,16 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       console.log(
         `[jellylab] player:subPrefs language=${prefs.subtitleLanguage || 'unset'}` +
         ` chosen=${prefs.subtitleChoices?.[delayKey] || 'none'}` +
-        ` offset=${prefs.subtitleDelays?.[delayKey] ?? 0}ms available=${externalSubs.length}`,
+        ` offset=${prefs.subtitleDelays?.[delayKey] ?? 0}ms available=${externalSubs.length}` +
+        /*
+         * The labels, not just how many.
+         *
+         * Three wrong picks in a row came down to a label this log did not
+         * print: the count said a better track existed, and nothing said what
+         * it was called or why it lost. The ranking works on labels, so the
+         * labels are the evidence.
+         */
+        ` tracks=${JSON.stringify(externalSubs.map(x => `${x.index}:${x.label}`))}`,
       );
       /*
        * A choice made about this title, if there is one.
@@ -2185,7 +2194,16 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
         // straight off the player clock and offers no timing control, so a
         // correction made on the VLC path does nothing here. Said out loud
         // rather than left to look like it worked.
-        ` offset=${prefs.subtitleDelays?.[delayKey] ?? 0}ms(ignored) available=${externalSubs.length}`,
+        ` offset=${prefs.subtitleDelays?.[delayKey] ?? 0}ms(ignored) available=${externalSubs.length}` +
+        /*
+         * The labels, not just how many.
+         *
+         * Three wrong picks in a row came down to a label this log did not
+         * print: the count said a better track existed, and nothing said what
+         * it was called or why it lost. The ranking works on labels, so the
+         * labels are the evidence.
+         */
+        ` tracks=${JSON.stringify(externalSubs.map(x => `${x.index}:${x.label}`))}`,
       );
       /*
        * A choice made about this title, if there is one.
