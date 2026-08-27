@@ -4,8 +4,7 @@
     "slug": "jellylab",
     "version": "0.17.0",
     "platforms": [
-      "ios",
-      "web"
+      "ios"
     ],
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
