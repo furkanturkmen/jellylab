@@ -1048,7 +1048,15 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   const router = useRouter();
   const { t } = useTranslation();
   const [paused, setPaused] = useState(false);
-  const [position, setPosition] = useState(0);
+  /*
+   * Starts where the film starts, not at zero.
+   *
+   * Nothing was wrong with the resume itself - the picture was already at the
+   * right frame. This is the clock and the scrubber, which learn the position
+   * from the first progress tick and so read 0:00 for a quarter of a second
+   * before jumping to it. Seeded, they are right from the first paint.
+   */
+  const [position, setPosition] = useState(resumeSeconds);
   const [duration, setDuration] = useState(initialDuration);
   const [seekTarget, setSeekTarget] = useState<number | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -1098,7 +1106,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
    * every glance at another app cost a spinner and a re-buffer.
    */
   const [vlcKey, setVlcKey] = useState(0);
-  const positionRef = useRef(0);
+  const positionRef = useRef(resumeSeconds);
   const [vlcTextTracks, setVlcTextTracks] = useState<{ id: number; name?: string }[]>([]);
   const [vlcTextTrackId, setVlcTextTrackId] = useState<number>(-1); // -1 = off
   const [vlcAudioTracks, setVlcAudioTracks] = useState<{ id: number; name?: string }[]>([]);
@@ -2088,7 +2096,15 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
   const [nativeSubs, setNativeSubs] = useState<any[]>([]);
   const [nativeAudios, setNativeAudios] = useState<any[]>([]);
   const [playing, setPlaying] = useState(true);
-  const [position, setPosition] = useState(0);
+  /*
+   * Starts where the film starts, not at zero.
+   *
+   * Nothing was wrong with the resume itself - the picture was already at the
+   * right frame. This is the clock and the scrubber, which learn the position
+   * from the first progress tick and so read 0:00 for a quarter of a second
+   * before jumping to it. Seeded, they are right from the first paint.
+   */
+  const [position, setPosition] = useState(resumeSeconds);
   const [duration, setDuration] = useState(0);
   const [scrubbing, setScrubbing] = useState(false);
   const [scrubValue, setScrubValue] = useState(0);
