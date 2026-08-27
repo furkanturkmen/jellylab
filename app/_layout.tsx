@@ -202,6 +202,19 @@ function RootLayoutNav() {
           options={{
             presentation: 'formSheet',
             headerShown: false,
+            /*
+             * The one sheet that is opened from inside the player, and so the
+             * one that has to match it. Every other screen inherits portrait
+             * from the root, and inheriting it here turned the phone upright
+             * to ask which audio track you wanted, over a film that was still
+             * running sideways behind the card.
+             *
+             * Declared rather than left unset. Leaving it unset happens to
+             * work, because iOS keeps the last screen's orientation - but that
+             * is the behaviour that left the whole app in landscape, and it is
+             * not worth relying on twice.
+             */
+            orientation: IS_TABLET ? 'all' : 'landscape',
             sheetAllowedDetents: 'fitToContents',
             sheetGrabberVisible: true,
             sheetCornerRadius: 28,
