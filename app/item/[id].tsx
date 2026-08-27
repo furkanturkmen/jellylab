@@ -38,13 +38,15 @@ import {
   removeDownload,
   saveLocalPosition,
 } from '@/store/downloads';
-import { drainProgressOutbox, queueProgress } from '@/store/outbox';
+import { drainProgressOutbox } from '@/store/outbox';
 import { IS_TABLET } from '@/lib/device';
 import { logRequestFailure } from '@/lib/errorLog';
 import { jellyfinKind, kindKey } from '@/lib/kind';
 import { metadataLanguage, plainText } from '@/lib/text';
 import { OverviewCard } from '@/components/OverviewCard';
 import { Scrubber, formatTime } from '@/components/Scrubber';
+import { resumeSecondsFor } from '@/player/progress';
+import { useProgressReporting } from '@/player/useProgressReporting';
 import { SeriesEpisodes } from '@/components/SeriesEpisodes';
 import { TrackPicker, type PickerRow } from '@/components/TrackPicker';
 import { UpNextCard } from '@/components/UpNextCard';
@@ -344,7 +346,7 @@ export default function ItemScreen() {
     if (!playing) return;
     const line =
       `[jellylab] player:mount item=${playing.Id} engine=${playback.engine}` +
-      ` resume=${Math.round(playback.startAt ?? Jellyfin.ticksToSeconds(playing.UserData?.PlaybackPositionTicks ?? 0))}s` +
+      ` resume=${Math.round(resumeSecondsFor(playback.startAt, playing.UserData?.PlaybackPositionTicks))}s` +
       ` runtime=${Math.round(Jellyfin.ticksToSeconds(playing.RunTimeTicks ?? 0))}s`;
     if (loggedPlayback.current === line) return;
     loggedPlayback.current = line;
@@ -705,7 +707,7 @@ export default function ItemScreen() {
           artworkUri={playingItem ? undefined : (tmdbArt.poster ?? (playing.ImageTags?.Primary
             ? Jellyfin.imageUrl(playing.Id, playing.ImageTags.Primary, 'Primary', 600)
             : undefined))}
-          resumeSeconds={playback.startAt ?? Jellyfin.ticksToSeconds(playing.UserData?.PlaybackPositionTicks ?? 0)}
+          resumeSeconds={resumeSecondsFor(playback.startAt, playing.UserData?.PlaybackPositionTicks)}
           initialDuration={Jellyfin.ticksToSeconds(playing.RunTimeTicks ?? 0)}
           onExit={leavePlayer}
           // A film, or a last episode, still just closes.
@@ -1203,24 +1205,17 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     return () => sub.remove();
   }, []);
 
-  // Report progress to Jellyfin.
-  //
-  // The cleanup reads positionRef, not position. With an empty dependency list
-  // the closure keeps the value from the first render - zero - so every VLC
-  // playback reported "stopped at 0" on the way out, wiping the resume point
-  // for exactly the files that use this engine: mkv, and most anime.
-  useEffect(() => {
-    Jellyfin.reportPlaybackStart(itemId, Jellyfin.secondsToTicks(resumeSeconds), playMethod).catch(() => {});
-    return () => {
-      try {
-        const ticks = Jellyfin.secondsToTicks(positionRef.current);
-        rememberLocalPosition();
-        Jellyfin.reportPlaybackStopped(itemId, ticks, playMethod)
-          .catch(() => queueProgress(itemId, ticks));
-      } catch {}
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Start, stop, the fifteen second ping and the report on pause - all of it
+  // in player/useProgressReporting, which both engines share.
+  useProgressReporting({
+    itemId,
+    playMethod,
+    resumeSeconds,
+    paused,
+    positionAt: () => positionRef.current,
+    // Only for a file that is actually on the device.
+    onStop: () => rememberLocalPosition(),
+  });
 
   // Apply subtitle prefs + auto-select last-used or preferred language sub.
   useEffect(() => {
@@ -1455,38 +1450,6 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     setActiveCue(null);
   }
 
-  // Depending on position rebuilt this interval on every tick from the player -
-  // several times a second - so the 15 second timer restarted before it could
-  // ever fire, and nothing was reported mid-playback at all. The refs let the
-  // timer live for as long as the screen does.
-  useEffect(() => {
-    const id = setInterval(() => {
-      try {
-        Jellyfin.reportPlaybackProgress(
-          itemId,
-          Jellyfin.secondsToTicks(positionRef.current),
-          pausedRef.current,
-          playMethod,
-        ).catch(() => {});
-      } catch {}
-    }, 15000);
-    return () => clearInterval(id);
-  }, [itemId, playMethod]);
-
-  // Pause and resume are worth reporting immediately rather than waiting up to
-  // fifteen seconds - the native engine already does this, and without it a
-  // paused film keeps counting as playing on the server. Skipped on mount,
-  // where reportPlaybackStart has just said the same thing.
-  const reportedPause = useRef(true);
-  useEffect(() => {
-    if (reportedPause.current) { reportedPause.current = false; return; }
-    Jellyfin.reportPlaybackProgress(
-      itemId,
-      Jellyfin.secondsToTicks(positionRef.current),
-      paused,
-      playMethod,
-    ).catch(() => {});
-  }, [paused, itemId, playMethod]);
 
   // A drag that never ended would freeze position for good, so anything that
   // takes the controls away mid-gesture - an error, a rotation - ends it.
@@ -2222,19 +2185,15 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Report start on mount, stop on unmount.
-  useEffect(() => {
-    Jellyfin.reportPlaybackStart(itemId, Jellyfin.secondsToTicks(resumeSeconds), playMethod).catch(() => {});
-    return () => {
-      try {
-        const pos = Jellyfin.secondsToTicks(player.currentTime ?? 0);
-        saveLocalPosition(itemId, pos);
-        Jellyfin.reportPlaybackStopped(itemId, pos, playMethod)
-          .catch(() => queueProgress(itemId, pos));
-      } catch {}
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // The same reporting the VLC engine uses - see player/useProgressReporting.
+  useProgressReporting({
+    itemId,
+    playMethod,
+    resumeSeconds,
+    paused: !playing,
+    positionAt: () => player.currentTime ?? 0,
+    onStop: ticks => saveLocalPosition(itemId, ticks),
+  });
 
   // Periodic progress ping every 15s.
   useEffect(() => {
