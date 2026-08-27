@@ -102,6 +102,15 @@ type PlaybackConfig = {
 /** An audio track as Jellyfin describes it, before VLC has opened the file. */
 type AudioStream = { index: number; label: string; language?: string };
 
+/**
+ * How long the controls stay up before fading, with the film running.
+ *
+ * Long enough to read the time remaining and decide, short enough that it does
+ * not sit over the picture while you have gone back to watching. Paused, they
+ * stay: a paused film is one you have stopped to do something with.
+ */
+const CONTROLS_HIDE_MS = 5000;
+
 export default function ItemScreen() {
   // `play` is set by the long-press menu on a poster, which starts playback
   // without making you find the button on the screen it is opening.
@@ -1528,7 +1537,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   // its gesture, with them.
   useEffect(() => {
     if (!controlsVisible || paused || scrubbing) return;
-    const t = setTimeout(() => setControlsVisible(false), 4000);
+    const t = setTimeout(() => setControlsVisible(false), CONTROLS_HIDE_MS);
     return () => clearTimeout(t);
   }, [controlsVisible, paused, position, scrubbing]);
 
@@ -2508,13 +2517,13 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
     if (!controlsVisible && scrubbing) setScrubbing(false);
   }, [controlsVisible, scrubbing]);
 
-  // Auto-hide controls after 4s when playing.
+  // Auto-hide controls when playing - see CONTROLS_HIDE_MS.
   //
   // Not while scrubbing - see the same guard in the VLC player: position is
   // what resets this timer, and a drag freezes position.
   useEffect(() => {
     if (!controlsVisible || !playing || scrubbing) return;
-    const t = setTimeout(() => setControlsVisible(false), 4000);
+    const t = setTimeout(() => setControlsVisible(false), CONTROLS_HIDE_MS);
     return () => clearTimeout(t);
   }, [controlsVisible, playing, position, scrubbing]);
 
