@@ -100,8 +100,9 @@ export function preferredAudioIndex(streams: AudioStream[], code: string | undef
  *
  * 0. plain - the whole dialogue, nothing else
  * 1. hearing impaired / SDH / CC - the whole dialogue plus sound description
- * 2. forced - only the lines a viewer of the dubbed audio cannot follow, so
- *    mostly empty for someone who asked for subtitles in this language
+ * 2. forced, and signs and songs - only the text a viewer who understands the
+ *    audio still cannot read: signs, captions, lyrics. No dialogue at all, so
+ *    for someone who asked for subtitles in this language it is nearly empty
  * 3. commentary - not the dialogue at all
  *
  * Anyone who wants one of the others can still pick it, and that choice is
@@ -116,6 +117,18 @@ const SUB_TOKENS: [string, number][] = [
   ['hi', 1],
   ['cc', 1],
   ['forced', 2],
+  /*
+   * A signs-and-songs track is the anime form of forced: the signs on screen
+   * and the lyrics, with the dialogue left out because you are expected to
+   * understand the audio.
+   *
+   * Found the hard way. An episode carried "Signs & Songs@EMBER - English"
+   * and "Dialogue@CR - English", both scored plain, and the tie went to
+   * whichever the server listed first - so an episode opened with nothing but
+   * sign captions and had to be corrected by hand every time.
+   */
+  ['signs', 2],
+  ['songs', 2],
   ['commentary', 3],
 ];
 

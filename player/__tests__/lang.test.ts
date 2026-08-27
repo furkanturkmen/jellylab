@@ -190,3 +190,33 @@ describe('pickSubtitle', () => {
     expect(pickSubtitle(subs, 'nld')?.index).toBe(2);
   });
 });
+
+/**
+ * The real labels from an episode that opened with sign captions instead of
+ * dialogue, and had to be corrected by hand every time.
+ */
+describe('signs and songs tracks', () => {
+  const eps = [
+    { index: 3, label: 'Signs & Songs@EMBER - English - Default - ASS' },
+    { index: 4, label: 'Dialogue@CR - English - ASS' },
+  ];
+
+  it('ranks a signs track below plain dialogue', () => {
+    expect(subtitleRank('Signs & Songs@EMBER - English - Default - ASS')).toBe(2);
+    expect(subtitleRank('Dialogue@CR - English - ASS')).toBe(0);
+  });
+
+  it('picks the dialogue even when the signs track is listed first', () => {
+    // Both are English and both were plain before, so the tie went to the
+    // server's order - which put the signs track first.
+    expect(pickSubtitle(eps, 'eng')?.index).toBe(4);
+  });
+
+  it('still offers a signs track when it is the only one', () => {
+    expect(pickSubtitle([eps[0]], 'eng')?.index).toBe(3);
+  });
+
+  it('does not mistake a word containing signs or songs', () => {
+    expect(subtitleRank('English - Designs of Fate')).toBe(0);
+  });
+});
