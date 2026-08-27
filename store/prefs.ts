@@ -9,7 +9,18 @@ export type PlayerEngine = 'auto' | 'native' | 'vlc';
 export type Prefs = {
   subtitleLanguage: string; // e.g. 'eng', 'nld', 'off'
   subtitleSize: 'sm' | 'md' | 'lg';
-  lastSubLabel: string; // exact label of the last-picked external sub, remembered across sessions
+  /**
+   * The subtitle chosen by hand, keyed by series id - or by item id for a film.
+   *
+   * Per title, not one value for everything. It was global: picking a Dutch
+   * track on one film made Dutch the default on every title that happened to
+   * carry one, quietly beating the language preference everywhere. A choice
+   * made about one film is a statement about that film.
+   *
+   * 'off' is stored like any other choice, so turning subtitles off stays off
+   * for that title and nowhere else.
+   */
+  subtitleChoices: Record<string, string>;
   /**
    * Subtitle timing offsets in milliseconds, keyed by series id - or by item
    * id for a film. Positive shows subs later.
@@ -35,7 +46,7 @@ export type Prefs = {
 export const DEFAULT_PREFS: Prefs = {
   subtitleLanguage: 'eng',
   subtitleSize: 'md',
-  lastSubLabel: '',
+  subtitleChoices: {},
   subtitleDelays: {},
   audioLanguage: 'original',
   lastAudioLabel: '',
@@ -66,6 +77,24 @@ const MAX_SUBTITLE_DELAYS = 50;
  * is the least recently set. A zero offset is stored as a deletion - the
  * default is already zero, and keeping it would evict something useful.
  */
+/**
+ * Remember the subtitle chosen by hand for one title, bounded the same way and
+ * for the same reason as the offsets above.
+ *
+ * An empty label is stored as a deletion: "no choice made here" is the state
+ * that lets the language preference decide again.
+ */
+export function withSubtitleChoice(prefs: Prefs, key: string, label: string): Prefs {
+  const next = { ...(prefs.subtitleChoices ?? {}) };
+  delete next[key];
+  if (label) next[key] = label;
+  const keys = Object.keys(next);
+  for (const stale of keys.slice(0, Math.max(0, keys.length - MAX_SUBTITLE_DELAYS))) {
+    delete next[stale];
+  }
+  return { ...prefs, subtitleChoices: next };
+}
+
 export function withSubtitleDelay(prefs: Prefs, key: string, ms: number): Prefs {
   const next = { ...(prefs.subtitleDelays ?? {}) };
   delete next[key];

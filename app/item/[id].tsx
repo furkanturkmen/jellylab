@@ -22,7 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { getDeviceId } from '@/store/auth';
 import { cleanSubLabel } from '@/components/TrackRow';
 import { openPlayerSheet } from '@/store/playerSheet';
-import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/prefs';
+import { loadPrefs, savePrefs, type Prefs, withSubtitleChoice, withSubtitleDelay } from '@/store/prefs';
 import { useDownload } from '@/hooks/useDownloads';
 import { formatBytes } from '@/lib/bytes';
 import { qualityFromHeight, qualityFromLabel } from '@/lib/quality';
@@ -1237,10 +1237,18 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
 
       console.log(
         `[jellylab] player:subPrefs language=${prefs.subtitleLanguage || 'unset'}` +
-        ` last=${prefs.lastSubLabel || 'none'} available=${externalSubs.length}`,
+        ` chosen=${prefs.subtitleChoices?.[delayKey] || 'none'} available=${externalSubs.length}`,
       );
-      if (prefs.lastSubLabel && prefs.lastSubLabel !== 'off') {
-        const exact = externalSubs.find(s => s.label === prefs.lastSubLabel);
+      /*
+       * A choice made about this title, if there is one.
+       *
+       * Keyed per title. It used to be one label for everything, so picking a
+       * Dutch track on one film made Dutch the default on every title that
+       * carried one - beating the English preference everywhere, quietly.
+       */
+      const chosen = prefs.subtitleChoices?.[delayKey];
+      if (chosen && chosen !== 'off') {
+        const exact = externalSubs.find(s => s.label === chosen);
         if (exact) {
           console.log(`[jellylab] player:subPick via=remembered picked=${exact.label}`);
           pickExternalSub(exact.index, false, 'prefs:remembered');
@@ -1250,10 +1258,11 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       /**
        * "Off" is a choice about one playback, not about every title.
        *
-       * Tapping Off wrote lastSubLabel='off', and that suppressed the language
+       * Tapping Off wrote a global 'off', and that suppressed the language
        * preference from then on - so subtitles silently stopped appearing
-       * everywhere, with nothing in the log to say why. The preference decides
-       * now; Off still turns them off for the film you turned them off in.
+       * everywhere, with nothing in the log to say why. Off is recorded
+       * against the title now, so it turns them off for the film you turned
+       * them off in and nowhere else.
        */
       if (prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
         const match = pickSubtitle(externalSubs, prefs.subtitleLanguage);
@@ -1401,7 +1410,8 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
         try {
           const prefs = await loadPrefs();
           const { savePrefs } = await import('@/store/prefs');
-          await savePrefs({ ...prefs, lastSubLabel: 'off' });
+          prefsRef.current = withSubtitleChoice(prefs, delayKey, 'off');
+          await savePrefs(prefsRef.current);
         } catch {}
       }
       return;
@@ -1433,7 +1443,8 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
           try {
             const prefs = await loadPrefs();
             const { savePrefs } = await import('@/store/prefs');
-            await savePrefs({ ...prefs, lastSubLabel: picked.label });
+            prefsRef.current = withSubtitleChoice(prefs, delayKey, picked.label);
+            await savePrefs(prefsRef.current);
           } catch {}
         }
       }
@@ -1983,6 +1994,7 @@ function Player({
     <View style={styles.playerContainer}>
       {config.engine === 'native' ? (
         <NativePlayer
+          delayKey={delayKey}
           url={config.url}
           itemId={itemId}
           mediaSourceId={config.mediaSourceId}
@@ -2026,10 +2038,12 @@ function Player({
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, activeAudioStreamIndex, onSwitchAudio, originalLanguage, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', trickplay, onEnded, onError, onExit }: {
+function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, activeAudioStreamIndex, onSwitchAudio, originalLanguage, delayKey, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', trickplay, onEnded, onError, onExit }: {
   url: string;
   itemId: string;
   mediaSourceId?: string;
+  /** Series id, or item id for a film - what a remembered subtitle is filed under. */
+  delayKey: string;
   externalSubs: { index: number; label: string }[];
   /** The server's audio tracks - the only list that means anything on a transcode. */
   audioStreams?: AudioStream[];
@@ -2162,10 +2176,18 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
       // 1. Prefer exact match on the last-picked label (persisted across sessions).
       console.log(
         `[jellylab] player:subPrefs language=${prefs.subtitleLanguage || 'unset'}` +
-        ` last=${prefs.lastSubLabel || 'none'} available=${externalSubs.length}`,
+        ` chosen=${prefs.subtitleChoices?.[delayKey] || 'none'} available=${externalSubs.length}`,
       );
-      if (prefs.lastSubLabel && prefs.lastSubLabel !== 'off') {
-        const exact = externalSubs.find(s => s.label === prefs.lastSubLabel);
+      /*
+       * A choice made about this title, if there is one.
+       *
+       * Keyed per title. It used to be one label for everything, so picking a
+       * Dutch track on one film made Dutch the default on every title that
+       * carried one - beating the English preference everywhere, quietly.
+       */
+      const chosen = prefs.subtitleChoices?.[delayKey];
+      if (chosen && chosen !== 'off') {
+        const exact = externalSubs.find(s => s.label === chosen);
         if (exact) {
           console.log(`[jellylab] player:subPick via=remembered picked=${exact.label}`);
           pickExternalSub(exact.index, /* persistPref */ false, 'prefs:remembered');
@@ -2189,10 +2211,11 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
       /**
        * "Off" is a choice about one playback, not about every title.
        *
-       * Tapping Off wrote lastSubLabel='off', and that suppressed the language
+       * Tapping Off wrote a global 'off', and that suppressed the language
        * preference from then on - so subtitles silently stopped appearing
-       * everywhere, with nothing in the log to say why. The preference decides
-       * now; Off still turns them off for the film you turned them off in.
+       * everywhere, with nothing in the log to say why. Off is recorded
+       * against the title now, so it turns them off for the film you turned
+       * them off in and nowhere else.
        */
       if (prefs.subtitleLanguage && prefs.subtitleLanguage !== 'off') {
         const match = pickSubtitle(externalSubs, prefs.subtitleLanguage);
@@ -2445,7 +2468,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
         try {
           const prefs = await loadPrefs();
           const { savePrefs } = await import('@/store/prefs');
-          await savePrefs({ ...prefs, lastSubLabel: 'off' });
+          await savePrefs(withSubtitleChoice(prefs, delayKey, 'off'));
         } catch {}
       }
       return;
@@ -2465,7 +2488,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
           try {
             const prefs = await loadPrefs();
             const { savePrefs } = await import('@/store/prefs');
-            await savePrefs({ ...prefs, lastSubLabel: picked.label });
+            await savePrefs(withSubtitleChoice(prefs, delayKey, picked.label));
           } catch {}
         }
       }
