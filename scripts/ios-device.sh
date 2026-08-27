@@ -22,6 +22,20 @@ REPO="${REPO:-$HOME/Documents/Personal/jellylab}"
 LOG="${LOG:-$HOME/jellylab-device-build.log}"
 DEVICE="${DEVICE:-}"
 
+# Debug or Release.
+#
+#   npm run ios:device                 a build that loads its JavaScript from
+#                                      Metro, so it needs this Mac awake and
+#                                      serving on 8081 every time it starts
+#   CONFIG=Release npm run ios:device  the JavaScript is built into the app, so
+#                                      it runs on its own - on a train, with
+#                                      the Mac shut
+#
+# Both are signed the same way and both expire after seven days on a free
+# Apple ID. Release is the one to install when you actually want to watch
+# something.
+CONFIG="${CONFIG:-Debug}"
+
 # Find the phone, because the picker cannot be used from here.
 #
 # Piping to tee costs the CLI its terminal, and without a terminal it refuses
@@ -36,7 +50,8 @@ if [ -z "$DEVICE" ]; then
     head -1 | tr -d '()')
 fi
 
-build_cmd="cd '$REPO' && caffeinate -s npx expo run:ios --device"
+echo "configuration: $CONFIG"
+build_cmd="cd '$REPO' && caffeinate -s npx expo run:ios --configuration '$CONFIG' --device"
 if [ -n "$DEVICE" ]; then
   echo "device: $DEVICE"
   build_cmd="$build_cmd $DEVICE --no-bundler 2>&1 | tee '$LOG'"
