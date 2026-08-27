@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, AppState, PanResponder, PixelRatio, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, AppState, PixelRatio, Pressable, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -23,7 +23,7 @@ import { getDeviceId } from '@/store/auth';
 import { cleanSubLabel } from '@/components/TrackRow';
 import { openPlayerSheet } from '@/store/playerSheet';
 import { loadPrefs, savePrefs, withSubtitleDelay, type Prefs } from '@/store/prefs';
-import { useDownload, useDownloads } from '@/hooks/useDownloads';
+import { useDownload } from '@/hooks/useDownloads';
 import { formatBytes } from '@/lib/bytes';
 import { qualityFromHeight, qualityFromLabel } from '@/lib/quality';
 import { resolvedTrackLanguage, withLanguage } from '@/lib/tracks';
@@ -41,14 +41,14 @@ import {
 import { drainProgressOutbox, queueProgress } from '@/store/outbox';
 import { IS_TABLET } from '@/lib/device';
 import { logRequestFailure } from '@/lib/errorLog';
-import { formatDate } from '@/lib/date';
 import { jellyfinKind, kindKey } from '@/lib/kind';
-import { metadataLanguage, plainText, oneLine } from '@/lib/text';
-import { PREVIEW_WIDTH, TrickplayPreview } from '@/components/TrickplayPreview';
+import { metadataLanguage, plainText } from '@/lib/text';
+import { OverviewCard } from '@/components/OverviewCard';
 import { Scrubber, formatTime } from '@/components/Scrubber';
+import { SeriesEpisodes } from '@/components/SeriesEpisodes';
 import { TrackPicker, type PickerRow } from '@/components/TrackPicker';
 import { UpNextCard } from '@/components/UpNextCard';
-import { trickplayTileAt, type TrickplayInfo } from '@/lib/trickplay';
+import { type TrickplayInfo } from '@/lib/trickplay';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem } from '@/types';
 
@@ -1017,42 +1017,6 @@ export default function ItemScreen() {
   );
 }
 
-/**
- * The description, clamped on a series.
- *
- * On a film this is the last thing on the screen, so its length costs nothing.
- * On a series the episode list is underneath it, and that list is what you came
- * for - and these descriptions are long: AniDB writes four paragraphs plus a
- * source note, which pushed episode one about two screens down.
- *
- * Three lines and a tap, the way Apple TV and Netflix handle the same problem:
- * enough to decide whether to watch, without standing between you and the
- * thing you meant to play.
- */
-function OverviewCard({ text, clamp }: { text: string; clamp: boolean }) {
-  const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
-  // Only worth a control when there is more to see. Three lines is roughly 180
-  // characters at this width; below that the tap would do nothing visible.
-  const clamped = clamp && !expanded && text.length > 180;
-
-  return (
-    <TouchableOpacity
-      style={styles.overviewCard}
-      activeOpacity={clamp ? 0.8 : 1}
-      onPress={clamp ? () => setExpanded(v => !v) : undefined}
-      accessibilityRole={clamp ? 'button' : undefined}
-      accessibilityLabel={clamp ? t(expanded ? 'detail.showLess' : 'detail.showMore') : undefined}
-    >
-      <Text style={styles.sectionLabel}>{t('detail.overview')}</Text>
-      <Text style={styles.overview} numberOfLines={clamped ? 3 : undefined}>{text}</Text>
-      {clamp && text.length > 180 ? (
-        <Text style={styles.overviewMore}>{t(expanded ? 'detail.showLess' : 'detail.showMore')}</Text>
-      ) : null}
-    </TouchableOpacity>
-  );
-}
-
 function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, preferredAudioLanguage, originalLanguage, delayKey, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', trickplay, onEnded, onExit }: {
   /** Already resolved by the screen, so "original" means something here too. */
   preferredAudioLanguage?: string;
@@ -1975,221 +1939,6 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   );
 }
 
-/** Container, size and subtitle tracks, straight off the episode list. */
-function episodeDownload(ep: any): { container: string; bytes: number; mediaSourceId?: string; subs: { index: number; label: string }[] } {
-  const source = ep.MediaSources?.[0];
-  return {
-    container: (source?.Container ?? 'mkv').split(',')[0].trim(),
-    bytes: source?.Size ?? 0,
-    mediaSourceId: source?.Id,
-    subs: (source?.MediaStreams ?? [])
-      .filter((stream: any) => stream.Type === 'Subtitle' && typeof stream.Index === 'number')
-      .map((stream: any) => ({
-        index: stream.Index as number,
-        label: stream.DisplayTitle ?? stream.Language ?? `Track ${stream.Index}`,
-      })),
-  };
-}
-
-function SeriesEpisodes({ seriesId, userId, tmdbId, seasons }: {
-  seriesId: string;
-  userId: string;
-  /** null when the series was never matched against TMDB. */
-  tmdbId: number | null;
-  /** Fetched by the screen above, which needs the count for its pill. */
-  seasons: any[];
-}) {
-  const router = useRouter();
-  const { t, i18n } = useTranslation();
-  const { entries: downloads } = useDownloads();
-  /**
-   * Titles and descriptions in the app's language, by episode number.
-   *
-   * The anime library is scraped in Japanese, so the server returns 両面宿儺 and
-   * a Japanese synopsis for every episode. TMDB will answer in whichever
-   * language is asked for, and Jellyseerr passes the parameter through - so
-   * this fills in over the top, and leaves the server's text wherever TMDB has
-   * no translation.
-   */
-  const [localised, setLocalised] = useState<Map<number, Jellyseerr.LocalisedEpisode>>(new Map());
-  const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null);
-  const [episodes, setEpisodes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingEps, setLoadingEps] = useState(false);
-
-  useEffect(() => {
-    if (seasons.length === 0) return;
-    setLoading(false);
-    setActiveSeasonId(current => current ?? seasons[0]?.Id ?? null);
-  }, [seasons]);
-
-  function downloadSeason() {
-    const stored = new Set(downloads.map(entry => entry.meta.itemId));
-    const pending = episodes.filter(ep => !stored.has(ep.Id));
-    if (pending.length === 0) {
-      Alert.alert(t('downloads.season'), t('downloads.seasonNone'));
-      return;
-    }
-
-    const total = pending.reduce((sum, ep) => sum + episodeDownload(ep).bytes, 0);
-    Alert.alert(
-      t('downloads.seasonTitle', { count: pending.length }),
-      t('downloads.seasonBody', { size: formatBytes(total) }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('downloads.start'),
-          onPress: () => {
-            for (const ep of pending) {
-              const { container, mediaSourceId, subs } = episodeDownload(ep);
-              enqueueDownload(ep, container, { mediaSourceId, subs });
-            }
-          },
-        },
-      ],
-    );
-  }
-
-  useEffect(() => {
-    if (!activeSeasonId) return;
-    setLoadingEps(true);
-    Jellyfin.getEpisodes(userId, seriesId, activeSeasonId)
-      .then(setEpisodes)
-      .finally(() => setLoadingEps(false));
-  }, [activeSeasonId, seriesId, userId]);
-
-  const activeSeasonNumber = seasons.find(s => s.Id === activeSeasonId)?.IndexNumber;
-
-  useEffect(() => {
-    if (!tmdbId || typeof activeSeasonNumber !== 'number') return;
-    let cancelled = false;
-    Jellyseerr.getSeasonEpisodes(tmdbId, activeSeasonNumber, metadataLanguage(i18n.language))
-      .then(map => { if (!cancelled) setLocalised(map); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [tmdbId, activeSeasonNumber, i18n.language]);
-
-  if (loading) {
-    return (
-      <View style={{ marginTop: spacing.xl, alignItems: 'center' }}>
-        <ActivityIndicator color={colors.text} />
-      </View>
-    );
-  }
-
-  return (
-    <View style={{ marginTop: spacing.xl }}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: spacing.sm, paddingRight: spacing.md }}
-      >
-        {seasons.map(s => {
-          const active = s.Id === activeSeasonId;
-          return (
-            <TouchableOpacity
-              key={s.Id}
-              style={[styles.seasonPill, active && styles.seasonPillActive]}
-              onPress={() => setActiveSeasonId(s.Id)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.seasonPillText, active && styles.seasonPillTextActive]}>
-                {s.Name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-
-      {/*
-        * A season is the unit people watch, so it is the unit they want on the
-        * phone. Queued rather than fired at once - see the store.
-        */}
-      {episodes.length > 0 ? (
-        <TouchableOpacity
-          style={styles.seasonDownload}
-          onPress={downloadSeason}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-        >
-          <SymbolView
-            name={{ ios: 'arrow.down.circle', android: 'download', web: 'download' }}
-            tintColor={colors.text}
-            size={17}
-          />
-          <Text style={styles.seasonDownloadText}>{t('downloads.season')}</Text>
-        </TouchableOpacity>
-      ) : null}
-
-      <View style={{ marginTop: spacing.md }}>
-        {loadingEps ? (
-          <ActivityIndicator color={colors.text} style={{ marginTop: spacing.lg }} />
-        ) : (
-          episodes.map(ep => {
-            const primary = ep.ImageTags?.Primary;
-            const runtimeMin = ep.RunTimeTicks ? Math.round(ep.RunTimeTicks / 600_000_000) : null;
-            const played = ep.UserData?.Played;
-            const progress =
-              ep.UserData?.PlaybackPositionTicks && ep.RunTimeTicks
-                ? Math.min(1, ep.UserData.PlaybackPositionTicks / ep.RunTimeTicks)
-                : 0;
-            return (
-              <TouchableOpacity
-                key={ep.Id}
-                style={styles.epRow}
-                onPress={() => router.push(`/item/${ep.Id}`)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.epThumbWrap}>
-                  {primary ? (
-                    <Image
-                      source={{ uri: Jellyfin.imageUrl(ep.Id, primary, 'Primary', 400) }}
-                      style={styles.epThumb}
-                      contentFit="cover"
-                      transition={200}
-                    />
-                  ) : (
-                    <View style={[styles.epThumb, { backgroundColor: colors.surface }]} />
-                  )}
-                  {progress > 0 && !played ? (
-                    <View style={styles.epProgressTrack}>
-                      <View style={[styles.epProgressFill, { width: `${progress * 100}%` }]} />
-                    </View>
-                  ) : null}
-                  {played ? (
-                    <View style={styles.epWatchedBadge}>
-                      <SymbolView name={{ ios: 'checkmark', android: 'check', web: 'check' }} tintColor={colors.text} size={12} />
-                    </View>
-                  ) : null}
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.epTitle} numberOfLines={2}>
-                    {ep.IndexNumber != null ? `${ep.IndexNumber}. ` : ''}
-                    {localised.get(ep.IndexNumber ?? -1)?.name ?? ep.Name}
-                  </Text>
-                  <Text style={styles.epMeta}>
-                    {runtimeMin ? `${runtimeMin}m` : ''}
-                    {ep.PremiereDate ? ` · ${formatDate(ep.PremiereDate)}` : ''}
-                  </Text>
-                  {/* TMDB's copy in the app's language when it has one, the
-                      server's otherwise - the anime library is scraped in
-                      Japanese, so most of these come from TMDB. */}
-                  {(() => {
-                    const text = localised.get(ep.IndexNumber ?? -1)?.overview ?? ep.Overview;
-                    return text ? (
-                      <Text style={styles.epOverview} numberOfLines={2}>{oneLine(text)}</Text>
-                    ) : null;
-                  })()}
-                </View>
-              </TouchableOpacity>
-            );
-          })
-        )}
-      </View>
-    </View>
-  );
-}
-
 function Player({
   config,
   onSwitchAudio,
@@ -2917,7 +2666,6 @@ const styles = StyleSheet.create({
   },
   metaCol: { flex: 1, paddingBottom: spacing.sm },
   title: { ...type.h1, color: colors.text, marginBottom: spacing.md },
-  overviewMore: { ...type.small, color: colors.textMuted, marginTop: spacing.sm, fontWeight: '600' },
   pillRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
   pill: {
     paddingHorizontal: spacing.md,
@@ -3016,16 +2764,6 @@ const styles = StyleSheet.create({
   },
   modalCloseText: { color: colors.accentContrast, ...type.body, fontWeight: '600' },
   castHint: { ...type.caption, color: colors.textMuted, marginTop: spacing.sm },
-  overviewCard: {
-    marginTop: spacing.xl,
-    padding: spacing.lg,
-    borderRadius: radius.lg,
-    backgroundColor: colors.bgElevated,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
-  sectionLabel: { ...type.caption, color: colors.textMuted, textTransform: 'uppercase', marginBottom: spacing.sm },
-  overview: { ...type.body, color: colors.text, lineHeight: 22 },
   playerContainer: { flex: 1, backgroundColor: '#000' },
   exitBtn: {
     position: 'absolute',
@@ -3122,62 +2860,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  seasonDownload: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: spacing.sm,
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  seasonDownloadText: { ...type.small, color: colors.text, fontWeight: '600' },
-  seasonPill: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-  },
-  seasonPillActive: { backgroundColor: colors.accent, borderColor: colors.accent },
-  seasonPillText: { color: colors.text, ...type.small, fontWeight: '600' },
-  seasonPillTextActive: { color: colors.accentContrast },
 
-  epRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  epThumbWrap: { width: 120, height: 68, borderRadius: radius.sm, overflow: 'hidden', backgroundColor: colors.surface },
-  epThumb: { width: '100%', height: '100%' },
-  epProgressTrack: {
-    position: 'absolute',
-    left: 0, right: 0, bottom: 0,
-    height: 3,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  epProgressFill: { height: '100%', backgroundColor: colors.text },
-  epWatchedBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(52, 199, 89, 0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  epTitle: { ...type.bodyStrong, color: colors.text },
-  epMeta: { ...type.caption, color: colors.textMuted, marginTop: 2, textTransform: 'uppercase' },
-  epOverview: { ...type.small, color: colors.textMuted, marginTop: spacing.xs },
   /*
    * One place, always.
    *
