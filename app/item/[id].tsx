@@ -1237,7 +1237,8 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
 
       console.log(
         `[jellylab] player:subPrefs language=${prefs.subtitleLanguage || 'unset'}` +
-        ` chosen=${prefs.subtitleChoices?.[delayKey] || 'none'} available=${externalSubs.length}`,
+        ` chosen=${prefs.subtitleChoices?.[delayKey] || 'none'}` +
+        ` offset=${prefs.subtitleDelays?.[delayKey] ?? 0}ms available=${externalSubs.length}`,
       );
       /*
        * A choice made about this title, if there is one.
@@ -2179,7 +2180,12 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
       // 1. Prefer exact match on the last-picked label (persisted across sessions).
       console.log(
         `[jellylab] player:subPrefs language=${prefs.subtitleLanguage || 'unset'}` +
-        ` chosen=${prefs.subtitleChoices?.[delayKey] || 'none'} available=${externalSubs.length}`,
+        ` chosen=${prefs.subtitleChoices?.[delayKey] || 'none'}` +
+        // Stored, and deliberately not applied: this engine draws its overlay
+        // straight off the player clock and offers no timing control, so a
+        // correction made on the VLC path does nothing here. Said out loud
+        // rather than left to look like it worked.
+        ` offset=${prefs.subtitleDelays?.[delayKey] ?? 0}ms(ignored) available=${externalSubs.length}`,
       );
       /*
        * A choice made about this title, if there is one.
