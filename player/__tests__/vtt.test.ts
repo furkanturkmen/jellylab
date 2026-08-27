@@ -101,3 +101,37 @@ describe('findActiveCue', () => {
     expect(findActiveCue([], 1)).toBeNull();
   });
 });
+
+describe('ASS styling that survives Jellyfin conversion', () => {
+  it('drops an override block and keeps the line', () => {
+    // Exactly what turned up on screen: the tags were being drawn as words.
+    const vtt = [
+      'WEBVTT',
+      '',
+      '00:00:12.000 --> 00:00:15.000',
+      '{\\fad(984,1)\\blur9\\t(25,984,1 \\blur0.75)}Episode 3:',
+    ].join('\n');
+    expect(parseVtt(vtt)[0].text).toBe('Episode 3:');
+  });
+
+  it('drops several blocks in one line', () => {
+    const vtt = 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n{\\an8}{\\i1}Shibuya{\\i0}';
+    expect(parseVtt(vtt)[0].text).toBe('Shibuya');
+  });
+
+  it('turns ASS line breaks into real ones', () => {
+    const vtt = 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nfirst\\Nsecond';
+    expect(parseVtt(vtt)[0].text).toBe('first\nsecond');
+  });
+
+  it('keeps braces that are part of the dialogue', () => {
+    // Only a brace followed by a backslash is an override.
+    const vtt = 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nthe set {a, b}';
+    expect(parseVtt(vtt)[0].text).toBe('the set {a, b}');
+  });
+
+  it('drops a cue that was nothing but styling', () => {
+    const vtt = 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n{\\pos(960,540)}';
+    expect(parseVtt(vtt)).toHaveLength(0);
+  });
+});
