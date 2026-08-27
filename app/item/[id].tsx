@@ -1570,11 +1570,15 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     resumeAfterPicker.current = !pausedRef.current;
     setPaused(true);
     setPickerOpen(true);
-    setControlsVisible(true);
+    // The controls go away with it. They sat behind the glass otherwise - a
+    // play button and a scrubber showing through the list you were reading,
+    // both belonging to something you had stepped away from.
+    setControlsVisible(false);
   }
 
   function closeTrackPicker() {
     setPickerOpen(false);
+    setControlsVisible(true);
     if (resumeAfterPicker.current) setPaused(false);
   }
 
@@ -2536,11 +2540,13 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
     resumeAfterPicker.current = !!player?.playing;
     try { player.pause(); } catch {}
     setPickerOpen(true);
-    setControlsVisible(true);
+    // The controls go away with it - see the VLC engine.
+    setControlsVisible(false);
   }
 
   function closeTrackPicker() {
     setPickerOpen(false);
+    setControlsVisible(true);
     if (resumeAfterPicker.current) {
       try { player.play(); } catch {}
     }

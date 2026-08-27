@@ -53,15 +53,18 @@ export function TrackPicker({ onClose, audio, subtitles, audioNote, timing }: Tr
   return (
     <View style={StyleSheet.absoluteFill}>
       {/*
-        * Clear rather than regular. Regular is most of the way to opaque, and
-        * over a dark film it reads as the flat grey card this replaced - the
-        * film is the thing that makes it look like glass, so let it through.
+        * Glass, then a scrim over it.
+        *
+        * Clear glass alone let too much through: over a bright frame the track
+        * names sat on someone's face and the film went on moving behind the
+        * list you were reading. The scrim is what makes it a surface - dark
+        * enough to read against anything, light enough that the picture is
+        * still there underneath rather than replaced by a black box.
         */}
       {HAS_LIQUID_GLASS ? (
-        <GlassView style={StyleSheet.absoluteFill} glassEffectStyle="clear" colorScheme="dark" />
-      ) : (
-        <View style={[StyleSheet.absoluteFill, styles.fallback]} />
-      )}
+        <GlassView style={StyleSheet.absoluteFill} glassEffectStyle="regular" colorScheme="dark" />
+      ) : null}
+      <View style={[StyleSheet.absoluteFill, HAS_LIQUID_GLASS ? styles.scrim : styles.fallback]} />
 
       {/* Anywhere off the lists closes it, the way tapping beside a sheet did. */}
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel={t('common.close')} />
@@ -159,9 +162,12 @@ function Timing({ timing }: { timing: NonNullable<TrackPickerProps['timing']> })
 }
 
 const styles = StyleSheet.create({
-  // Where there is no liquid glass to draw, something still has to make the
-  // text readable over a moving picture.
-  fallback: { backgroundColor: 'rgba(10, 10, 12, 0.82)' },
+  // Over the glass: enough to read against a bright frame, not so much that
+  // the film stops showing through.
+  scrim: { backgroundColor: 'rgba(14, 14, 16, 0.72)' },
+  // Where there is no liquid glass to draw, the scrim is the whole surface and
+  // has to carry the legibility on its own.
+  fallback: { backgroundColor: 'rgba(10, 10, 12, 0.92)' },
   frame: { flex: 1 },
   close: { position: 'absolute', top: spacing.lg, right: spacing.lg, zIndex: 2, padding: spacing.xs },
   columns: { flex: 1, flexDirection: 'row', gap: spacing.xxl, paddingTop: spacing.lg },
