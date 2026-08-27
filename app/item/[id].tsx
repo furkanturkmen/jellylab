@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, AppState, PanResponder, PixelRatio, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, AppState, PanResponder, PixelRatio, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
@@ -39,6 +39,7 @@ import {
   saveLocalPosition,
 } from '@/store/downloads';
 import { drainProgressOutbox, queueProgress } from '@/store/outbox';
+import { IS_TABLET } from '@/lib/device';
 import { logRequestFailure } from '@/lib/errorLog';
 import { formatDate } from '@/lib/date';
 import { jellyfinKind, kindKey } from '@/lib/kind';
@@ -55,7 +56,6 @@ import type { JellyfinItem } from '@/types';
  * Narrowed on OS because isPad only exists on the iOS half of Platform, and
  * the type is a union across every platform React Native supports.
  */
-const IS_TABLET = Platform.OS === 'ios' && Platform.isPad;
 
 type PlaybackConfig = {
   url: string;

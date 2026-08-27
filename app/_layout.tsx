@@ -2,6 +2,7 @@ import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import { IS_TABLET } from '@/lib/device';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import 'react-native-reanimated';
@@ -132,6 +133,20 @@ function RootLayoutNav() {
           with the previous route's name, which is why no two of them matched. */}
       <Stack
         screenOptions={{
+          /*
+           * Declared here so that every screen carries an orientation of its
+           * own. iOS takes the mask from whichever screen is focused, and a
+           * screen that declares nothing leaves the previous one's mask in
+           * place - so backing out of the player, which asks for landscape,
+           * used to leave the whole app sideways. The boot-time lockAsync
+           * below could not fix it: a screen's declared orientation beats an
+           * app-level lock, which is the same reason the player has to declare
+           * landscape rather than lock it.
+           *
+           * The player overrides this for itself. A tablet keeps both ways
+           * round everywhere.
+           */
+          orientation: IS_TABLET ? 'all' : 'portrait',
           headerBackTitle: t('common.back'),
           headerTintColor: colors.text,
           headerStyle: { backgroundColor: colors.bg },
