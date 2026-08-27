@@ -432,7 +432,17 @@ export default function ItemScreen() {
    * navigating, which tears the player down, shows the detail page of the
    * episode nobody asked for, and builds a new player from nothing.
    */
-  async function play(target: JellyfinItem | null = item) {
+  async function play(requested: JellyfinItem | null = item) {
+    /*
+     * Anything without an id is not an item, whatever its type says.
+     *
+     * This is not hypothetical: `onPress={play}` handed it a gesture event,
+     * which has no id, and every URL built from it asked the server for
+     * /Items/undefined - a 400 on PlaybackInfo, an empty source list, and a
+     * player pointed at a stream that cannot exist. Falling back to the
+     * screen's own item makes the wrong call harmless.
+     */
+    const target = requested && typeof requested.Id === 'string' ? requested : item;
     if (state.status !== 'signed-in' || !target) return;
 
     /**
@@ -878,7 +888,10 @@ export default function ItemScreen() {
                 <PrimaryButton
                   label={(item.UserData?.PlaybackPositionTicks ?? 0) > 0 ? t('detail.resume') : t('detail.play')}
                   icon={{ ios: 'play.fill', android: 'play_arrow', web: 'play_arrow' }}
-                  onPress={play}
+                  // Wrapped, not passed: play() takes what to play, and a press
+                  // handler is called with a gesture event - which would arrive
+                  // as the thing to play and ask the server for /Items/undefined.
+                  onPress={() => play()}
                   style={styles.playAction}
                 />
                 <CircleButton
