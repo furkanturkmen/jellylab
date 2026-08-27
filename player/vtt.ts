@@ -76,15 +76,46 @@ export function parseVtt(source: string): VttCue[] {
   return cues.sort((a, b) => a.start - b.start);
 }
 
+/**
+ * How far back to look for a cue that is still on screen.
+ *
+ * Bounds the walk below. A sign that has been up for longer than this is not
+ * worth finding; two minutes is far past any line of dialogue.
+ */
+const LONGEST_CUE_SECONDS = 120;
+
+/**
+ * The cue showing at time `t`, or null.
+ *
+ * A plain subtitle file never overlaps itself, and a binary search for the one
+ * cue containing `t` is enough. An ASS track is not that: signs, karaoke and
+ * dialogue are separate events that run at the same time, and a converted
+ * episode arrives with three and a half thousand cues for twenty minutes, many
+ * of them overlapping. Searching such a list for "the cue containing t" lands
+ * on whichever one the halving happens to reach and reports nothing when that
+ * one has already ended - which is why subtitles worked on the plainer
+ * episodes and vanished on the heavily typeset ones.
+ *
+ * So the search finds the last cue that has started, then walks back through
+ * everything still open. The one returned is the latest to have started, which
+ * is the line just spoken rather than the sign that has been on screen for the
+ * past minute.
+ */
 export function findActiveCue(cues: VttCue[], t: number): VttCue | null {
-  // Binary search since cues are sorted by start.
-  let lo = 0, hi = cues.length - 1, ans: VttCue | null = null;
+  // The last cue that has started by now.
+  let lo = 0, hi = cues.length - 1, idx = -1;
   while (lo <= hi) {
     const mid = (lo + hi) >> 1;
-    const c = cues[mid];
-    if (c.start <= t && t < c.end) return c;
-    if (c.start > t) hi = mid - 1;
-    else lo = mid + 1;
+    if (cues[mid].start <= t) {
+      idx = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
   }
-  return ans;
+
+  for (let i = idx; i >= 0 && t - cues[i].start <= LONGEST_CUE_SECONDS; i--) {
+    if (cues[i].end > t) return cues[i];
+  }
+  return null;
 }

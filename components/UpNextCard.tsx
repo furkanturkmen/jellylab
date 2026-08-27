@@ -72,37 +72,50 @@ export function UpNextCard({ item, onPlay, onDismiss }: {
     ? `S${item.ParentIndexNumber} · E${item.IndexNumber}`
     : '';
 
+  /*
+   * Two rows, not one.
+   *
+   * Everything across a single row does not fit the width of a phone: a
+   * thumbnail, a title, and two controls come to more than the card has, and
+   * flexbox takes the difference out of the only flexible thing in the row -
+   * the title - until "UP NEXT" is stacked one letter at a time. What it says
+   * is the part that must not be squeezed, so the controls take the row below
+   * and the text gets the whole of this one.
+   */
   const body = (
-    <View style={styles.row}>
-      <Image
-        source={{ uri: Jellyfin.imageUrl(item.Id, tag, 'Primary', 400) }}
-        style={styles.thumb}
-        contentFit="cover"
-        transition={150}
-      />
-      <View style={styles.text}>
-        <Text style={styles.kicker}>{t('player.upNext')}</Text>
-        <Text style={styles.title} numberOfLines={1}>{item.SeriesName ?? item.Name}</Text>
-        {label ? <Text style={styles.meta} numberOfLines={1}>{label}</Text> : null}
+    <View style={styles.body}>
+      <View style={styles.header}>
+        <Image
+          source={{ uri: Jellyfin.imageUrl(item.Id, tag, 'Primary', 400) }}
+          style={styles.thumb}
+          contentFit="cover"
+          transition={150}
+        />
+        <View style={styles.text}>
+          <Text style={styles.kicker} numberOfLines={1}>{t('player.upNext')}</Text>
+          <Text style={styles.title} numberOfLines={1}>{item.SeriesName ?? item.Name}</Text>
+          {label ? <Text style={styles.meta} numberOfLines={1}>{label}</Text> : null}
+        </View>
       </View>
-      <Pressable
-        onPress={onDismiss}
-        style={styles.dismiss}
-        hitSlop={8}
-        accessibilityRole="button"
-        accessibilityLabel={t('common.close')}
-      >
-        <Text style={styles.dismissLabel}>{t('common.close')}</Text>
-      </Pressable>
-      <Pressable
-        onPress={onPlay}
-        style={styles.play}
-        accessibilityRole="button"
-        accessibilityLabel={t('player.upNextIn', { seconds: remaining })}
-      >
-        <SymbolView name="play.fill" size={14} tintColor={colors.bg} />
-        <Text style={styles.playLabel}>{t('player.playNext')}</Text>
-      </Pressable>
+      <View style={styles.actions}>
+        <Pressable
+          onPress={onDismiss}
+          style={styles.dismiss}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.close')}
+        >
+          <Text style={styles.dismissLabel}>{t('common.close')}</Text>
+        </Pressable>
+        <Pressable
+          onPress={onPlay}
+          style={styles.play}
+          accessibilityRole="button"
+          accessibilityLabel={t('player.upNextIn', { seconds: remaining })}
+        >
+          <SymbolView name="play.fill" size={14} tintColor={colors.bg} />
+          <Text style={styles.playLabel}>{t('player.playNext')}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 
@@ -170,11 +183,16 @@ const styles = StyleSheet.create({
     borderColor: colors.glassBorder,
     backgroundColor: colors.glassTint,
   },
-  row: {
+  body: { padding: spacing.lg, gap: spacing.lg },
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.lg,
-    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   thumb: {
     // 16:9, the shape of the thing it is a picture of.
@@ -196,10 +214,16 @@ const styles = StyleSheet.create({
   dismiss: {
     minHeight: 44,
     justifyContent: 'center',
-    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
-  dismissLabel: { ...type.small, color: colors.textMuted, fontWeight: '600' },
+  dismissLabel: { fontSize: 15, fontWeight: '600', color: colors.text },
   play: {
+    // Takes the rest of the row: it is what the card is for, and what the
+    // countdown is about to press by itself.
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

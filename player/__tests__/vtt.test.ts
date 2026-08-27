@@ -100,6 +100,46 @@ describe('findActiveCue', () => {
     expect(findActiveCue(cues, 99)).toBeNull();
     expect(findActiveCue([], 1)).toBeNull();
   });
+
+  /**
+   * An ASS track overlaps itself constantly - a sign stays up while several
+   * lines are spoken over it - and a converted episode arrives with thousands
+   * of such cues. A search that assumes cues never overlap finds nothing on
+   * exactly those files.
+   */
+  describe('overlapping cues, as an ASS track has', () => {
+    // A sign spanning the whole scene, with dialogue on top of it.
+    const overlapping = [
+      { start: 0, end: 60, text: 'sign: JUJUTSU HIGH' },
+      { start: 5, end: 8, text: 'first line' },
+      { start: 9, end: 12, text: 'second line' },
+    ];
+
+    it('finds a line spoken over a running sign', () => {
+      expect(findActiveCue(overlapping, 6)?.text).toBe('first line');
+      expect(findActiveCue(overlapping, 10)?.text).toBe('second line');
+    });
+
+    it('falls back to the sign between the lines', () => {
+      expect(findActiveCue(overlapping, 3)?.text).toBe('sign: JUJUTSU HIGH');
+      expect(findActiveCue(overlapping, 8.5)?.text).toBe('sign: JUJUTSU HIGH');
+    });
+
+    it('still reports nothing once everything has ended', () => {
+      expect(findActiveCue(overlapping, 61)).toBeNull();
+    });
+
+    it('finds a cue buried under many later, shorter ones', () => {
+      // The failure in the wild: the binary search landed on one of the short
+      // cues, saw it had ended, and gave up while a long one was still open.
+      const dense = [{ start: 0, end: 30, text: 'long sign' }];
+      for (let i = 0; i < 200; i++) {
+        dense.push({ start: 1 + i * 0.1, end: 1 + i * 0.1 + 0.05, text: `flash ${i}` });
+      }
+      dense.sort((a, b) => a.start - b.start);
+      expect(findActiveCue(dense, 25)?.text).toBe('long sign');
+    });
+  });
 });
 
 describe('ASS styling that survives Jellyfin conversion', () => {
