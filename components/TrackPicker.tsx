@@ -215,9 +215,15 @@ function Timing({ timing }: { timing: NonNullable<TrackPickerProps['timing']> })
 }
 
 const styles = StyleSheet.create({
-  // Over the glass: enough to read against a bright frame, not so much that
-  // the film stops showing through.
-  scrim: { backgroundColor: 'rgba(14, 14, 16, 0.72)' },
+  /*
+   * Over the glass, and heavier than it looks like it needs to be.
+   *
+   * Regular glass lightens what is behind it, so a scrim reads paler than its
+   * own alpha suggests: 0.72 landed at somewhere near four tenths on screen.
+   * This is the number that puts the surface where 0.7 looks like it should,
+   * with the picture still there behind it rather than blacked out.
+   */
+  scrim: { backgroundColor: 'rgba(14, 14, 16, 0.88)' },
   // Where there is no liquid glass to draw, the scrim is the whole surface and
   // has to carry the legibility on its own.
   fallback: { backgroundColor: 'rgba(10, 10, 12, 0.92)' },

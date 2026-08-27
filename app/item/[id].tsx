@@ -1803,7 +1803,14 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
             <ActivityIndicator color={colors.text} size="large" />
           </View>
         ) : null}
-        {activeCue ? (
+        {/*
+          * Not while the picker is up.
+          *
+          * The line was drawn under the panel and read straight through it -
+          * dialogue crossing the middle of a list of track names, from a film
+          * you had stepped away from. Same reasoning as the controls.
+          */}
+        {activeCue && !pickerOpen ? (
           <View style={styles.subOverlay} pointerEvents="none">
             <Text style={[styles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
               {activeCue.text}
@@ -2736,7 +2743,14 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
           style={StyleSheet.absoluteFill}
           onPress={() => setControlsVisible(v => !v)}
         />
-        {activeCue ? (
+        {/*
+          * Not while the picker is up.
+          *
+          * The line was drawn under the panel and read straight through it -
+          * dialogue crossing the middle of a list of track names, from a film
+          * you had stepped away from. Same reasoning as the controls.
+          */}
+        {activeCue && !pickerOpen ? (
           <View style={styles.subOverlay} pointerEvents="none">
             <Text style={[styles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
               {activeCue.text}
