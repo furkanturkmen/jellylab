@@ -1029,6 +1029,9 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
 }) {
   const vlcRef = useRef<any>(null);
   const lastSeekAt = useRef(0);
+  // Where the last seek was going, in seconds. Paired with lastSeekAt so
+  // onProgress can tell "VLC has not caught up yet" from "VLC is there".
+  const lastSeekTo = useRef(0);
   const router = useRouter();
   const { t } = useTranslation();
   const [paused, setPaused] = useState(false);
@@ -1118,6 +1121,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
         try {
           if (secs > 0 && dur > 0) {
             lastSeekAt.current = Date.now();
+            lastSeekTo.current = secs;
             vlcRef.current?.seek?.(Math.max(0, Math.min(1, secs / dur)));
           }
           // After the seek, not before: seeking resumes a paused player.
@@ -1436,6 +1440,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     if (duration <= 0) return;
     const ratio = Math.max(0, Math.min(1, seconds / duration));
     lastSeekAt.current = Date.now();
+    lastSeekTo.current = seconds;
     try {
       // react-native-vlc-media-player ref.seek takes a 0..1 percentage
       vlcRef.current?.seek?.(ratio);
@@ -1584,6 +1589,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       setTimeout(() => {
         try {
           lastSeekAt.current = Date.now();
+          lastSeekTo.current = seekSecs;
           vlcRef.current?.seek?.(ratio);
         } catch {}
       }, 200);
@@ -1607,10 +1613,20 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
 
   const onProgress = (e: any) => {
     if (scrubbing) return;
-    // Ignore progress right after a seek — VLC briefly reports 0 while it catches up.
-    if (Date.now() - lastSeekAt.current < 1500) return;
     const cur = (e?.currentTime ?? 0) / 1000;
     const dur = (e?.duration ?? 0) / 1000;
+    /*
+     * Ignore progress right after a seek - VLC briefly reports 0 while it
+     * catches up - but only until it reports somewhere near where the seek was
+     * going. Waiting the window out regardless froze `position`, and with it
+     * the subtitle overlay, which is driven off it.
+     *
+     * Coming back from the background is the case that showed it: that seek
+     * goes to where the film already is, so VLC is back within a frame or two,
+     * and the old code still spent the rest of the 1500ms playing under a line
+     * that had already ended.
+     */
+    if (Date.now() - lastSeekAt.current < 1500 && Math.abs(cur - lastSeekTo.current) > 2) return;
     if (dur > 0) setDuration(dur);
     // Ignore a stray 0 when we know we were much further in.
     if (cur < 0.5 && position > 5) return;
