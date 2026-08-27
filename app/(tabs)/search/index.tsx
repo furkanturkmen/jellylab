@@ -11,6 +11,7 @@ import * as Jellyfin from '@/api/jellyfin';
 import * as Jellyseerr from '@/api/jellyseerr';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
+import { logRequestFailure } from '@/lib/errorLog';
 import { jellyfinKind, kindKey, tmdbKind } from '@/lib/kind';
 import { oneLine } from '@/lib/text';
 import { colors, radius, spacing, type } from '@/theme';
@@ -69,12 +70,25 @@ export default function SearchScreen() {
   async function loadDiscover() {
     setDiscoverLoading(true);
     try {
+      /*
+       * Each of these swallowed its own failure and returned an empty list,
+       * every empty section was then filtered out, and a screen with nothing
+       * on it was the result - no message, no error, nothing in the log. With
+       * Jellyseerr unreachable the search tab was simply blank.
+       *
+       * They still degrade rather than throw, since four working rows are
+       * better than none, but a failure is now recorded.
+       */
+      const note = (where: string) => (e: unknown) => {
+        logRequestFailure(`search:${where}`, e);
+        return [];
+      };
       const [trending, movies, tv, anime, upcoming] = await Promise.all([
-        Jellyseerr.discoverTrending().catch(() => []),
-        Jellyseerr.discoverMovies().catch(() => []),
-        Jellyseerr.discoverTv().catch(() => []),
-        Jellyseerr.discoverAnime().catch(() => []),
-        Jellyseerr.discoverUpcomingMovies().catch(() => []),
+        Jellyseerr.discoverTrending().catch(note('trending')),
+        Jellyseerr.discoverMovies().catch(note('movies')),
+        Jellyseerr.discoverTv().catch(note('tv')),
+        Jellyseerr.discoverAnime().catch(note('anime')),
+        Jellyseerr.discoverUpcomingMovies().catch(note('upcoming')),
       ]);
       setDiscover([
         { title: t('search.sections.trending'), items: trending },
@@ -211,6 +225,30 @@ export default function SearchScreen() {
         <>
           <View style={{ height: headerHeight }} />
           <View style={styles.center}><ActivityIndicator color={colors.text} /></View>
+        </>
+      ) : discover.length === 0 ? (
+        /*
+         * Nothing to browse, said out loud.
+         *
+         * This branch did not exist: with every row empty the screen rendered
+         * an empty scroller, which on a phone is an entirely blank tab. The
+         * rows come from Jellyseerr, so the usual reason is that it cannot be
+         * reached - which is worth saying, and worth being able to retry.
+         */
+        <>
+          <View style={{ height: headerHeight }} />
+          <View style={styles.center}>
+            <Host style={styles.emptyHost} colorScheme="dark">
+              <ContentUnavailableView
+                title={t('search.failedTitle')}
+                systemImage="magnifyingglass"
+                description={t('search.failedBody')}
+              />
+            </Host>
+            <TouchableOpacity style={styles.retry} onPress={loadDiscover} activeOpacity={0.7}>
+              <Text style={styles.retryLabel}>{t('common.retry')}</Text>
+            </TouchableOpacity>
+          </View>
         </>
       ) : (
         <Animated.ScrollView
@@ -367,6 +405,17 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
   emptyText: { ...type.body, color: colors.textDim },
+  // The system's empty view sizes itself to its content; without a height to
+  // fill it collapses inside a flex parent and draws nothing at all.
+  emptyHost: { width: '100%', height: 220 },
+  retry: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+  },
+  retryLabel: { ...type.bodyStrong, color: colors.text },
   input: {
     height: 46,
     borderRadius: radius.pill,
