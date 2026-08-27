@@ -1530,9 +1530,18 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
    * The sheet closes itself once a choice is made, which is why none of these
    * callbacks says anything about closing.
    */
-  function showSubtitleSheet() {
+  /**
+   * One sheet for both lists.
+   *
+   * The audio button and the subtitle button open the same thing now: the
+   * sheet shows what you hear beside what you read, so whichever you pressed,
+   * the other is already in front of you. Two buttons for one sheet is on
+   * purpose - they are still two different intentions, and the overlay reads
+   * better with an ear and a speech bubble than with one shared glyph.
+   */
+  function showTrackSheet() {
     openPlayerSheet({
-      kind: 'vlcSubtitles',
+      kind: 'vlcTracks',
       externalSubs,
       internalTracks: vlcTextTracks,
       activeExternalIndex: activeSubIndex,
@@ -1554,17 +1563,10 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       onPickInternal: pickInternalSub,
       // pickExternalSub(null) already forces a remount with textTrack -1.
       onOff: () => pickExternalSub(null),
-    });
-    router.push('/sheet/player');
-  }
-
-  function showAudioSheet() {
-    openPlayerSheet({
-      kind: 'vlcAudio',
-      tracks: audioChoices,
-      activeId: vlcAudioTrackId,
-      declaredCount: audioStreams.length,
-      onPick: applyAudioTrack,
+      audioTracks: audioChoices,
+      activeAudioId: vlcAudioTrackId,
+      declaredAudioCount: audioStreams.length,
+      onPickAudio: applyAudioTrack,
     });
     router.push('/sheet/player');
   }
@@ -1804,11 +1806,11 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
               <View style={styles.actionsRow} pointerEvents="box-none">
                 <View style={{ flex: 1 }} />
                 {audioChoices.length > 1 ? (
-                  <TouchableOpacity style={styles.overlayIconBtn} onPress={showAudioSheet} activeOpacity={0.7}>
+                  <TouchableOpacity style={styles.overlayIconBtn} onPress={showTrackSheet} activeOpacity={0.7}>
                     <SymbolView name={{ ios: 'waveform', android: 'graphic_eq', web: 'graphic_eq' }} tintColor={colors.text} size={22} />
                   </TouchableOpacity>
                 ) : null}
-                <TouchableOpacity style={styles.overlayIconBtn} onPress={showSubtitleSheet} activeOpacity={0.7}>
+                <TouchableOpacity style={styles.overlayIconBtn} onPress={showTrackSheet} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.overlayIconBtn} onPress={showSpeedSheet} activeOpacity={0.7}>

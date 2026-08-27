@@ -24,10 +24,20 @@ export function TrackRow({ label, selected, onPress }: {
       accessibilityRole="radio"
       accessibilityState={{ selected: !!selected }}
     >
-      <Text style={styles.label}>{label}</Text>
-      {selected ? (
-        <SymbolView name={{ ios: 'checkmark', android: 'check', web: 'check' }} tintColor={colors.text} size={18} />
-      ) : null}
+      {/*
+        * The tick leads, in a slot that is there whether or not it is filled.
+        *
+        * It used to trail the label, which works down a narrow portrait list
+        * and falls apart in a wide one: the tick ended up an inch from the
+        * name it belonged to, with nothing in between. Leading, every label
+        * starts at the same x and the ticked one is read first.
+        */}
+      <View style={styles.check}>
+        {selected ? (
+          <SymbolView name={{ ios: 'checkmark', android: 'check', web: 'check' }} tintColor={colors.text} size={17} />
+        ) : null}
+      </View>
+      <Text style={[styles.label, selected && styles.labelOn]} numberOfLines={1}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -75,14 +85,23 @@ export function Divider() {
 }
 
 const styles = StyleSheet.create({
+  /*
+   * No rule under each row.
+   *
+   * A divider per row draws a ladder the eye has to climb, and with two lists
+   * side by side it doubles. Selection is carried by the tick and by weight,
+   * which is enough - the rows are far enough apart to read as separate.
+   */
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    paddingVertical: spacing.sm + 2,
   },
-  label: { ...type.body, color: colors.text, flex: 1 },
+  check: { width: 26, alignItems: 'flex-start' },
+  // Unselected sits back rather than competing: in a list this long, the one
+  // you are on should be the only thing at full strength.
+  label: { ...type.body, color: colors.textMuted, flex: 1 },
+  labelOn: { color: colors.text, fontWeight: '600' },
   group: {
     ...type.caption,
     color: colors.textMuted,

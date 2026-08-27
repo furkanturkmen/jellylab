@@ -58,8 +58,7 @@ export default function PlayerSheet() {
 
   const body = (
     <>
-      {request.kind === 'vlcSubtitles' ? <VlcSubtitles request={request} close={router.back} /> : null}
-      {request.kind === 'vlcAudio' ? <VlcAudio request={request} close={router.back} /> : null}
+      {request.kind === 'vlcTracks' ? <VlcTracks request={request} close={router.back} /> : null}
       {request.kind === 'tracks' ? <NativeTracks request={request} close={router.back} /> : null}
       {request.kind === 'speed' ? <Speed request={request} close={router.back} /> : null}
     </>
@@ -125,7 +124,15 @@ function CloseButton({ onPress }: { onPress: () => void }) {
 
 type Of<K extends PlayerSheetRequest['kind']> = Extract<PlayerSheetRequest, { kind: K }>;
 
-function VlcSubtitles({ request, close }: { request: Of<'vlcSubtitles'>; close: () => void }) {
+/**
+ * Two columns: what you hear on the left, what you read on the right.
+ *
+ * Both were their own sheet behind their own button. Choosing a dub and then
+ * its subtitles meant open, pick, watch the card slide away over the film,
+ * open the other. Side by side, both lists and both ticks are in front of you,
+ * which is usually the actual question.
+ */
+function VlcTracks({ request, close }: { request: Of<'vlcTracks'>; close: () => void }) {
   const { t } = useTranslation();
   // The delay is adjusted from in here and applied as it changes, so the sheet
   // keeps its own copy rather than reading a value that no longer updates.
@@ -139,33 +146,60 @@ function VlcSubtitles({ request, close }: { request: Of<'vlcSubtitles'>; close: 
 
   return (
     <>
-      <Text style={styles.title}>{t('player.subtitles')}</Text>
-        {request.externalSubs.length === 0 && request.internalTracks.length === 0 ? (
-          <Text style={styles.empty}>{t('player.noSubtitles')}</Text>
-        ) : (
-          <>
-            <TrackRow label={t('player.off')} selected={isOff} onPress={() => { request.onOff(); close(); }} />
-            {request.internalTracks.length > 0 ? <SubGroupLabel>{t('player.embedded')}</SubGroupLabel> : null}
-            {request.internalTracks.map(track => (
+      <View style={styles.columns}>
+        <View style={styles.column}>
+          <Text style={styles.title}>{t('player.audio')}</Text>
+          {request.audioTracks.length === 0 ? (
+            <Text style={styles.empty}>{t('player.noAudio')}</Text>
+          ) : (
+            request.audioTracks.map(track => (
               <TrackRow
-                key={`int-${track.id}`}
-                label={cleanSubLabel(track.name ?? t('player.trackNumber', { number: track.id }))}
-                selected={request.activeInternalId === track.id}
-                onPress={() => { request.onPickInternal(track.id); close(); }}
+                key={`aud-${track.id}`}
+                label={track.label}
+                selected={request.activeAudioId === track.id}
+                onPress={() => { request.onPickAudio(track.id); close(); }}
               />
-            ))}
-            {request.externalSubs.length > 0 ? <SubGroupLabel>{t('player.external')}</SubGroupLabel> : null}
-            {request.externalSubs.map(s => (
-              <TrackRow
-                key={`ext-${s.index}`}
-                label={cleanSubLabel(s.label)}
-                selected={request.activeExternalIndex === s.index}
-                onPress={() => { request.onPickExternal(s.index); close(); }}
-              />
-            ))}
-          </>
-        )}
-        <View style={styles.delayBlock}>
+            ))
+          )}
+          {request.declaredAudioCount > request.audioTracks.length && request.audioTracks.length > 0 ? (
+            <Text style={styles.hint}>{t('player.transcodedAudio', { tracks: request.declaredAudioCount })}</Text>
+          ) : null}
+        </View>
+
+        <View style={styles.column}>
+          <Text style={styles.title}>{t('player.subtitles')}</Text>
+          {request.externalSubs.length === 0 && request.internalTracks.length === 0 ? (
+            <Text style={styles.empty}>{t('player.noSubtitles')}</Text>
+          ) : (
+            <>
+              <TrackRow label={t('player.off')} selected={isOff} onPress={() => { request.onOff(); close(); }} />
+              {request.internalTracks.length > 0 ? <SubGroupLabel>{t('player.embedded')}</SubGroupLabel> : null}
+              {request.internalTracks.map(track => (
+                <TrackRow
+                  key={`int-${track.id}`}
+                  label={cleanSubLabel(track.name ?? t('player.trackNumber', { number: track.id }))}
+                  selected={request.activeInternalId === track.id}
+                  onPress={() => { request.onPickInternal(track.id); close(); }}
+                />
+              ))}
+              {request.externalSubs.length > 0 ? <SubGroupLabel>{t('player.external')}</SubGroupLabel> : null}
+              {request.externalSubs.map(sub => (
+                <TrackRow
+                  key={`ext-${sub.index}`}
+                  label={cleanSubLabel(sub.label)}
+                  selected={request.activeExternalIndex === sub.index}
+                  onPress={() => { request.onPickExternal(sub.index); close(); }}
+                />
+              ))}
+            </>
+          )}
+        </View>
+      </View>
+
+      {/* Timing belongs to the subtitles but spans both columns: it is a wide
+        * row of small buttons, and squeezed into half the width they stop
+        * being hittable. */}
+      <View style={styles.delayBlock}>
         <View style={styles.delayHeader}>
           <Text style={styles.delayLabel}>{t('player.timing')}</Text>
           <Text style={styles.delayValue}>
@@ -179,34 +213,10 @@ function VlcSubtitles({ request, close }: { request: Of<'vlcSubtitles'>; close: 
           <DelayButton label="+0.1s" disabled={!request.delayEnabled} onPress={() => changeDelay(delayMs + 100)} />
           <DelayButton label="+0.5s" disabled={!request.delayEnabled} onPress={() => changeDelay(delayMs + 500)} />
         </View>
-          <Text style={styles.hint}>
-            {request.delayEnabled ? t('player.delayHint') : t('player.delayHintOff')}
-          </Text>
-        </View>
-    </>
-  );
-}
-
-function VlcAudio({ request, close }: { request: Of<'vlcAudio'>; close: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <>
-      <Text style={styles.title}>{t('player.audio')}</Text>
-        {request.tracks.length === 0 ? (
-          <Text style={styles.empty}>{t('player.noAudio')}</Text>
-        ) : (
-          request.tracks.map(track => (
-            <TrackRow
-              key={`aud-${track.id}`}
-              label={track.label}
-              selected={request.activeId === track.id}
-              onPress={() => { request.onPick(track.id); close(); }}
-            />
-          ))
-        )}
-        {request.declaredCount > request.tracks.length && request.tracks.length > 0 ? (
-          <Text style={styles.hint}>{t('player.transcodedAudio', { tracks: request.declaredCount })}</Text>
-        ) : null}
+        <Text style={styles.hint}>
+          {request.delayEnabled ? t('player.delayHint') : t('player.delayHintOff')}
+        </Text>
+      </View>
     </>
   );
 }
@@ -240,7 +250,8 @@ function NativeTracks({ request, close }: { request: Of<'tracks'>; close: () => 
   const hasAnySub = subtitles.length > 0 || request.externalSubs.length > 0;
 
   return (
-    <>
+    <View style={styles.columns}>
+      <View style={styles.column}>
       <Text style={styles.title}>{t('player.subtitles')}</Text>
       {!hasAnySub ? (
         <Text style={styles.empty}>{t('player.noSubtitles')}</Text>
@@ -271,8 +282,10 @@ function NativeTracks({ request, close }: { request: Of<'tracks'>; close: () => 
           ))}
         </>
       )}
+      </View>
 
-      <Text style={[styles.title, styles.secondTitle]}>{t('player.audio')}</Text>
+      <View style={styles.column}>
+      <Text style={styles.title}>{t('player.audio')}</Text>
       {/*
         * On a transcode the file has one audio track and AVPlayer has nothing
         * to switch between, so the server's list is the real one: choosing
@@ -319,7 +332,8 @@ function NativeTracks({ request, close }: { request: Of<'tracks'>; close: () => 
           />
         ))
       )}
-    </>
+      </View>
+    </View>
   );
 }
 
@@ -351,10 +365,9 @@ const styles = StyleSheet.create({
   content: { paddingTop: spacing.xl },
   card: {
     width: '100%',
-    // A reading column: wide enough for the longest label seen so far
-    // ("Spanish(Latin_America)") without running the width of a phone on its
-    // side.
-    maxWidth: 520,
+    // Two columns of track names, and no wider. A phone on its side is close
+    // to 900pt, so this fills it without letting the lists drift apart.
+    maxWidth: 860,
     alignSelf: 'center',
     borderRadius: radius.xl,
     borderWidth: StyleSheet.hairlineWidth,
@@ -367,9 +380,12 @@ const styles = StyleSheet.create({
   // Only when there is no glass to carry it.
   cardSolid: { backgroundColor: colors.glassTint },
   close: { position: 'absolute', top: spacing.md, right: spacing.md, zIndex: 1 },
+  columns: { flexDirection: 'row', gap: spacing.xl },
+  // Equal halves, and each may shrink: without minWidth 0 a long track name
+  // pushes its column wider and the other one collapses.
+  column: { flex: 1, minWidth: 0 },
   // Room for the close button, so a long title does not run under it.
   title: { ...type.h1, color: colors.text, marginBottom: spacing.md, paddingRight: spacing.xl },
-  secondTitle: { marginTop: spacing.lg },
   empty: { ...type.small, color: colors.textDim, paddingVertical: spacing.md, textAlign: 'center' },
   delayBlock: {
     borderTopWidth: StyleSheet.hairlineWidth,

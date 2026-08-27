@@ -10,8 +10,17 @@
  * and `kind` is what the sheet switches on.
  */
 export type PlayerSheetRequest =
+  /**
+   * Audio and subtitles together, because that is how they are chosen.
+   *
+   * They were two separate requests behind two separate buttons, and picking
+   * a dub then its subtitles meant opening a sheet, choosing, watching it
+   * close over the film, and opening the other one. Side by side you can see
+   * both lists and what is currently ticked in each, which is usually the
+   * question being asked.
+   */
   | {
-      kind: 'vlcSubtitles';
+      kind: 'vlcTracks';
       externalSubs: { index: number; label: string }[];
       internalTracks: { id: number; name?: string }[];
       activeExternalIndex: number | null;
@@ -22,14 +31,11 @@ export type PlayerSheetRequest =
       onPickExternal: (index: number) => void;
       onPickInternal: (id: number) => void;
       onOff: () => void;
-    }
-  | {
-      kind: 'vlcAudio';
-      tracks: { id: number; label: string }[];
-      activeId: number;
+      audioTracks: { id: number; label: string }[];
+      activeAudioId: number;
       /** How many tracks Jellyfin said the file has - more than VLC sees means transcoding. */
-      declaredCount: number;
-      onPick: (id: number) => void;
+      declaredAudioCount: number;
+      onPickAudio: (id: number) => void;
     }
   | {
       kind: 'tracks';
