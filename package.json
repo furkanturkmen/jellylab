@@ -59,7 +59,9 @@
     "brand": "node scripts/brand-sync.mjs",
     "lint": "expo lint",
     "test": "jest",
-    "metro:stop": "bash scripts/metro-stop.sh"
+    "metro": "bash scripts/metro.sh start",
+    "metro:stop": "bash scripts/metro.sh stop",
+    "metro:status": "bash scripts/metro.sh status"
   },
   "private": true,
   "jest": {
