@@ -109,7 +109,7 @@ type AudioStream = { index: number; label: string; language?: string };
  * not sit over the picture while you have gone back to watching. Paused, they
  * stay: a paused film is one you have stopped to do something with.
  */
-const CONTROLS_HIDE_MS = 5000;
+const CONTROLS_HIDE_MS = 3000;
 
 export default function ItemScreen() {
   // `play` is set by the long-press menu on a poster, which starts playback
@@ -1529,17 +1529,25 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     if (!controlsVisible && scrubbing) setScrubbing(false);
   }, [controlsVisible, scrubbing]);
 
-  // Auto-hide controls.
-  //
-  // Not while scrubbing: the timer is reset by position changing, and position
-  // is frozen for the length of a drag, so a held scrubber would hide the
-  // controls under the finger holding it - taking the Scrubber, and the end of
-  // its gesture, with them.
+  /*
+   * Auto-hide the controls.
+   *
+   * `position` used to be a dependency here, and that is why this never fired:
+   * position changes on every progress tick, so the effect re-ran four times a
+   * second, cleared the pending timer and started a new one. The controls
+   * could not reach the timeout while the film was playing - which is the only
+   * time they are meant to.
+   *
+   * What restarts the timer is the controls being shown again, which is what a
+   * tap does. Not while scrubbing: a held scrubber would hide the controls
+   * under the finger holding it, taking the Scrubber and the end of its
+   * gesture with them.
+   */
   useEffect(() => {
     if (!controlsVisible || paused || scrubbing) return;
     const t = setTimeout(() => setControlsVisible(false), CONTROLS_HIDE_MS);
     return () => clearTimeout(t);
-  }, [controlsVisible, paused, position, scrubbing]);
+  }, [controlsVisible, paused, scrubbing]);
 
   function togglePlay() {
     setPaused(p => !p);
@@ -2517,15 +2525,13 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
     if (!controlsVisible && scrubbing) setScrubbing(false);
   }, [controlsVisible, scrubbing]);
 
-  // Auto-hide controls when playing - see CONTROLS_HIDE_MS.
-  //
-  // Not while scrubbing - see the same guard in the VLC player: position is
-  // what resets this timer, and a drag freezes position.
+  // Auto-hide the controls - see the VLC engine for why `position` is not a
+  // dependency here, and was the reason this never fired.
   useEffect(() => {
     if (!controlsVisible || !playing || scrubbing) return;
     const t = setTimeout(() => setControlsVisible(false), CONTROLS_HIDE_MS);
     return () => clearTimeout(t);
-  }, [controlsVisible, playing, position, scrubbing]);
+  }, [controlsVisible, playing, scrubbing]);
 
   function togglePlay() {
     if (playing) player.pause();
