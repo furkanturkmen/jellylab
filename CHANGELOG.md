@@ -8,6 +8,84 @@ Pre-1.0 on purpose: Downloads works per item but has no eviction and no way to
 take a whole season (`docs/downloads.md`), and 1.0 should mean the tabs all do
 what they say.
 
+## 0.18.1 - the picker, and which track it picks
+
+The Up Next work in 0.18.0 was shipped without being used. Using it turned up
+the rest of this: a player that rebuilt itself when you came back to it, a
+resume point that began at zero, a picker with no way out, and a subtitle
+chooser that had strong opinions and no idea what it was choosing between.
+
+The track picker, rebuilt:
+
+- **Audio and subtitles are one thing now**, side by side over the film. They
+  were two sheets behind two buttons, so picking a dub and then the subtitles
+  to go with it meant open, pick, watch the card slide away, open the other -
+  and at no point could you see what was ticked in the list you were not
+  looking at, which is usually the question being asked.
+- **Drawn over the film rather than pushed as a route.** Pushing one took the
+  player off screen to answer a question about the film that was playing, and
+  UIKit drew the card on a background of its own - so the glass had nothing to
+  be glass over and read as flat grey. A heavy blur and a near-black tint now:
+  glass refracts and keeps the picture legible, which over a bright frame meant
+  reading track names off someone's face.
+- **A way out.** Dismissing was left to UIKit's grabber and drag-to-dismiss,
+  which is what a formSheet gives you in portrait. In landscape over the player
+  there is no grabber and the drag has nowhere to go, so the picker was a room
+  with no door: the only way out was choosing a track you did not want.
+- **It pauses while it is up**, rises from below, and takes the controls and
+  the subtitles with it - all of which used to show through the middle of it.
+
+Which subtitle gets chosen, which was wrong in four different ways:
+
+- **Plain dialogue beats hearing impaired.** A language match alone is not a
+  choice: a release carries two or three English tracks and the first one the
+  server listed won, which on a Jellyfin library is often the hearing-impaired
+  one. Matches are ranked by how much of the dialogue they carry - plain, then
+  hearing impaired, then forced, then commentary.
+- **Signs and songs is not the dialogue track.** An episode opened with nothing
+  but sign captions. It carried "Signs & Songs@EMBER" and "Dialogue@CR", both
+  scored plain, and the tie went to whichever came first. A signs track is the
+  anime form of forced: on-screen text and lyrics, dialogue left out.
+- **A choice about one film is not a choice about all of them.** The remembered
+  track was one label for the whole library, so picking a Dutch track once made
+  Dutch the default on every title carrying one, over the top of the language
+  preference and saying nothing about it. Choices are filed per title now, and
+  so is audio, and so is Off - which used to switch subtitles off everywhere.
+- **A drawn shape is not a line to read.** An episode opened with
+  `m 0 0 l 100 0 l 100 -1 l 0 -1` across the middle of the picture. ASS carries
+  vector shapes in the text for the boxes behind signs, and stripping the
+  override tags left the coordinates standing as words.
+
+The player, from actually watching things:
+
+- **A part-watched episode opens where it left off**, rather than playing its
+  first seconds and then jumping. The position is handed to libVLC when the
+  media is created instead of seeked to afterwards, so the first frame drawn is
+  already the right one - and the clock starts there too.
+- **Coming back to the app is not a reason to rebuild the player**, and
+  subtitles come back with the picture rather than a second and a half later.
+- **Scrubbing back no longer sends you to the start.** Grabbing the thumb
+  reported a touch position measured against the thumb rather than the bar, so
+  every leftward drag from there mapped to 00:00. Grabbing the thumb is how you
+  scrub.
+- **The controls actually hide**, after three seconds. They never had: the
+  effect depended on the playback position, so four times a second it cleared
+  the pending timer and started a new one.
+- **Only the player is sideways.** Backing out of a film left the whole app in
+  landscape, because iOS keeps the last screen's orientation and nothing after
+  the player declared one.
+
+Underneath:
+
+- **One command to run Metro**, one to be rid of it, and it says when the
+  checkout is behind the remote - which cost three rounds of "it does not work"
+  about code that was never on the machine serving it.
+- **The item screen is five hundred lines smaller** and the pieces that left it
+  are tested: the scrubber, the episode list, the up next choice, and the
+  progress reporting - which both engines kept their own broken copy of, each
+  reading the position from a closure rather than asking for it, which is how
+  leaving a film came to report "stopped at 0".
+
 ## 0.18.0 - knowing where you are, and what comes next
 
 Two things a video app is expected to do and this one could not: show you the
