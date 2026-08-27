@@ -9,6 +9,7 @@ import GoogleCast, { useCastState, useRemoteMediaClient } from 'react-native-goo
 import { SymbolView } from 'expo-symbols';
 import { StatusBar } from 'expo-status-bar';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import * as Device from 'expo-device';
 
 import { useTranslation } from 'react-i18next';
 
@@ -911,7 +912,12 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   const [controlsVisible, setControlsVisible] = useState(true);
   const [scrubbing, setScrubbing] = useState(false);
   const [scrubValue, setScrubValue] = useState(0);
-  const [isLandscape, setIsLandscape] = useState(false);
+  // Read off the window rather than remembered. A lock set at mount, a
+  // rotation, or the system overriding either one all show up here, whereas a
+  // remembered flag starts out disagreeing with the screen - which made the
+  // first press of the fullscreen button do nothing at all.
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
+  const isLandscape = winWidth > winHeight;
   const [ready, setReady] = useState(false);
 
   const [rate, setRate] = useState(1);
@@ -1352,10 +1358,8 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     try {
       if (isLandscape) {
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-        setIsLandscape(false);
       } else {
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-        setIsLandscape(true);
       }
     } catch (e) {
       logRequestFailure('player:orientation', e);
@@ -1840,11 +1844,26 @@ function Player({
   onEnded?: () => void;
   onNativeError: () => void;
 }) {
-  // Unlock rotation while the player is mounted; restore portrait on exit.
+  /*
+   * Orientation for the length of playback, and portrait again on the way out.
+   *
+   * A phone turns to landscape by itself, the way every video app does it -
+   * portrait video on a handset is a compromise nobody asks for, and starting
+   * the film sideways saves the turn that everybody makes anyway. The button
+   * in the controls still goes back, so this is a default rather than a rule.
+   *
+   * A tablet is left alone: an iPad in portrait has the width to show a film
+   * properly, and people genuinely watch that way.
+   */
   useEffect(() => {
     (async () => {
       try {
-        await ScreenOrientation.unlockAsync();
+        const tablet = await Device.getDeviceTypeAsync();
+        if (tablet === Device.DeviceType.TABLET) {
+          await ScreenOrientation.unlockAsync();
+        } else {
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        }
       } catch {}
     })();
     return () => {
@@ -1958,7 +1977,12 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
   const [duration, setDuration] = useState(0);
   const [scrubbing, setScrubbing] = useState(false);
   const [scrubValue, setScrubValue] = useState(0);
-  const [isLandscape, setIsLandscape] = useState(false);
+  // Read off the window rather than remembered. A lock set at mount, a
+  // rotation, or the system overriding either one all show up here, whereas a
+  // remembered flag starts out disagreeing with the screen - which made the
+  // first press of the fullscreen button do nothing at all.
+  const { width: winWidth, height: winHeight } = useWindowDimensions();
+  const isLandscape = winWidth > winHeight;
   const [speed, setSpeed] = useState(1);
   const [activeSubIndex, setActiveSubIndex] = useState<number | null>(null);
   const [externalCues, setExternalCues] = useState<VttCue[]>([]);
@@ -2131,10 +2155,8 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
     try {
       if (isLandscape) {
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-        setIsLandscape(false);
       } else {
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-        setIsLandscape(true);
       }
     } catch (e) {
       logRequestFailure('player:orientation', e);
