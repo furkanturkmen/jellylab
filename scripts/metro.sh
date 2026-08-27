@@ -74,6 +74,32 @@ start_shipper() {
   echo "  log: $RAW -> $HOMELAB:$REMOTE_LOG"
 }
 
+# Say so when this checkout is behind the remote.
+#
+# Metro bundles from THIS directory, and edits are made on the other machine -
+# so a fix can be pushed, reviewed and discussed while the phone goes on
+# running the commit before it. That has cost several rounds of "it does not
+# work" about code that was never there. Only ever a warning: pulling is a
+# decision, and doing it silently under a running app is not this script's to
+# make.
+behind_warning() {
+  git rev-parse --git-dir >/dev/null 2>&1 || return 0
+  git fetch --quiet 2>/dev/null || return 0
+  local branch count
+  branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || return 0
+  count=$(git rev-list --count "HEAD..origin/$branch" 2>/dev/null) || return 0
+  if [ -z "$count" ] || [ "$count" = "0" ]; then
+    return 0
+  fi
+  echo
+  echo "  ┌─────────────────────────────────────────────────────────────┐"
+  printf '  │ this checkout is %-3s commit(s) BEHIND origin/%-15s │\n' "$count" "$branch"
+  echo "  │ metro will serve the old code until you: git pull            │"
+  echo "  └─────────────────────────────────────────────────────────────┘"
+  git --no-pager log --oneline "HEAD..origin/$branch" | sed 's/^/    /'
+  return 0
+}
+
 cleanup() {
   [ -n "$SHIP_PID" ] && kill "$SHIP_PID" 2>/dev/null
   # The subshell's ssh child outlives a kill on its parent.
@@ -98,8 +124,9 @@ case "${1:-start}" in
     echo
     echo "starting metro in this terminal - ctrl-c to stop it"
     echo "  repo: $REPO"
-    echo
     cd "$REPO" || exit 1
+    behind_warning
+    echo
 
     # BSD script: `script [-aeFkpqr] [file [command ...]]`. -F flushes after
     # every write, so a tail on the other end is live rather than a screenful
