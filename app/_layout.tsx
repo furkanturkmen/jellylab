@@ -2,7 +2,7 @@ import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { IS_TABLET } from '@/lib/device';
+import { HAS_LIQUID_GLASS, IS_TABLET } from '@/lib/device';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import 'react-native-reanimated';
@@ -218,7 +218,14 @@ function RootLayoutNav() {
             sheetAllowedDetents: 'fitToContents',
             sheetGrabberVisible: true,
             sheetCornerRadius: 28,
-            contentStyle: { backgroundColor: colors.bgElevated },
+            /*
+             * Transparent where liquid glass is available, because there the
+             * sheet's own card is the glass and a solid colour behind it would
+             * be the thing you actually saw. Solid everywhere else - the same
+             * flag the sheet uses to decide, so the two cannot disagree and
+             * leave text floating unreadably over a film.
+             */
+            contentStyle: { backgroundColor: HAS_LIQUID_GLASS ? 'transparent' : colors.bgElevated },
           }}
         />
         <Stack.Screen

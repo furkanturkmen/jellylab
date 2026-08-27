@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GlassView } from 'expo-glass-effect';
+import { SymbolView } from 'expo-symbols';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { cleanSubLabel, DelayButton, SubGroupLabel, TrackRow } from '@/components/TrackRow';
 import { clearPlayerSheet, pendingPlayerSheet, type PlayerSheetRequest } from '@/store/playerSheet';
 import { resolvedTrackLanguage, withLanguage } from '@/lib/tracks';
-import { colors, spacing, type } from '@/theme';
+import { HAS_LIQUID_GLASS } from '@/lib/device';
+import { colors, radius, spacing, type } from '@/theme';
 
 /**
  * The player's pickers: subtitles, audio, tracks, speed.
@@ -39,16 +42,84 @@ export default function PlayerSheet() {
   /*
    * The scroller is the sheet itself - see the seasons sheet for why. Padding
    * rides on the content so the card is measured from what it holds.
+   *
+   * Horizontal padding comes from the safe-area insets rather than one fixed
+   * value. This sheet is landscape over the player, and landscape is where the
+   * Dynamic Island sits on a long edge: at a flat 16pt the title ran under it.
    */
-  const pad = [styles.content, { paddingBottom: Math.max(insets.bottom, spacing.lg) }];
+  const pad = [
+    styles.content,
+    {
+      paddingBottom: Math.max(insets.bottom, spacing.lg),
+      paddingLeft: Math.max(insets.left, spacing.lg),
+      paddingRight: Math.max(insets.right, spacing.lg),
+    },
+  ];
 
-  return (
-    <ScrollView style={styles.root} contentContainerStyle={pad} showsVerticalScrollIndicator={false}>
+  const body = (
+    <>
       {request.kind === 'vlcSubtitles' ? <VlcSubtitles request={request} close={router.back} /> : null}
       {request.kind === 'vlcAudio' ? <VlcAudio request={request} close={router.back} /> : null}
       {request.kind === 'tracks' ? <NativeTracks request={request} close={router.back} /> : null}
       {request.kind === 'speed' ? <Speed request={request} close={router.back} /> : null}
+    </>
+  );
+
+  /*
+   * A centred column rather than the whole width of the sheet.
+   *
+   * Landscape over a film is close to a thousand points across, and a list of
+   * one-line track names stretched over all of it leaves the checkmark an inch
+   * from the label it belongs to. Centring also holds the content clear of
+   * both long edges, which is the other half of the Dynamic Island problem.
+   */
+  return (
+    <ScrollView
+      style={HAS_LIQUID_GLASS ? styles.rootGlass : styles.root}
+      contentContainerStyle={pad}
+      showsVerticalScrollIndicator={false}
+    >
+      {HAS_LIQUID_GLASS ? (
+        <GlassView style={styles.card} glassEffectStyle="regular" colorScheme="dark">
+          <CloseButton onPress={router.back} />
+          {body}
+        </GlassView>
+      ) : (
+        <View style={[styles.card, styles.cardSolid]}>
+          <CloseButton onPress={router.back} />
+          {body}
+        </View>
+      )}
     </ScrollView>
+  );
+}
+
+/**
+ * An explicit way out.
+ *
+ * Dismissing was left to UIKit's grabber and drag-to-dismiss, which is what a
+ * formSheet gives you in portrait. In landscape over the player there is no
+ * grabber to be seen and the drag has nowhere to go, so the picker was a room
+ * with no door: the only way out was picking a track you did not want.
+ */
+function CloseButton({ onPress }: { onPress: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <TouchableOpacity
+      style={styles.close}
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={t('common.close')}
+      // The glyph is small. What you have to hit should not be.
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+    >
+      <SymbolView
+        name={{ ios: 'xmark.circle.fill', android: 'close', web: 'close' }}
+        tintColor={colors.textMuted}
+        size={26}
+      />
+    </TouchableOpacity>
   );
 }
 
@@ -274,8 +345,30 @@ const styles = StyleSheet.create({
   // No flex, for the same reason as the seasons sheet: the card is measured
   // from this view, and flex would make it report the whole screen.
   root: { backgroundColor: colors.bgElevated },
-  content: { paddingHorizontal: spacing.lg, paddingTop: spacing.xl },
-  title: { ...type.h1, color: colors.text, marginBottom: spacing.md },
+  // With glass the card carries the surface, so the sheet behind it has to let
+  // the film through. Paired with the transparent contentStyle on the route.
+  rootGlass: { backgroundColor: 'transparent' },
+  content: { paddingTop: spacing.xl },
+  card: {
+    width: '100%',
+    // A reading column: wide enough for the longest label seen so far
+    // ("Spanish(Latin_America)") without running the width of a phone on its
+    // side.
+    maxWidth: 520,
+    alignSelf: 'center',
+    borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.glassBorder,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    overflow: 'hidden',
+  },
+  // Only when there is no glass to carry it.
+  cardSolid: { backgroundColor: colors.glassTint },
+  close: { position: 'absolute', top: spacing.md, right: spacing.md, zIndex: 1 },
+  // Room for the close button, so a long title does not run under it.
+  title: { ...type.h1, color: colors.text, marginBottom: spacing.md, paddingRight: spacing.xl },
   secondTitle: { marginTop: spacing.lg },
   empty: { ...type.small, color: colors.textDim, paddingVertical: spacing.md, textAlign: 'center' },
   delayBlock: {
