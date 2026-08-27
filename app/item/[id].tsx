@@ -600,6 +600,11 @@ export default function ItemScreen() {
   if (playback) {
     // item is non-null by here, so this is the one the player is working from.
     const playing = playingItem ?? item;
+    console.log(
+      `[jellylab] player:mount item=${playing.Id} engine=${playback.engine}` +
+      ` resume=${Math.round(playback.startAt ?? Jellyfin.ticksToSeconds(playing.UserData?.PlaybackPositionTicks ?? 0))}s` +
+      ` runtime=${Math.round(Jellyfin.ticksToSeconds(playing.RunTimeTicks ?? 0))}s`,
+    );
     return (
       <>
         {/*
@@ -667,10 +672,16 @@ export default function ItemScreen() {
                * replace the one just discarded. Playing it here keeps the
                * screen, and only the source changes.
                */
+              console.log(
+                `[jellylab] player:handover to=${nextEpisode.Id}` +
+                ` s${nextEpisode.ParentIndexNumber}e${nextEpisode.IndexNumber}` +
+                ` resumeTicks=${nextEpisode.UserData?.PlaybackPositionTicks ?? 0}` +
+                ` played=${nextEpisode.UserData?.Played ?? false}`,
+              );
               setEnded(false);
               setPlayingItem(nextEpisode);
               setNextEpisode(null);
-              play(nextEpisode);
+              play(nextEpisode).catch(e => logRequestFailure('player:handover', e));
             }}
             onDismiss={() => { setEnded(false); leavePlayer(); }}
           />
