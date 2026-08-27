@@ -1541,9 +1541,19 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
         } catch {}
       }, 200);
     }
+    /*
+     * Hold the pause across a reattach.
+     *
+     * This called `vlcRef.current?.pause?.()`, and there is no pause() on that
+     * ref - the API is resume(isResume). Optional chaining onto a method that
+     * does not exist fails silently, so nothing paused: coming back to a
+     * paused film rebuilt the player and started it playing while the controls
+     * still showed a pause button. The UI was not wrong about what it had been
+     * asked; nothing had carried the request through.
+     */
     if (paused) {
       setTimeout(() => {
-        try { vlcRef.current?.pause?.(); } catch {}
+        try { vlcRef.current?.resume?.(false); } catch {}
       }, 300);
     }
   };
@@ -1963,7 +1973,7 @@ function Player({
    * properly, and people genuinely watch that way.
    */
   useEffect(() => {
-    (async () => {
+    async function apply() {
       try {
         const tablet = await Device.getDeviceTypeAsync();
         if (tablet === Device.DeviceType.TABLET) {
@@ -1972,8 +1982,22 @@ function Player({
           await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
         }
       } catch {}
-    })();
+    }
+    apply();
+
+    /*
+     * And again on the way back into the app.
+     *
+     * The lock does not survive backgrounding: iOS hands the app back at the
+     * orientation it defaults to, which for this one is portrait, and the
+     * screen then turns itself sideways again in front of you. Re-applying it
+     * as the app becomes active settles that while it is still off screen
+     * rather than after you are looking at it.
+     */
+    const sub = AppState.addEventListener('change', s => { if (s === 'active') apply(); });
+
     return () => {
+      sub.remove();
       (async () => {
         try {
           await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
