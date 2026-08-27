@@ -92,6 +92,7 @@
     "welcomeBack": "Welcome back",
     "featured": "Featured",
     "continueWatching": "Continue Watching",
+    "nextUp": "Next Up",
     "unavailableTitle": "Library didn't load",
     "unavailableBody": "Nothing answered. Check that the server is running, then try again.",
     "unavailableAuth": "Your session has expired. Sign out and back in to reconnect.",

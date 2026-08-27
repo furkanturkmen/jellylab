@@ -336,6 +336,41 @@ export async function getEpisodes(userId: string, seriesId: string, seasonId: st
  * server is asked for more than the caller wants, because the collapse happens
  * after its limit has already been applied.
  */
+/**
+ * The next episode to watch in each series that has been started.
+ *
+ * Distinct from Resume, which is what was left half-watched: this is what
+ * comes after something finished. The two overlap by design on the server -
+ * a series you are mid-episode on appears in both - so the caller is expected
+ * to drop what Resume already shows rather than have the same series twice.
+ */
+export async function getNextUp(userId: string, limit = 12): Promise<JellyfinItem[]> {
+  const client = await authClient();
+  const res = await client.get('/Shows/NextUp', {
+    params: {
+      userId,
+      Limit: limit,
+      Fields: 'PrimaryImageAspectRatio,Overview,BackdropImageTags',
+      // Asked for, and ignored by the server - see the filter below.
+      DisableFirstEpisode: true,
+    },
+  });
+  const items: JellyfinItem[] = res.data.Items ?? [];
+  // The server sends DisableFirstEpisode back unread: with it set either way
+  // it offers the first episode of every series in the library, started or
+  // not. That is a list of things to begin, not of what comes next, and the
+  // library rows already show it. So the flag is applied here instead.
+  return items.filter(item => !isSeriesOpener(item));
+}
+
+/**
+ * The very first episode of a series, which is only "next up" if you have
+ * already begun - and a series you have begun is in Resume instead.
+ */
+function isSeriesOpener(item: JellyfinItem): boolean {
+  return item.IndexNumber === 1 && item.ParentIndexNumber === 1;
+}
+
 export async function getResumeItems(userId: string, limit = 12): Promise<JellyfinItem[]> {
   const client = await authClient();
   const res = await client.get(`/Users/${userId}/Items/Resume`, {

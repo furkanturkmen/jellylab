@@ -115,6 +115,7 @@ export default function LibraryScreen() {
   const { headerHeight } = useTabHeaderMetrics();
   const { state } = useAuth();
   const [resume, setResume] = useState<JellyfinItem[]>([]);
+  const [nextUp, setNextUp] = useState<JellyfinItem[]>([]);
   const [latest, setLatest] = useState<JellyfinItem[]>([]);
   const [libs, setLibs] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,9 +150,10 @@ export default function LibraryScreen() {
     const failures: string[] = [];
     const note = (e: unknown) => { failures.push(describeError(e)); };
     try {
-      const [views, resumeItems] = await Promise.all([
+      const [views, resumeItems, nextUpItems] = await Promise.all([
         Jellyfin.getViews(state.auth.userId).catch(e => { note(e); return [] as JellyfinView[]; }),
         Jellyfin.getResumeItems(state.auth.userId, 12).catch(e => { note(e); return [] as JellyfinItem[]; }),
+        Jellyfin.getNextUp(state.auth.userId, 12).catch(e => { note(e); return [] as JellyfinItem[]; }),
       ]);
       const filtered = views.filter(v => v.CollectionType === 'movies' || v.CollectionType === 'tvshows');
       // One wave, not two: the rows and the latest-items calls do not depend on
@@ -178,6 +180,11 @@ export default function LibraryScreen() {
         ).then(r => r.flat()),
       ]);
       setResume(resumeItems);
+      // A series you are part-way through an episode of is in both lists: the
+      // server counts the unfinished episode as what comes next. Continue
+      // Watching is the truer place for it, so it wins.
+      const started = new Set(resumeItems.map(i => i.SeriesId ?? i.Id));
+      setNextUp(nextUpItems.filter(i => !started.has(i.SeriesId ?? i.Id)));
       setLatest(latestItems);
       setLibs(withItems);
       // Only take over the screen when there is nothing to show. A single row
@@ -363,6 +370,15 @@ export default function LibraryScreen() {
                 <ContinueWatchingRow
                   items={resume}
                   title={t('library.continueWatching')}
+                  onChanged={() => load(true)}
+                />
+              </View>
+            ) : null}
+            {nextUp.length > 0 ? (
+              <View style={[styles.opaque, resume.length > 0 ? null : styles.afterHero]}>
+                <ContinueWatchingRow
+                  items={nextUp}
+                  title={t('library.nextUp')}
                   onChanged={() => load(true)}
                 />
               </View>
@@ -608,12 +624,17 @@ function ResumeCard({ item, onChanged }: { item: JellyfinItem; onChanged?: () =>
         ? String(item.ProductionYear)
         : '';
 
+  // Episode titles come back in whatever language the library stored - the
+  // anime rows read as Japanese - and on a card the series is what is being
+  // chosen. The episode is named by its number just below.
+  const title = item.Type === 'Episode' ? item.SeriesName ?? item.Name : item.Name;
+
   return (
     <ItemLink item={item} onChanged={onChanged}>
       <View
         style={styles.resumeCard}
         accessibilityRole="button"
-        accessibilityLabel={label ? `${item.Name}, ${label}` : item.Name}
+        accessibilityLabel={label ? `${title}, ${label}` : title}
       >
         <View style={styles.resumeImageWrap}>
           <Image
@@ -628,7 +649,7 @@ function ResumeCard({ item, onChanged }: { item: JellyfinItem; onChanged?: () =>
             </View>
           ) : null}
         </View>
-        <Text style={styles.resumeTitle} numberOfLines={1}>{item.Name}</Text>
+        <Text style={styles.resumeTitle} numberOfLines={1}>{title}</Text>
         {label ? <Text style={styles.resumeMeta}>{label}</Text> : null}
       </View>
     </ItemLink>
