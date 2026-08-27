@@ -1032,6 +1032,13 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   const [externalCues, setExternalCues] = useState<VttCue[]>([]);
   const [activeCue, setActiveCue] = useState<VttCue | null>(null);
   const [subFontSize, setSubFontSize] = useState(18);
+  /**
+   * Bumped to rebuild VLC, which is now only wanted when switching to an
+   * external subtitle: VLC ignores the textTrack prop going from a track it
+   * auto-selected to -1, and starting fresh is the only way to be rid of it.
+   * Returning from the background used to do this too, and that is what made
+   * every glance at another app cost a spinner and a re-buffer.
+   */
   const [vlcKey, setVlcKey] = useState(0);
   const positionRef = useRef(0);
   const [vlcTextTracks, setVlcTextTracks] = useState<{ id: number; name?: string }[]>([]);
@@ -1052,6 +1059,10 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
 
   // Keep positionRef synced so background/foreground can restore.
   useEffect(() => { positionRef.current = position; }, [position]);
+  // Same for the duration: the resume handler has no dependencies and would
+  // otherwise read whatever the duration was when the player mounted.
+  const durationRef = useRef(duration);
+  useEffect(() => { durationRef.current = duration; }, [duration]);
 
   // Same trick for paused: the reporting below has to read the current value
   // without listing it as a dependency.
@@ -1059,15 +1070,22 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   useEffect(() => { pausedRef.current = paused; }, [paused]);
 
   /**
-   * Remount VLC when coming back from the background, so the video surface
-   * reattaches - iOS drops it while backgrounded, leaving audio playing over a
-   * black frame.
+   * Reattach the video surface when coming back from the background.
    *
-   * Only a real background warrants that. Pulling down Control Center or the
-   * notification shade, or a call banner arriving, moves the app to 'inactive'
-   * and straight back to 'active' without ever taking the surface away, so
-   * remounting there tore down a perfectly good player: the video reloaded,
-   * buffered from scratch and lost its tracks, for a glance at the toggles.
+   * iOS drops it while backgrounded, leaving audio playing over a black frame.
+   * This used to rebuild the whole player, which fixed the frame and cost
+   * everything else: a spinner, a reload, a re-buffer and the tracks chosen by
+   * hand, every single time the app was left and returned to - which for a
+   * phone is constantly.
+   *
+   * A seek to where it already is redraws the surface without any of that.
+   * The position does not change, so there is nothing to buffer; VLC simply
+   * paints again. The play state is re-asserted after it, since a seek starts
+   * playback and the film may well have been paused when it was left.
+   *
+   * Only a real background warrants even this. Control Center, the
+   * notification shade, or a call banner move the app to 'inactive' and
+   * straight back to 'active' without ever taking the surface away.
    */
   const wasBackgrounded = useRef(false);
   useEffect(() => {
@@ -1076,8 +1094,18 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
         wasBackgrounded.current = true;
       } else if (state === 'active' && wasBackgrounded.current) {
         wasBackgrounded.current = false;
-        setVlcKey(k => k + 1);
-        setReady(false);
+        const secs = positionRef.current;
+        const dur = durationRef.current;
+        try {
+          if (secs > 0 && dur > 0) {
+            lastSeekAt.current = Date.now();
+            vlcRef.current?.seek?.(Math.max(0, Math.min(1, secs / dur)));
+          }
+          // After the seek, not before: seeking resumes a paused player.
+          setTimeout(() => {
+            try { vlcRef.current?.resume?.(!pausedRef.current); } catch {}
+          }, 250);
+        } catch {}
       }
     });
     return () => sub.remove();
