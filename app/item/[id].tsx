@@ -1243,7 +1243,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
         const exact = externalSubs.find(s => s.label === prefs.lastSubLabel);
         if (exact) {
           console.log(`[jellylab] player:subPick via=remembered picked=${exact.label}`);
-          pickExternalSub(exact.index, false);
+          pickExternalSub(exact.index, false, 'prefs:remembered');
           return;
         }
       }
@@ -1259,7 +1259,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
         const match = pickSubtitle(externalSubs, prefs.subtitleLanguage);
         if (match) {
           console.log(`[jellylab] player:subPick via=language wanted=${prefs.subtitleLanguage} picked=${match.label}`);
-          pickExternalSub(match.index, false);
+          pickExternalSub(match.index, false, 'prefs:language');
         } else {
           console.log(`[jellylab] player:subPick via=language wanted=${prefs.subtitleLanguage} picked=none of ${externalSubs.length}`);
         }
@@ -1378,7 +1378,13 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefsLoaded, vlcAudioTracks, preferredAudioLanguage]);
 
-  async function pickExternalSub(streamIndex: number | null, persistPref = true) {
+  /*
+   * `why` is only for the log, and it is there because the log could not
+   * answer the question it was asked: two sidecars were fetched for one
+   * playback, one of them by something that leaves no other trace. A line that
+   * says what was loaded but not who asked for it cannot settle that.
+   */
+  async function pickExternalSub(streamIndex: number | null, persistPref = true, why = 'unknown') {
     setActiveSubIndex(streamIndex);
     // Always disable VLC's internal track when we render an external overlay
     // (or when explicitly turning off), otherwise both would be drawn.
@@ -1407,7 +1413,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       if (offline) {
         const cues = parseVtt(offline);
         setExternalCues(cues);
-        console.log(`[jellylab] player:externalSub index=${streamIndex} stored cues=${cues.length}`);
+        console.log(`[jellylab] player:externalSub via=${why} index=${streamIndex} stored cues=${cues.length}`);
         return;
       }
 
@@ -1420,7 +1426,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       // A track that fetches fine and parses to nothing looks exactly like one
       // that failed to fetch, and the two have different causes - so the log
       // says which happened, and how much came back.
-      console.log(`[jellylab] player:externalSub index=${streamIndex} bytes=${vtt.length} cues=${cues.length}`);
+      console.log(`[jellylab] player:externalSub via=${why} index=${streamIndex} bytes=${vtt.length} cues=${cues.length}`);
       if (persistPref) {
         const picked = externalSubs.find(s => s.index === streamIndex);
         if (picked) {
@@ -1568,7 +1574,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       label: t('player.off'),
       selected: subtitleIsOff,
       // pickExternalSub(null) already forces a remount with textTrack -1.
-      onPick: () => pickExternalSub(null),
+      onPick: () => pickExternalSub(null, true, 'user:off'),
     },
     ...vlcTextTracks.map((track, i) => ({
       key: `int-${track.id}`,
@@ -1581,7 +1587,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
       key: `ext-${sub.index}`,
       label: cleanSubLabel(sub.label),
       selected: activeSubIndex === sub.index,
-      onPick: () => pickExternalSub(sub.index),
+      onPick: () => pickExternalSub(sub.index, true, 'user:pick'),
       group: i === 0 ? t('player.external') : undefined,
     })),
   ];
@@ -2162,7 +2168,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
         const exact = externalSubs.find(s => s.label === prefs.lastSubLabel);
         if (exact) {
           console.log(`[jellylab] player:subPick via=remembered picked=${exact.label}`);
-          pickExternalSub(exact.index, /* persistPref */ false);
+          pickExternalSub(exact.index, /* persistPref */ false, 'prefs:remembered');
           return;
         }
       }
@@ -2192,7 +2198,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
         const match = pickSubtitle(externalSubs, prefs.subtitleLanguage);
         if (match) {
           console.log(`[jellylab] player:subPick via=language wanted=${prefs.subtitleLanguage} picked=${match.label}`);
-          pickExternalSub(match.index, /* persistPref */ false);
+          pickExternalSub(match.index, /* persistPref */ false, 'prefs:language');
         } else {
           console.log(`[jellylab] player:subPick via=language wanted=${prefs.subtitleLanguage} picked=none of ${externalSubs.length}`);
         }
@@ -2340,7 +2346,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
     try {
       player.subtitleTrack = track;
       // An embedded track replaces the overlay, and vice versa.
-      if (track) pickExternalSub(null);
+      if (track) pickExternalSub(null, true, 'embedded-wins');
     } catch {}
   }
 
@@ -2352,7 +2358,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
       key: 'sub-off',
       label: t('player.off'),
       selected: !activeNativeSub && activeSubIndex == null,
-      onPick: () => { pickExternalSub(null); pickEmbeddedSub(null); },
+      onPick: () => { pickExternalSub(null, true, 'user:off'); pickEmbeddedSub(null); },
     },
     ...nativeSubs.map((track: any, i: number) => ({
       key: `emb-${i}`,
@@ -2365,7 +2371,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
       key: `ext-${sub.index}`,
       label: sub.label,
       selected: activeSubIndex === sub.index,
-      onPick: () => { pickEmbeddedSub(null); pickExternalSub(sub.index); },
+      onPick: () => { pickEmbeddedSub(null); pickExternalSub(sub.index, true, 'user:pick'); },
       group: i === 0 ? t('player.external') : undefined,
     })),
   ];
@@ -2421,12 +2427,18 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
     } catch {}
   }
 
-  async function pickExternalSub(streamIndex: number | null, persistPref = true) {
+  /*
+   * `why` is only for the log, and it is there because the log could not
+   * answer the question it was asked: two sidecars were fetched for one
+   * playback, one of them by something that leaves no other trace. A line that
+   * says what was loaded but not who asked for it cannot settle that.
+   */
+  async function pickExternalSub(streamIndex: number | null, persistPref = true, why = 'unknown') {
     setActiveSubIndex(streamIndex);
     if (streamIndex == null || !mediaSourceId) {
       // Ticking the row while quietly clearing the cues is the shape of "the
       // subtitle is selected and nothing appears", so say which it was.
-      console.log(`[jellylab] player:externalSub index=${streamIndex} skipped source=${mediaSourceId ?? 'missing'}`);
+      console.log(`[jellylab] player:externalSub via=${why} index=${streamIndex} skipped source=${mediaSourceId ?? 'missing'}`);
       setExternalCues([]);
       setActiveCue(null);
       if (persistPref) {
@@ -2444,7 +2456,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
       const url = Jellyfin.subtitleUrl(itemId, mediaSourceId, streamIndex, auth.accessToken, 'vtt');
       const vtt = await Jellyfin.fetchSubtitleVtt(url);
       const cues = parseVtt(vtt);
-      console.log(`[jellylab] player:externalSub index=${streamIndex} bytes=${vtt.length} cues=${cues.length}`);
+      console.log(`[jellylab] player:externalSub via=${why} index=${streamIndex} bytes=${vtt.length} cues=${cues.length}`);
       setExternalCues(cues);
 
       if (persistPref) {
