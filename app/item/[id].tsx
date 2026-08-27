@@ -44,6 +44,7 @@ import { formatDate } from '@/lib/date';
 import { jellyfinKind, kindKey } from '@/lib/kind';
 import { metadataLanguage, plainText, oneLine } from '@/lib/text';
 import { PREVIEW_WIDTH, TrickplayPreview } from '@/components/TrickplayPreview';
+import { UpNextCard } from '@/components/UpNextCard';
 import { trickplayTileAt, type TrickplayInfo } from '@/lib/trickplay';
 import { colors, radius, spacing, type } from '@/theme';
 import type { JellyfinItem } from '@/types';
@@ -100,6 +101,9 @@ export default function ItemScreen() {
   const { state } = useAuth();
   const [item, setItem] = useState<JellyfinItem | null>(null);
   const [playback, setPlayback] = useState<PlaybackConfig | null>(null);
+  /** The episode after this one, and whether this one has finished. */
+  const [nextEpisode, setNextEpisode] = useState<JellyfinItem | null>(null);
+  const [ended, setEnded] = useState(false);
 
   const castClient = useRemoteMediaClient();
   const castState = useCastState();
@@ -187,6 +191,20 @@ export default function ItemScreen() {
   // right. See below.
   // Once, and only for a film or an episode: a series has no single thing to
   // play, and the ref is what stops a re-render from starting it twice.
+  // Looked up when playback starts rather than on every visit to an item
+  // screen: only the card at the end ever wants it.
+  useEffect(() => {
+    if (!playback || !item || item.Type !== 'Episode' || !item.SeriesId || state.status !== 'signed-in') {
+      return;
+    }
+    let cancelled = false;
+    Jellyfin.getNextEpisode(state.auth.userId, item.SeriesId, item.Id)
+      .then(next => { if (!cancelled) setNextEpisode(next); })
+      .catch(() => { if (!cancelled) setNextEpisode(null); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playback, item?.Id]);
+
   const autoplayed = useRef(false);
   useEffect(() => {
     if (autoplay !== '1' || autoplayed.current || !item || item.Type === 'Series') return;
@@ -547,6 +565,8 @@ export default function ItemScreen() {
           resumeSeconds={playback.startAt ?? Jellyfin.ticksToSeconds(item.UserData?.PlaybackPositionTicks ?? 0)}
           initialDuration={Jellyfin.ticksToSeconds(item.RunTimeTicks ?? 0)}
           onExit={() => setPlayback(null)}
+          // A film, or a last episode, still just closes.
+          onEnded={nextEpisode ? () => setEnded(true) : () => setPlayback(null)}
           // AVPlayer failing and VLC quietly taking over is why "Always use
           // AVPlayer" looked like it did nothing. It still falls back - better
           // than a dead screen - but it says so first.
@@ -555,6 +575,22 @@ export default function ItemScreen() {
             setPlayback(p => (p ? { ...p, engine: 'vlc' } : p));
           }}
         />
+        {/*
+          * Drawn over the player rather than inside either engine, so there is
+          * one card and not one per engine. Replacing the route rather than
+          * pushing keeps Back going where it went before, instead of walking
+          * back through a night of episodes.
+          */}
+        {ended && nextEpisode ? (
+          <UpNextCard
+            item={nextEpisode}
+            onPlay={() => {
+              setEnded(false);
+              router.replace(`/item/${nextEpisode.Id}?play=1`);
+            }}
+            onDismiss={() => { setEnded(false); setPlayback(null); }}
+          />
+        ) : null}
       </>
     );
   }
@@ -843,7 +879,7 @@ function OverviewCard({ text, clamp }: { text: string; clamp: boolean }) {
   );
 }
 
-function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, preferredAudioLanguage, originalLanguage, delayKey, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', trickplay, onExit }: {
+function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, preferredAudioLanguage, originalLanguage, delayKey, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', trickplay, onEnded, onExit }: {
   /** Already resolved by the screen, so "original" means something here too. */
   preferredAudioLanguage?: string;
   /** What the title was made in - names a track the file left untagged. */
@@ -860,6 +896,8 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
   playMethod?: Jellyfin.PlayMethod;
   /** Scrub previews, with the token needed to fetch a sheet. */
   trickplay?: { info: TrickplayInfo; token: string } | null;
+  /** The file reached its end, as opposed to the viewer leaving. */
+  onEnded?: () => void;
   onExit: () => void;
 }) {
   const vlcRef = useRef<any>(null);
@@ -1430,7 +1468,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
           playInBackground={false}
           onLoad={onLoad}
           onProgress={onProgress}
-          onEnd={onExit}
+          onEnd={onEnded ?? onExit}
         />
         <Pressable
           style={StyleSheet.absoluteFill}
@@ -1773,6 +1811,7 @@ function SeriesEpisodes({ seriesId, userId, tmdbId, seasons }: {
 function Player({
   config,
   onSwitchAudio,
+  onEnded,
   itemId,
   delayKey,
   title,
@@ -1797,6 +1836,8 @@ function Player({
   resumeSeconds: number;
   initialDuration: number;
   onExit: () => void;
+  /** The file reached its end, as opposed to the viewer leaving. */
+  onEnded?: () => void;
   onNativeError: () => void;
 }) {
   // Unlock rotation while the player is mounted; restore portrait on exit.
@@ -1833,6 +1874,7 @@ function Player({
           resumeSeconds={resumeSeconds}
           playMethod={config.mode === 'transcode' ? 'Transcode' : 'DirectPlay'}
           trickplay={config.trickplay}
+          onEnded={onEnded}
           onError={onNativeError}
           onExit={onExit}
         />
@@ -1851,6 +1893,7 @@ function Player({
           initialDuration={initialDuration}
           playMethod={config.mode === 'transcode' ? 'Transcode' : 'DirectPlay'}
           trickplay={config.trickplay}
+          onEnded={onEnded}
           onExit={onExit}
         />
       )}
@@ -1860,7 +1903,7 @@ function Player({
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, activeAudioStreamIndex, onSwitchAudio, originalLanguage, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', trickplay, onError, onExit }: {
+function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, activeAudioStreamIndex, onSwitchAudio, originalLanguage, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', trickplay, onEnded, onError, onExit }: {
   url: string;
   itemId: string;
   mediaSourceId?: string;
@@ -1879,6 +1922,8 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
   playMethod?: Jellyfin.PlayMethod;
   /** Scrub previews, with the token needed to fetch a sheet. */
   trickplay?: { info: TrickplayInfo; token: string } | null;
+  /** The file reached its end, as opposed to the viewer leaving. */
+  onEnded?: () => void;
   onError: () => void;
   onExit: () => void;
 }) {
@@ -1926,6 +1971,14 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
     });
     return () => sub.remove();
   }, [player, onError]);
+
+  // The end of the file. VLC has always reported this; AVPlayer was never
+  // asked, so an episode finishing here did nothing at all.
+  useEffect(() => {
+    if (!onEnded) return;
+    const sub = player.addListener('playToEnd', () => onEnded());
+    return () => sub.remove();
+  }, [player, onEnded]);
 
   useEffect(() => {
     const sub = player.addListener('playingChange', ({ isPlaying }) => {

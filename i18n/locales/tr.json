@@ -356,7 +356,10 @@
     "speedNormal": "Normal",
     "castHint": "AirPlay seçici oynatıcının içinde.",
     "pipUnavailable": "Görüntü içinde görüntü için AVPlayer gerekir",
-    "pipUnavailableBody": "Bu dosya VLC ile oynatılıyor ve VLC’de görüntü içinde görüntü yok. Ayarlar → Oynatma → Her zaman AVPlayer, sunucuda transkod ederek PiP’i çalıştırır; karşılığında sunucu biraz iş yapar."
+    "pipUnavailableBody": "Bu dosya VLC ile oynatılıyor ve VLC’de görüntü içinde görüntü yok. Ayarlar → Oynatma → Her zaman AVPlayer, sunucuda transkod ederek PiP’i çalıştırır; karşılığında sunucu biraz iş yapar.",
+    "upNext": "Sıradaki",
+    "playNext": "Oynat",
+    "upNextIn": "{{seconds}} sn içinde başlıyor"
   },
   "request": {
     "failed": "Ayrıntılar yüklenemedi",

@@ -371,6 +371,33 @@ function isSeriesOpener(item: JellyfinItem): boolean {
   return item.IndexNumber === 1 && item.ParentIndexNumber === 1;
 }
 
+/**
+ * The episode after this one, within its series.
+ *
+ * Deliberately not NextUp: NextUp answers "what should I watch", which is
+ * empty once a series is finished and is affected by what has been marked
+ * played. At the end of an episode the question is the simpler one - what
+ * comes after this - and the answer should be the same whether or not the
+ * credits counted as watched.
+ *
+ * `adjacentTo` returns the previous, current and next episode in order, so
+ * the next one is whatever follows the current id. A last episode has nothing
+ * after it, and returns null.
+ */
+export async function getNextEpisode(
+  userId: string,
+  seriesId: string,
+  episodeId: string,
+): Promise<JellyfinItem | null> {
+  const client = await authClient();
+  const res = await client.get(`/Shows/${seriesId}/Episodes`, {
+    params: { userId, adjacentTo: episodeId, Fields: 'PrimaryImageAspectRatio,Overview' },
+  });
+  const items: JellyfinItem[] = res.data.Items ?? [];
+  const at = items.findIndex(i => i.Id === episodeId);
+  return at >= 0 ? items[at + 1] ?? null : null;
+}
+
 export async function getResumeItems(userId: string, limit = 12): Promise<JellyfinItem[]> {
   const client = await authClient();
   const res = await client.get(`/Users/${userId}/Items/Resume`, {
