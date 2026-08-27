@@ -49,3 +49,5 @@ yarn-error.*
 metro.config.js
 app.config.js
 web-shims/
+patch.tmp.js
+*.tmp.js
