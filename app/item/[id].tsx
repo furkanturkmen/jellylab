@@ -45,6 +45,8 @@ import { jellyfinKind, kindKey } from '@/lib/kind';
 import { metadataLanguage, plainText } from '@/lib/text';
 import { OverviewCard } from '@/components/OverviewCard';
 import { Scrubber, formatTime } from '@/components/Scrubber';
+import { CONTROLS_HIDE_MS, SPEEDS, type AudioStream, type PlaybackConfig } from '@/player/config';
+import { styles as playerStyles } from '@/player/styles';
 import { resumeSecondsFor } from '@/player/progress';
 import { useProgressReporting } from '@/player/useProgressReporting';
 import { SeriesEpisodes } from '@/components/SeriesEpisodes';
@@ -61,58 +63,8 @@ import type { JellyfinItem } from '@/types';
  * the type is a union across every platform React Native supports.
  */
 
-type PlaybackConfig = {
-  url: string;
-  engine: Engine;
-  mode: PlayMode;
-  mediaSourceId?: string;
-  externalSubs: { index: number; label: string }[];
-  audioStreams: AudioStream[];
-  /** Which track the server is encoding, when it is encoding one. */
-  audioStreamIndex?: number | null;
-  /**
-   * The language the player should select on its own, already resolved -
-   * "original" turned into the language TMDB says the thing was made in.
-   */
-  preferredAudioLanguage?: string;
-  /**
-   * What TMDB says the title was made in, whatever the preference is.
-   *
-   * Used to name a track the file left untagged: a YTS mp4 arrives with one
-   * audio stream marked "und", and "Turkish" beats "AAC - Stereo" as a label
-   * when both servers already know the film is Turkish.
-   */
-  originalLanguage?: string;
-  /**
-   * Where to start, when this config replaced another mid-playback.
-   *
-   * Switching audio on a transcode is a new stream, and a new stream starts at
-   * zero unless told otherwise - which would throw away the position every
-   * time someone changed track.
-   */
-  startAt?: number;
-  /**
-   * Scrub previews for this source, when the server has generated them.
-   *
-   * Resolved here rather than in the player because it depends on which
-   * media source is playing, which is a decision this screen already made.
-   * The token rides along because the players only load auth lazily, inside
-   * async work, and a scrub cannot wait for that.
-   */
-  trickplay?: { info: TrickplayInfo; token: string } | null;
-};
 
-/** An audio track as Jellyfin describes it, before VLC has opened the file. */
-type AudioStream = { index: number; label: string; language?: string };
 
-/**
- * How long the controls stay up before fading, with the film running.
- *
- * Long enough to read the time remaining and decide, short enough that it does
- * not sit over the picture while you have gone back to watching. Paused, they
- * stay: a paused film is one you have stopped to do something with.
- */
-const CONTROLS_HIDE_MS = 3000;
 
 export default function ItemScreen() {
   // `play` is set by the long-press menu on a poster, which starts playback
@@ -1782,7 +1734,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
           onPress={() => setControlsVisible(v => !v)}
         />
         {!ready ? (
-          <View style={styles.vlcLoading} pointerEvents="none">
+          <View style={playerStyles.vlcLoading} pointerEvents="none">
             <ActivityIndicator color={colors.text} size="large" />
           </View>
         ) : null}
@@ -1794,14 +1746,14 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
           * you had stepped away from. Same reasoning as the controls.
           */}
         {activeCue && !pickerOpen ? (
-          <View style={styles.subOverlay} pointerEvents="none">
-            <Text style={[styles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
+          <View style={playerStyles.subOverlay} pointerEvents="none">
+            <Text style={[playerStyles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
               {activeCue.text}
             </Text>
           </View>
         ) : null}
         <Animated.View
-          style={[styles.overlay, { opacity: controlsFade }]}
+          style={[playerStyles.overlay, { opacity: controlsFade }]}
           pointerEvents={controlsVisible ? 'box-none' : 'none'}
         >
             <LinearGradient
@@ -1810,37 +1762,37 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
               style={StyleSheet.absoluteFill}
               pointerEvents="none"
             />
-            <View style={styles.overlayTop} pointerEvents="box-none">
+            <View style={playerStyles.overlayTop} pointerEvents="box-none">
               <TouchableOpacity
-                style={styles.overlayIconBtn}
+                style={playerStyles.overlayIconBtn}
                 onPress={onExit}
                 activeOpacity={0.7}
                 hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
               >
                 <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }} tintColor={colors.text} size={22} />
               </TouchableOpacity>
-              <Text style={styles.overlayTitle} numberOfLines={1}>{title}</Text>
+              <Text style={playerStyles.overlayTitle} numberOfLines={1}>{title}</Text>
             </View>
 
-            <View style={styles.overlayCenter} pointerEvents="box-none">
-              <TouchableOpacity style={styles.skipBtn} onPress={() => skip(-10)} activeOpacity={0.7}>
+            <View style={playerStyles.overlayCenter} pointerEvents="box-none">
+              <TouchableOpacity style={playerStyles.skipBtn} onPress={() => skip(-10)} activeOpacity={0.7}>
                 <SymbolView name={{ ios: 'gobackward.10', android: 'replay_10', web: 'replay_10' }} tintColor={colors.text} size={38} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.playPauseBtn} onPress={togglePlay} activeOpacity={0.7}>
+              <TouchableOpacity style={playerStyles.playPauseBtn} onPress={togglePlay} activeOpacity={0.7}>
                 <SymbolView
                   name={{ ios: paused ? 'play.fill' : 'pause.fill', android: 'play_arrow', web: 'play_arrow' }}
                   tintColor={colors.text}
                   size={44}
                 />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.skipBtn} onPress={() => skip(10)} activeOpacity={0.7}>
+              <TouchableOpacity style={playerStyles.skipBtn} onPress={() => skip(10)} activeOpacity={0.7}>
                 <SymbolView name={{ ios: 'goforward.10', android: 'forward_10', web: 'forward_10' }} tintColor={colors.text} size={38} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.overlayBottomWrap} pointerEvents="box-none">
-              <View style={styles.scrubRow} pointerEvents="box-none">
-                <Text style={styles.timeText}>{formatTime(scrubbing ? scrubValue : position)}</Text>
+            <View style={playerStyles.overlayBottomWrap} pointerEvents="box-none">
+              <View style={playerStyles.scrubRow} pointerEvents="box-none">
+                <Text style={playerStyles.timeText}>{formatTime(scrubbing ? scrubValue : position)}</Text>
                 <Scrubber
                   position={scrubbing ? scrubValue : position}
                   duration={duration}
@@ -1853,21 +1805,21 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
                     setControlsVisible(true);
                   }}
                 />
-                <Text style={styles.timeText}>
+                <Text style={playerStyles.timeText}>
                   -{formatTime(Math.max(0, duration - (scrubbing ? scrubValue : position)))}
                 </Text>
               </View>
-              <View style={styles.actionsRow} pointerEvents="box-none">
+              <View style={playerStyles.actionsRow} pointerEvents="box-none">
                 <View style={{ flex: 1 }} />
                 {audioChoices.length > 1 ? (
-                  <TouchableOpacity style={styles.overlayIconBtn} onPress={showTrackPicker} activeOpacity={0.7}>
+                  <TouchableOpacity style={playerStyles.overlayIconBtn} onPress={showTrackPicker} activeOpacity={0.7}>
                     <SymbolView name={{ ios: 'waveform', android: 'graphic_eq', web: 'graphic_eq' }} tintColor={colors.text} size={22} />
                   </TouchableOpacity>
                 ) : null}
-                <TouchableOpacity style={styles.overlayIconBtn} onPress={showTrackPicker} activeOpacity={0.7}>
+                <TouchableOpacity style={playerStyles.overlayIconBtn} onPress={showTrackPicker} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.overlayIconBtn} onPress={showSpeedSheet} activeOpacity={0.7}>
+                <TouchableOpacity style={playerStyles.overlayIconBtn} onPress={showSpeedSheet} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
                 {/*
@@ -1879,7 +1831,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
                   * mkv and therefore mostly VLC.
                   */}
                 <TouchableOpacity
-                  style={styles.overlayIconBtn}
+                  style={playerStyles.overlayIconBtn}
                   onPress={() => Alert.alert(t('player.pipUnavailable'), t('player.pipUnavailableBody'))}
                   activeOpacity={0.7}
                 >
@@ -1898,7 +1850,7 @@ function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStream
                   * fullscreen and that is the whole of it.
                   */}
                 {IS_TABLET ? (
-                  <TouchableOpacity style={styles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
+                  <TouchableOpacity style={playerStyles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
                     <SymbolView
                       name={{
                         ios: isLandscape ? 'arrow.down.right.and.arrow.up.left' : 'arrow.up.left.and.arrow.down.right',
@@ -2004,7 +1956,7 @@ function Player({
   }, []);
 
   return (
-    <View style={styles.playerContainer}>
+    <View style={playerStyles.playerContainer}>
       {config.engine === 'native' ? (
         <NativePlayer
           delayKey={delayKey}
@@ -2049,7 +2001,6 @@ function Player({
   );
 }
 
-const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, activeAudioStreamIndex, onSwitchAudio, originalLanguage, delayKey, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', trickplay, onEnded, onError, onExit }: {
   url: string;
@@ -2553,14 +2504,14 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
           * you had stepped away from. Same reasoning as the controls.
           */}
         {activeCue && !pickerOpen ? (
-          <View style={styles.subOverlay} pointerEvents="none">
-            <Text style={[styles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
+          <View style={playerStyles.subOverlay} pointerEvents="none">
+            <Text style={[playerStyles.subText, { fontSize: subFontSize, lineHeight: subFontSize + 6 }]}>
               {activeCue.text}
             </Text>
           </View>
         ) : null}
         <Animated.View
-          style={[styles.overlay, { opacity: controlsFade }]}
+          style={[playerStyles.overlay, { opacity: controlsFade }]}
           pointerEvents={controlsVisible ? 'box-none' : 'none'}
         >
             <LinearGradient
@@ -2571,34 +2522,34 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
             />
 
             {/* Top bar */}
-            <View style={styles.overlayTop} pointerEvents="box-none">
-              <TouchableOpacity style={styles.overlayIconBtn} onPress={onExit} activeOpacity={0.7}>
+            <View style={playerStyles.overlayTop} pointerEvents="box-none">
+              <TouchableOpacity style={playerStyles.overlayIconBtn} onPress={onExit} activeOpacity={0.7}>
                 <SymbolView name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }} tintColor={colors.text} size={22} />
               </TouchableOpacity>
-              <Text style={styles.overlayTitle} numberOfLines={1}>{title}</Text>
+              <Text style={playerStyles.overlayTitle} numberOfLines={1}>{title}</Text>
             </View>
 
             {/* Center controls */}
-            <View style={styles.overlayCenter} pointerEvents="box-none">
-              <TouchableOpacity style={styles.skipBtn} onPress={() => skip(-10)} activeOpacity={0.7}>
+            <View style={playerStyles.overlayCenter} pointerEvents="box-none">
+              <TouchableOpacity style={playerStyles.skipBtn} onPress={() => skip(-10)} activeOpacity={0.7}>
                 <SymbolView name={{ ios: 'gobackward.10', android: 'replay_10', web: 'replay_10' }} tintColor={colors.text} size={38} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.playPauseBtn} onPress={togglePlay} activeOpacity={0.7}>
+              <TouchableOpacity style={playerStyles.playPauseBtn} onPress={togglePlay} activeOpacity={0.7}>
                 <SymbolView
                   name={{ ios: playing ? 'pause.fill' : 'play.fill', android: 'play_arrow', web: 'play_arrow' }}
                   tintColor={colors.text}
                   size={44}
                 />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.skipBtn} onPress={() => skip(10)} activeOpacity={0.7}>
+              <TouchableOpacity style={playerStyles.skipBtn} onPress={() => skip(10)} activeOpacity={0.7}>
                 <SymbolView name={{ ios: 'goforward.10', android: 'forward_10', web: 'forward_10' }} tintColor={colors.text} size={38} />
               </TouchableOpacity>
             </View>
 
             {/* Bottom: scrubber + action cluster */}
-            <View style={styles.overlayBottomWrap} pointerEvents="box-none">
-              <View style={styles.scrubRow} pointerEvents="box-none">
-                <Text style={styles.timeText}>{formatTime(scrubbing ? scrubValue : position)}</Text>
+            <View style={playerStyles.overlayBottomWrap} pointerEvents="box-none">
+              <View style={playerStyles.scrubRow} pointerEvents="box-none">
+                <Text style={playerStyles.timeText}>{formatTime(scrubbing ? scrubValue : position)}</Text>
                 <Scrubber
                   position={scrubbing ? scrubValue : position}
                   duration={duration}
@@ -2611,20 +2562,20 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
                     setControlsVisible(true);
                   }}
                 />
-                <Text style={styles.timeText}>
+                <Text style={playerStyles.timeText}>
                   -{formatTime(Math.max(0, duration - (scrubbing ? scrubValue : position)))}
                 </Text>
               </View>
 
-              <View style={styles.actionsRow} pointerEvents="box-none">
+              <View style={playerStyles.actionsRow} pointerEvents="box-none">
                 <View style={{ flex: 1 }} />
-                <TouchableOpacity style={styles.overlayIconBtn} onPress={showTrackPicker} activeOpacity={0.7}>
+                <TouchableOpacity style={playerStyles.overlayIconBtn} onPress={showTrackPicker} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'captions.bubble', android: 'closed_caption', web: 'closed_caption' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.overlayIconBtn} onPress={showSpeedSheet} activeOpacity={0.7}>
+                <TouchableOpacity style={playerStyles.overlayIconBtn} onPress={showSpeedSheet} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'gearshape', android: 'settings', web: 'settings' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.overlayIconBtn} onPress={togglePip} activeOpacity={0.7}>
+                <TouchableOpacity style={playerStyles.overlayIconBtn} onPress={togglePip} activeOpacity={0.7}>
                   <SymbolView name={{ ios: 'pip.enter', android: 'picture_in_picture_alt', web: 'picture_in_picture_alt' }} tintColor={colors.text} size={22} />
                 </TouchableOpacity>
                 {/*
@@ -2636,7 +2587,7 @@ function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, 
                   * fullscreen and that is the whole of it.
                   */}
                 {IS_TABLET ? (
-                  <TouchableOpacity style={styles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
+                  <TouchableOpacity style={playerStyles.overlayIconBtn} onPress={toggleFullscreen} activeOpacity={0.7}>
                     <SymbolView
                       name={{
                         ios: isLandscape ? 'arrow.down.right.and.arrow.up.left' : 'arrow.up.left.and.arrow.down.right',
@@ -2801,7 +2752,6 @@ const styles = StyleSheet.create({
   },
   modalCloseText: { color: colors.accentContrast, ...type.body, fontWeight: '600' },
   castHint: { ...type.caption, color: colors.textMuted, marginTop: spacing.sm },
-  playerContainer: { flex: 1, backgroundColor: '#000' },
   exitBtn: {
     position: 'absolute',
     top: 50,
@@ -2840,61 +2790,13 @@ const styles = StyleSheet.create({
     borderColor: colors.glassBorder,
   },
 
-  overlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'space-between' },
-  overlayTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xxl,
-    gap: spacing.md,
-  },
-  overlayIconBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 22,
-    backgroundColor: colors.glassTint,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.glassBorder,
-  },
-  overlayTitle: { ...type.bodyStrong, color: colors.text, flex: 1 },
   speedLabel: { color: colors.text, ...type.small, fontWeight: '700' },
-  overlayCenter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 40,
-  },
-  playPauseBtn: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  skipBtn: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
   overlayBottom: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xxl,
     gap: spacing.md,
-  },
-  overlayBottomWrap: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
-    gap: spacing.sm,
-  },
-  scrubRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  actionsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  timeText: { ...type.small, color: colors.text, fontVariant: ['tabular-nums'] as any },
-  vlcLoading: {
-    position: 'absolute',
-    left: 0, right: 0, top: 0, bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
 
@@ -2907,22 +2809,4 @@ const styles = StyleSheet.create({
    * controls are drawn over the top - which is what the layering is for:
    * picture, then subtitles, then controls.
    */
-  subOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 40,
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  subText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-    lineHeight: 24,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.85)',
-    textShadowRadius: 4,
-    textShadowOffset: { width: 0, height: 1 },
-  },
 });
