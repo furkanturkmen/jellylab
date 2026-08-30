@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 
 import * as Jellyseerr from '@/api/jellyseerr';
 import * as Push from '@/api/push';
+import { getJellyfinUrl } from '@/config';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/lib/date';
@@ -99,7 +100,8 @@ export default function RequestsScreen() {
        */
       try {
         const { pushUrl } = await loadPrefs();
-        setDownloads(pushUrl ? await Push.downloads(pushUrl) : null);
+        const url = Push.resolveUrl(pushUrl, getJellyfinUrl());
+        setDownloads(url ? await Push.downloads(url) : null);
       } catch {
         setDownloads(null);
       }

@@ -16,6 +16,36 @@ function base(url: string): string {
   return url.replace(/\/+$/, '');
 }
 
+/** The port jellylab-push listens on, alongside Jellyfin on the same host. */
+const PUSH_PORT = 8099;
+
+/**
+ * Where to find jellylab-push, without anyone having to say.
+ *
+ * It runs on the same machine as Jellyfin and publishes its own port, so the
+ * address is the Jellyfin one with the port swapped - true whether that is an
+ * IP on the LAN, a NetBird address, or a hostname, since the hostname resolves
+ * to the same host either way.
+ *
+ * There is a `pushUrl` preference and it still wins, for the case where the
+ * service lives somewhere else. But it had no way of being set: nothing in the
+ * app ever wrote it, so it stayed empty and every feature behind it - the
+ * storage readout included - quietly did nothing. Deriving it means the
+ * default case needs no configuring at all.
+ */
+export function resolveUrl(configured: string, jellyfinUrl: string): string {
+  if (configured.trim()) return base(configured.trim());
+  if (!jellyfinUrl.trim()) return '';
+  try {
+    const u = new URL(jellyfinUrl);
+    u.port = String(PUSH_PORT);
+    u.pathname = '';
+    return base(u.toString());
+  } catch {
+    return '';
+  }
+}
+
 export async function health(url: string): Promise<{ ok: boolean }> {
   const res = await fetch(`${base(url)}/health`);
   if (!res.ok) throw new Error(`Server returned ${res.status}`);

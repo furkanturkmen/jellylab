@@ -49,8 +49,10 @@ export default function ProfileScreen() {
     (async () => {
       try {
         const prefs = await loadPrefs();
-        if (!prefs.pushUrl) return;
-        setStorage(await Push.storage(prefs.pushUrl));
+        // Derived when unset, which it always was - see Push.resolveUrl.
+        const url = Push.resolveUrl(prefs.pushUrl, getJellyfinUrl());
+        if (!url) return;
+        setStorage(await Push.storage(url));
       } catch {}
     })();
   }, []);
