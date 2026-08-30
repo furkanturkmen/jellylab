@@ -2,8 +2,14 @@ import type { DownloadProgress, Downloads } from '@/api/push';
 import type { JellyseerrRequest } from '@/types';
 
 /** Jellyseerr's own numbers, named. */
+export const REQUEST_PENDING = 1;
 export const REQUEST_APPROVED = 2;
+export const REQUEST_DECLINED = 3;
+export const REQUEST_FAILED = 4;
+
 export const MEDIA_PROCESSING = 3;
+export const MEDIA_PARTIAL = 4;
+export const MEDIA_AVAILABLE = 5;
 
 /**
  * After this long with nothing downloading, "waiting for a match" stops being
@@ -82,4 +88,93 @@ export function requestProgress(
   }
 
   return { state: 'other' };
+}
+
+/**
+ * The one thing worth saying about a request.
+ *
+ * The card used to show two pills - the request's state and the media's - and
+ * deduplicate them. That mostly meant "Approved · Processing", which says
+ * almost nothing: approval is automatic for the owner and near-automatic for
+ * everyone else, so the word was on nearly every card and carried no
+ * information. Worse, "Processing" covered everything from "no release exists"
+ * to "downloading at 40MB/s" to "downloaded, but Sonarr will not import it".
+ *
+ * One state instead, and the most specific one that is true. Ordered by what a
+ * person actually wants to know: something that needs them first, then what is
+ * happening now, then what has settled.
+ */
+export type RequestState =
+  /** Waiting for someone to approve it. The only state that needs a person. */
+  | { kind: 'pending' }
+  | { kind: 'declined' }
+  | { kind: 'failed' }
+  /** Downloading, and moving. */
+  | { kind: 'downloading'; percent: number | null }
+  /** Downloading, and not moving - which a percentage alone cannot say. */
+  | { kind: 'stalled'; percent: number | null }
+  /** Fetched in full, but not yet in the library. Usually Sonarr refusing an import. */
+  | { kind: 'importing' }
+  /** Approved, nothing found yet. `days` is how long that has been true. */
+  | { kind: 'searching'; days: number; overdue: boolean }
+  | { kind: 'partial' }
+  | { kind: 'available' }
+  | { kind: 'other' };
+
+/**
+ * What is actually going on with a request.
+ *
+ * Reads jellylab-push first for anything to do with downloading, because it
+ * sees the whole *arr queue rather than its first page, and because it is the
+ * only source that knows a torrent has stalled or that an import is stuck.
+ * Falls back to Jellyseerr, which is what existed before and is right often
+ * enough.
+ */
+export function requestState(
+  request: JellyseerrRequest,
+  now: number = Date.now(),
+  push?: Downloads | null,
+): RequestState {
+  const media = request.media;
+
+  // Needs a person: worth saying before anything about the media.
+  if (request.status === REQUEST_PENDING) return { kind: 'pending' };
+  if (request.status === REQUEST_DECLINED) return { kind: 'declined' };
+  if (request.status === REQUEST_FAILED) return { kind: 'failed' };
+
+  // Settled, and nothing else to say about it.
+  if (media.status === MEDIA_AVAILABLE) return { kind: 'available' };
+
+  const live = fromPush(request, push);
+  if (live) {
+    // Sonarr says importBlocked or importPending when the file arrived and
+    // something is stopping it reaching the library - a state that looks
+    // identical to "downloading" from a percentage, and needs attention.
+    if (/import/i.test(live.status ?? '')) return { kind: 'importing' };
+    if (live.stalled) return { kind: 'stalled', percent: live.percent };
+    return { kind: 'downloading', percent: live.percent };
+  }
+
+  const queue = media.downloadStatus ?? [];
+  if (queue.length > 0) {
+    const size = queue.reduce((sum, d) => sum + (d.size ?? 0), 0);
+    const left = queue.reduce((sum, d) => sum + (d.sizeLeft ?? 0), 0);
+    const percent = size > 0 ? Math.max(0, Math.min(1, (size - left) / size)) : null;
+    return { kind: 'downloading', percent };
+  }
+
+  if (media.status === MEDIA_PARTIAL) return { kind: 'partial' };
+
+  if (media.status === MEDIA_PROCESSING) {
+    const started = Date.parse(request.createdAt);
+    const days = Number.isNaN(started) ? 0 : Math.floor((now - started) / 86_400_000);
+    return { kind: 'searching', days, overdue: days >= STALLED_AFTER_DAYS };
+  }
+
+  return { kind: 'other' };
+}
+
+/** The percentage to draw, for the states that have one. */
+export function statePercent(state: RequestState): number | null {
+  return state.kind === 'downloading' || state.kind === 'stalled' ? state.percent : null;
 }

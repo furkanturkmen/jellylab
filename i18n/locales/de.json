@@ -137,7 +137,19 @@
       "7": "Entfernt"
     },
     "signedOut": "Melde dich bei Jellyseerr an, um deine Anfragen zu sehen",
-    "unavailable": "Jellyseerr nicht erreichbar"
+    "unavailable": "Jellyseerr nicht erreichbar",
+    "state": {
+      "pending": "Wartet auf Freigabe",
+      "declined": "Abgelehnt",
+      "failed": "Fehlgeschlagen",
+      "downloading": "Wird geladen",
+      "stalled": "Steht still",
+      "importing": "Wird abgeschlossen",
+      "searching": "Wird gesucht",
+      "searchingDays": "Wird gesucht · {{count}}d",
+      "partial": "Teilweise verfügbar",
+      "available": "Verfügbar"
+    }
   },
   "detail": {
     "overview": "Übersicht",

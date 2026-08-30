@@ -13,7 +13,7 @@ import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/lib/date';
 import { formatPercent } from '@/lib/percent';
-import { requestProgress } from '@/lib/requests';
+import { requestState, statePercent } from '@/lib/requests';
 import { loadPrefs } from '@/store/prefs';
 import { getSeerrError } from '@/store/seerrStatus';
 import { type JellyseerrRequest } from '@/types';
@@ -228,20 +228,28 @@ function RequestCard({ r, onOpen, downloads }: {
   downloads: Push.Downloads | null;
 }) {
   const { t } = useTranslation();
-  const requestStatus = t(`requests.status.${r.status}`, { defaultValue: '?' });
-  const mediaStatus = t(`requests.mediaStatus.${r.media.status}`, { defaultValue: '?' });
-  const available = r.media.status === 5;
-  // Deduplicated and order-preserving: request state first, media state second,
-  // and nothing shown twice when they agree.
-  const pills = [...new Set([available ? mediaStatus : requestStatus, mediaStatus])];
+
+  /*
+   * One pill, saying the most specific true thing.
+   *
+   * It used to be two - the request's state and the media's - which in
+   * practice read "Approved · Processing" on nearly every card. Approval is
+   * automatic for the owner and near-automatic for a guest, so the word was
+   * everywhere and meant nothing; and "Processing" covered no release existing,
+   * downloading at speed, and a finished download Sonarr refuses to import.
+   */
+  const state = requestState(r, undefined, downloads);
+  const available = state.kind === 'available';
+  const label =
+    state.kind === 'searching' && state.days > 0
+      ? t('requests.state.searchingDays', { count: state.days })
+      : t(`requests.state.${state.kind}`, { defaultValue: '' });
+  const pills = label ? [label] : [];
 
   // Both sources read their figures from qBittorrent by way of Sonarr or
   // Radarr, so either way this is the percentage the torrent client shows.
   // jellylab-push is preferred because it reads the whole queue; Jellyseerr
   // sees only its first page. See lib/requests.
-  // undefined rather than Date.now(): reading the clock in a render body is
-  // an impure call, and the default inside requestProgress is the same clock.
-  const progress = requestProgress(r, undefined, downloads);
   const queue = r.media.downloadStatus ?? [];
   /*
    * The figure comes from whichever source answered, which is the whole point:
@@ -252,7 +260,7 @@ function RequestCard({ r, onOpen, downloads }: {
    * Floored and given a decimal near the end - see lib/percent. Rounding is
    * what made a download at 99.7% announce itself as finished.
    */
-  const fraction = progress.state === 'downloading' ? progress.percent : null;
+  const fraction = statePercent(state);
   const pct = fraction != null ? Math.round(fraction * 100) : null;
   const pctLabel = formatPercent(fraction);
   // one entry has a real ETA; a season pack split over many does not
@@ -317,8 +325,9 @@ function RequestCard({ r, onOpen, downloads }: {
             ) : null}
           </View>
           {/* Two pills: how the request went, and where the media is now.
-              Once something is available both said "Available", which is one
-              badge doing the work of two — so identical labels collapse. */}
+              One pill now, saying the most specific true thing - see
+              requestState. How long a search has been running is in the label
+              itself, so it no longer needs a line of its own underneath. */}
           <View style={styles.pillRow}>
             {pills.map((label, i) => (
               <View key={label} style={[styles.pill, available && i === 0 && styles.pillAvailable]}>
@@ -335,16 +344,6 @@ function RequestCard({ r, onOpen, downloads }: {
                 {pctLabel}{timeLeft && timeLeft !== '00:00:00' ? ` · ${timeLeft}` : ''}
               </Text>
             </View>
-          ) : progress.state === 'waiting' && progress.stalled ? (
-            /*
-             * Approved, nothing queued, and no longer new.
-             *
-             * The card showed who asked and when, which reads the same on day
-             * one as on day thirty - and "Processing" alongside it suggests
-             * work is happening. Usually nothing is: no release fits the
-             * quality rules, or the ones that do have no seeders.
-             */
-            <Text style={styles.waiting}>{t('request.waitingDays', { count: progress.days })}</Text>
           ) : (
             <Text style={styles.by}>
               {r.requestedBy.displayName} · {formatDate(r.createdAt)}

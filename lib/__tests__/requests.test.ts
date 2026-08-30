@@ -1,4 +1,4 @@
-import { requestProgress, STALLED_AFTER_DAYS } from '../requests';
+import { requestProgress, requestState, statePercent, STALLED_AFTER_DAYS } from '../requests';
 
 const DAY = 86_400_000;
 const NOW = Date.parse('2026-08-26T12:00:00.000Z');
@@ -120,5 +120,79 @@ describe('requestProgress with jellylab-push', () => {
       push({ tv: { 5920: { size: 0, sizeLeft: 0, percent: null, status: 'queued', stalled: false } } }),
     );
     expect(p).toMatchObject({ state: 'downloading', percent: null });
+  });
+});
+
+/**
+ * One state per card, and the most specific one that is true.
+ *
+ * The two-pill scheme it replaced read "Approved · Processing" on nearly every
+ * card: approval is automatic, and Processing covered everything from "no
+ * release exists" to "downloading fast" to "downloaded, and stuck".
+ */
+describe('requestState', () => {
+  const push = (over: any = {}) => ({ tv: {}, movies: {}, ...over }) as any;
+  const dl = (over: any = {}) => ({ size: 100, sizeLeft: 50, percent: 0.5, status: 'downloading', stalled: false, ...over });
+
+  it('puts what needs a person before anything about the media', () => {
+    // Pending outranks whatever the media is doing: it is the only state that
+    // will not resolve itself.
+    expect(requestState(request({ status: 1, media: { status: 3 } })).kind).toBe('pending');
+    expect(requestState(request({ status: 3 })).kind).toBe('declined');
+    expect(requestState(request({ status: 4 })).kind).toBe('failed');
+  });
+
+  it('says available and stops there', () => {
+    expect(requestState(request({ status: 2, media: { status: 5 } })).kind).toBe('available');
+  });
+
+  it('tells a stalled download from a moving one', () => {
+    const moving = requestState(request({ media: { tmdbId: 1, mediaType: 'tv', status: 3 } }), NOW,
+      push({ tv: { 1: dl() } }));
+    const stuck = requestState(request({ media: { tmdbId: 1, mediaType: 'tv', status: 3 } }), NOW,
+      push({ tv: { 1: dl({ stalled: true }) } }));
+    expect(moving).toEqual({ kind: 'downloading', percent: 0.5 });
+    expect(stuck).toEqual({ kind: 'stalled', percent: 0.5 });
+  });
+
+  it('calls out a download that finished but did not import', () => {
+    // Reacher sat at 100% in qBittorrent while Sonarr refused it. From a
+    // percentage that is indistinguishable from done.
+    const p = requestState(request({ media: { tmdbId: 2, mediaType: 'tv', status: 3 } }), NOW,
+      push({ tv: { 2: dl({ percent: 1, sizeLeft: 0, status: 'importBlocked' }) } }));
+    expect(p.kind).toBe('importing');
+  });
+
+  it('counts the days a search has been running', () => {
+    const p = requestState(request({
+      status: 2,
+      createdAt: new Date(NOW - 5 * DAY).toISOString(),
+      media: { status: 3, downloadStatus: [] },
+    }), NOW);
+    expect(p).toEqual({ kind: 'searching', days: 5, overdue: true });
+  });
+
+  it('is not overdue on the first day', () => {
+    const p = requestState(request({
+      status: 2,
+      createdAt: new Date(NOW - DAY).toISOString(),
+      media: { status: 3, downloadStatus: [] },
+    }), NOW);
+    expect(p).toMatchObject({ kind: 'searching', overdue: false });
+  });
+
+  it('falls back to jellyseerr when the service is not there', () => {
+    const p = requestState(request({
+      status: 2,
+      media: { status: 3, downloadStatus: [{ size: 1000, sizeLeft: 250 }] },
+    }), NOW, null);
+    expect(p).toEqual({ kind: 'downloading', percent: 0.75 });
+  });
+
+  it('only offers a percentage for the states that have one', () => {
+    expect(statePercent({ kind: 'downloading', percent: 0.4 })).toBe(0.4);
+    expect(statePercent({ kind: 'stalled', percent: 0.1 })).toBe(0.1);
+    expect(statePercent({ kind: 'available' })).toBeNull();
+    expect(statePercent({ kind: 'searching', days: 2, overdue: false })).toBeNull();
   });
 });

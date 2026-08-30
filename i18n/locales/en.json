@@ -137,7 +137,19 @@
       "7": "Removed"
     },
     "signedOut": "Sign in to Jellyseerr to see your requests",
-    "unavailable": "Can't reach Jellyseerr"
+    "unavailable": "Can't reach Jellyseerr",
+    "state": {
+      "pending": "Waiting for approval",
+      "declined": "Declined",
+      "failed": "Failed",
+      "downloading": "Downloading",
+      "stalled": "Stalled",
+      "importing": "Finishing up",
+      "searching": "Looking for it",
+      "searchingDays": "Looking for it · {{count}}d",
+      "partial": "Partly available",
+      "available": "Available"
+    }
   },
   "detail": {
     "overview": "Overview",

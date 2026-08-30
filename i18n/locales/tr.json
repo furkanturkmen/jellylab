@@ -137,7 +137,19 @@
       "7": "Kaldırıldı"
     },
     "signedOut": "İsteklerini görmek için Jellyseerr’e giriş yap",
-    "unavailable": "Jellyseerr’e ulaşılamıyor"
+    "unavailable": "Jellyseerr’e ulaşılamıyor",
+    "state": {
+      "pending": "Onay bekliyor",
+      "declined": "Reddedildi",
+      "failed": "Başarısız",
+      "downloading": "İndiriliyor",
+      "stalled": "Takıldı",
+      "importing": "Tamamlanıyor",
+      "searching": "Aranıyor",
+      "searchingDays": "Aranıyor · {{count}}g",
+      "partial": "Kısmen mevcut",
+      "available": "Mevcut"
+    }
   },
   "detail": {
     "overview": "Özet",
