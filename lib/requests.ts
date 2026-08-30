@@ -285,3 +285,31 @@ export function requestState(
 export function statePercent(state: RequestState): number | null {
   return state.kind === 'downloading' || state.kind === 'stalled' ? state.percent : null;
 }
+
+/**
+ * How much attention a state wants, lowest first.
+ *
+ * Two thirds of this library's requests are available, so the list was mostly
+ * the one state nobody acts on, with the handful that need something scattered
+ * among them. Sorting by this puts the answer to "is anything wrong" at the
+ * top, where it is visible without scrolling.
+ *
+ * Available last rather than hidden: it is still the record of what was asked
+ * for, and a request that arrived is the happy end of the same list.
+ */
+export function attention(state: RequestState): number {
+  switch (state.kind) {
+    case 'pending': return 0;      // someone must act
+    case 'failed': return 1;
+    case 'stalled': return 2;      // going wrong on its own
+    case 'searching': return state.overdue ? 3 : 6;
+    case 'importing': return 4;    // nearly there, occasionally stuck
+    case 'downloading': return 5;
+    case 'airing': return 7;
+    case 'unreleased': return 8;   // waiting on the world
+    case 'partial': return 9;
+    case 'declined': return 10;    // settled, by choice
+    case 'available': return 11;   // settled, happily
+    default: return 6;
+  }
+}

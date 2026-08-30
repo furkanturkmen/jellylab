@@ -1,4 +1,4 @@
-import { requestProgress, requestState, statePercent, STALLED_AFTER_DAYS } from '../requests';
+import { attention, requestProgress, requestState, statePercent, STALLED_AFTER_DAYS } from '../requests';
 
 const DAY = 86_400_000;
 const NOW = Date.parse('2026-08-26T12:00:00.000Z');
@@ -373,5 +373,40 @@ describe('requestState, a season part-way through', () => {
       media: { tmdbId: 9, mediaType: 'tv', status: 3 },
     });
     expect(requestState(r, NOW, airing(5, 8)).kind).toBe('airing');
+  });
+});
+
+describe('attention', () => {
+  it('puts what needs a person above what is merely going wrong', () => {
+    expect(attention({ kind: 'pending' }))
+      .toBeLessThan(attention({ kind: 'stalled', percent: 0.5 }));
+  });
+
+  it('puts anything unresolved above anything settled', () => {
+    // Two thirds of this library is available. If it did not sink, the list
+    // would be mostly the state nobody acts on.
+    const settled = attention({ kind: 'available' });
+    for (const s of [
+      { kind: 'pending' },
+      { kind: 'failed' },
+      { kind: 'stalled', percent: 0.5 },
+      { kind: 'downloading', percent: 0.5 },
+      { kind: 'importing' },
+      { kind: 'searching', days: 0, overdue: false },
+    ] as any[]) {
+      expect(attention(s)).toBeLessThan(settled);
+    }
+  });
+
+  it('raises a search that has found nothing above one still running', () => {
+    expect(attention({ kind: 'searching', days: 9, overdue: true } as any))
+      .toBeLessThan(attention({ kind: 'searching', days: 9, overdue: false } as any));
+  });
+
+  it('keeps a rejected request above nothing but success', () => {
+    // Settled by choice, so it belongs with the quiet end - but it is still a
+    // decision someone made, and sits above the ones that simply worked.
+    expect(attention({ kind: 'declined' }))
+      .toBeLessThan(attention({ kind: 'available' }));
   });
 });

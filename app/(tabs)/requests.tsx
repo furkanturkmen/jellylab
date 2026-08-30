@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, AppState, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,7 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/lib/date';
 import { formatPercent } from '@/lib/percent';
 import { qualityFromLabel } from '@/lib/quality';
-import { requestState, statePercent } from '@/lib/requests';
+import { attention, requestState, statePercent } from '@/lib/requests';
 import { averageSpeed, formatEta } from '@/lib/download';
 import { formatBytes } from '@/lib/bytes';
 import { loadPrefs } from '@/store/prefs';
@@ -200,6 +200,20 @@ export default function RequestsScreen() {
    * being something to watch: with nothing downloading this costs nothing, and
    * it stops on its own once the last one finishes.
    */
+  /*
+   * Sorted by how much attention each wants.
+   *
+   * Two thirds of these are available, so the list was mostly the state nobody
+   * acts on with the few that need something scattered through it. Ties keep
+   * Jellyseerr's order, which is newest first, so within a group the recent
+   * ones lead.
+   */
+  const ordered = useMemo(() => {
+    const scored = items.map((r, i) => ({ r, i, a: attention(requestState(r, undefined, downloads)) }));
+    scored.sort((x, y) => x.a - y.a || x.i - y.i);
+    return scored.map(x => x.r);
+  }, [items, downloads]);
+
   const anyDownloading =
     items.some(r => (r.media.downloadStatus ?? []).length > 0) ||
     Object.keys(downloads?.tv ?? {}).length > 0 ||
@@ -226,7 +240,7 @@ export default function RequestsScreen() {
     <View style={styles.root}>
       <StatusBar style="light" />
       <Animated.FlatList
-        data={items}
+        data={ordered}
         keyExtractor={(r: EnrichedRequest) => String(r.id)}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => load()} tintColor={colors.text} progressViewOffset={headerHeight} />}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
@@ -688,7 +702,14 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
   },
-  pillGood: { backgroundColor: colors.successTint, borderColor: colors.successBorder },
+  /*
+   * Quieter than the rest, deliberately.
+   *
+   * Two thirds of the list is available, and colour is only worth anything if
+   * it marks what needs looking at. A saturated green on the majority state
+   * made the exceptions harder to find, which is the opposite of the point.
+   */
+  pillGood: { backgroundColor: 'transparent', borderColor: colors.successBorder },
   pillNeutral: { backgroundColor: colors.pillNeutralTint, borderColor: colors.pillNeutralBorder },
   pillWait: { backgroundColor: colors.pillWaitTint, borderColor: colors.pillWaitBorder },
   pillWarn: { backgroundColor: colors.pillWarnTint, borderColor: colors.pillWarnBorder },
