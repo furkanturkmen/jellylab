@@ -342,24 +342,32 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
       ? t('requests.state.searchingDays', { count: state.days })
       : state.kind === 'unreleased'
         /*
-         * With the date when there is one. "Not out yet" leaves the useful
-         * half unsaid - a wait until next month and a wait until 2027 are the
-         * same sentence otherwise. "In cinemas" is kept where that is the
-         * reason, since it says something the date does not.
+         * One shape for everything that has not happened yet.
+         *
+         * There were eight labels here - "Not out yet", "In cinemas", each
+         * with and without a date, and the two television equivalents - and
+         * they all answered the same question with different words. Two cards
+         * side by side read "IN CINEMAS - 15-11-2026" and "NOT OUT YET -
+         * 02-09-2026", which is one fact dressed two ways.
+         *
+         * The date is the fact. Where it is showing right now is trivia to an
+         * app that will fetch it when it can be fetched.
          */
         ? state.date
-          ? t(state.status === 'inCinemas' ? 'requests.state.unreleasedCinemasOn' : 'requests.state.unreleasedOn',
-              { date: formatDate(state.date) })
-          : t(state.status === 'inCinemas' ? 'requests.state.unreleasedCinemas' : 'requests.state.unreleased')
+          ? t('requests.state.expectedOn', { date: formatDate(state.date) })
+          : t('requests.state.expected')
         : state.kind === 'airing'
           /*
-           * Nothing aired yet is a different thing from part-way through.
-           * The Rookie season nine has none of eighteen and is not due until
-           * 2027; "Airing · 0/18" reads as a season underway that has somehow
-           * produced nothing.
+           * Nothing aired yet is not part-way through. The Rookie season nine
+           * has none of eighteen and is not due until 2027; "Airing 0/18"
+           * reads as a season underway that has somehow produced nothing - so
+           * it joins the expected group, while a season genuinely part-way
+           * keeps its count, which says something a date cannot.
            */
           ? state.aired === 0
-            ? t('requests.state.notAiredOn', { date: formatDate(state.next) })
+            ? state.next
+              ? t('requests.state.expectedOn', { date: formatDate(state.next) })
+              : t('requests.state.expected')
             : t('requests.state.airingNext', { aired: state.aired, total: state.total, date: formatDate(state.next) })
           : t(`requests.state.${state.kind}`, { defaultValue: '' });
   const pills = label ? [label] : [];
