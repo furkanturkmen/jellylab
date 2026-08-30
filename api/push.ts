@@ -87,6 +87,12 @@ export type DownloadProgress = {
   /** Sonarr knows this; a percentage cannot say it */
   stalled: boolean;
   title: string | null;
+  /** when it was added to the queue, ISO */
+  added?: string | null;
+  /** Sonarr's own ETA, "HH:MM:SS" */
+  timeLeft?: string | null;
+  indexer?: string | null;
+  client?: string | null;
 };
 
 /** A film Radarr is deliberately not searching for yet. */

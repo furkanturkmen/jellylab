@@ -14,6 +14,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/lib/date';
 import { formatPercent } from '@/lib/percent';
 import { requestState, statePercent } from '@/lib/requests';
+import { averageSpeed, elapsedSince } from '@/lib/download';
+import { formatBytes } from '@/lib/bytes';
 import { loadPrefs } from '@/store/prefs';
 import { getSeerrError } from '@/store/seerrStatus';
 import { type JellyseerrRequest } from '@/types';
@@ -264,6 +266,30 @@ function RequestCard({ r, onOpen, downloads }: {
    * what made a download at 99.7% announce itself as finished.
    */
   const fraction = statePercent(state);
+
+  /*
+   * The detail line under the bar.
+   *
+   * Only for something actually being fetched: on an available or unreleased
+   * request there is nothing to say, and a row of dashes is worse than a blank.
+   *
+   * Speed is an average since it started rather than a live reading - see
+   * lib/download for why that is both easier and more useful. Each piece is
+   * dropped rather than faked when it cannot be known, so the line shortens
+   * instead of lying.
+   */
+  const live = state.kind === 'downloading' || state.kind === 'stalled'
+    ? (r.media.mediaType === 'movie' ? downloads?.movies : downloads?.tv)?.[String(r.media.tmdbId)]
+    : undefined;
+  const speed = live ? averageSpeed(live.size, live.sizeLeft, live.added) : null;
+  const detail = live
+    ? [
+        live.size ? formatBytes(live.size) : null,
+        speed != null ? `${formatBytes(speed)}/s` : null,
+        elapsedSince(live.added),
+        live.indexer?.replace(/\s*\(Prowlarr\)\s*$/, '') ?? null,
+      ].filter(Boolean).join(' · ')
+    : null;
   const pct = fraction != null ? Math.round(fraction * 100) : null;
   const pctLabel = formatPercent(fraction);
   // one entry has a real ETA; a season pack split over many does not
@@ -339,6 +365,7 @@ function RequestCard({ r, onOpen, downloads }: {
             ))}
           </View>
           {pct !== null ? (
+            <>
             <View style={styles.progressWrap}>
               <View style={styles.barTrack}>
                 <View style={[styles.barFill, { width: `${pct}%` }]} />
@@ -347,6 +374,8 @@ function RequestCard({ r, onOpen, downloads }: {
                 {pctLabel}{timeLeft && timeLeft !== '00:00:00' ? ` · ${timeLeft}` : ''}
               </Text>
             </View>
+            {detail ? <Text style={styles.detail} numberOfLines={1}>{detail}</Text> : null}
+            </>
           ) : (
             <Text style={styles.by}>
               {r.requestedBy.displayName} · {formatDate(r.createdAt)}
@@ -358,7 +387,9 @@ function RequestCard({ r, onOpen, downloads }: {
   );
 }
 
-const CARD_HEIGHT = 140;
+// Room for the detail line under the bar. Fixed rather than measured because
+// the list is virtualised and a varying height makes it jump while scrolling.
+const CARD_HEIGHT = 156;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
@@ -414,4 +445,6 @@ const styles = StyleSheet.create({
   barTrack: { flex: 1, height: 5, borderRadius: 3, backgroundColor: colors.surface, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 3, backgroundColor: colors.successBorder },
   progressText: { ...t.caption, color: colors.textMuted, minWidth: 34, textAlign: 'right' },
+  // Dimmer than the percentage: it is context for the bar, not the headline.
+  detail: { ...t.caption, color: colors.textDim, marginTop: 2 },
 });
