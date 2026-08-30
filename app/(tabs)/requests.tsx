@@ -243,13 +243,16 @@ function RequestCard({ r, onOpen, downloads }: {
   // an impure call, and the default inside requestProgress is the same clock.
   const progress = requestProgress(r, undefined, downloads);
   const queue = r.media.downloadStatus ?? [];
-  const totals = queue.reduce<{ size: number; left: number }>(
-    (acc, d) => ({ size: acc.size + (d.size ?? 0), left: acc.left + (d.sizeLeft ?? 0) }),
-    { size: 0, left: 0 }
-  );
-  // Floored and given a decimal near the end - see lib/percent. Rounding is
-  // what made a download at 99.7% announce itself as finished.
-  const fraction = totals.size > 0 ? (totals.size - totals.left) / totals.size : null;
+  /*
+   * The figure comes from whichever source answered, which is the whole point:
+   * requestProgress already decided between them, so recomputing it from
+   * Jellyseerr's queue here would throw that away - and did. The state said
+   * "downloading" while the bar drew from an empty array and rendered nothing.
+   *
+   * Floored and given a decimal near the end - see lib/percent. Rounding is
+   * what made a download at 99.7% announce itself as finished.
+   */
+  const fraction = progress.state === 'downloading' ? progress.percent : null;
   const pct = fraction != null ? Math.round(fraction * 100) : null;
   const pctLabel = formatPercent(fraction);
   // one entry has a real ETA; a season pack split over many does not
