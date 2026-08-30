@@ -129,7 +129,7 @@
       "nothingWhy": "Alle Indexer kamen leer zuruck. Sonarr und Radarr suchen weiter, aber es gibt noch nichts zu finden.",
       "reject": "Anfrage ablehnen",
       "rejectFailed": "Ablehnen fehlgeschlagen",
-      "rejectWhy": "Bleibt erhalten, die Suche endet. In Jellyseerr widerrufbar.",
+      "rejectWhy": "Bleibt erhalten, und die Suche endet. Umkehrbar.",
       "rejecting": "Wird abgelehnt…",
       "satisfied": "Es gibt nichts Besseres zu holen",
       "score": "Wert {{score}}",

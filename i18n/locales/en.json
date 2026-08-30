@@ -129,7 +129,7 @@
       "nothingWhy": "Every indexer returned nothing. Sonarr and Radarr keep looking, but there is nothing to find yet.",
       "reject": "Reject this request",
       "rejectFailed": "Could not reject it",
-      "rejectWhy": "Keeps the record, stops the searching. Undo it in Jellyseerr.",
+      "rejectWhy": "Keeps the record, and stops Sonarr looking for it. Reversible.",
       "rejecting": "Rejecting…",
       "satisfied": "Nothing better to fetch",
       "score": "score {{score}}",

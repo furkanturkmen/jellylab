@@ -278,3 +278,34 @@ export async function candidates(
   if (!res.ok) throw new Error(`Server returned ${res.status}`);
   return res.json();
 }
+
+/**
+ * Stop, or resume, Sonarr or Radarr looking for a title.
+ *
+ * The one write this service does, and the smallest one that makes rejecting
+ * mean anything. Declining in Jellyseerr closes the request and nothing else:
+ * Sonarr kept all ten episodes of a show with no releases anywhere monitored
+ * and went on querying eight indexers for it every thirty minutes. The red
+ * pill said stopped and nothing had.
+ *
+ * It sets `monitored` and touches nothing else - it cannot grab, delete or
+ * blocklist - and every call is undone by the opposite call, which is what
+ * un-rejecting does.
+ *
+ * Television needs the season: a request is filed per season, and unmonitoring
+ * the whole series would stop searches for seasons nobody rejected.
+ */
+export async function setMonitored(
+  url: string,
+  tmdbId: number,
+  mediaType: 'movie' | 'tv',
+  monitored: boolean,
+  season?: number,
+): Promise<void> {
+  const res = await fetch(`${base(url)}/monitor`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tmdbId, type: mediaType, monitored, season }),
+  });
+  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+}

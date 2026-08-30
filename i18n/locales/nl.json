@@ -129,7 +129,7 @@
       "nothingWhy": "Alle indexers kwamen leeg terug. Sonarr en Radarr blijven zoeken, maar er is nog niets te vinden.",
       "reject": "Verzoek afwijzen",
       "rejectFailed": "Afwijzen mislukt",
-      "rejectWhy": "Blijft bewaard, maar er wordt niet meer gezocht. Ongedaan maken kan in Jellyseerr.",
+      "rejectWhy": "Blijft bewaard en Sonarr stopt met zoeken. Omkeerbaar.",
       "rejecting": "Bezig met afwijzen…",
       "satisfied": "Er is niets beters te halen",
       "score": "score {{score}}",

@@ -113,7 +113,10 @@ export function ReleaseCheck({
             <Summary
               v={state.v}
               raw={state.raw}
+              url={url}
               tmdbId={tmdbId}
+              mediaType={mediaType}
+              season={season}
               requestId={requestId}
               isRejected={isRejected}
               onRejected={onRejected}
@@ -126,10 +129,13 @@ export function ReleaseCheck({
   );
 }
 
-function Summary({ v, raw, tmdbId, requestId, isRejected, onRejected, onUnrejected }: {
+function Summary({ v, raw, url, tmdbId, mediaType, season, requestId, isRejected, onRejected, onUnrejected }: {
   v: Verdict;
   raw: Push.Candidates;
+  url: string;
   tmdbId: number;
+  mediaType: 'movie' | 'tv';
+  season?: number;
   requestId?: number;
   isRejected?: boolean;
   onRejected?: (reason: string) => void;
@@ -170,6 +176,9 @@ function Summary({ v, raw, tmdbId, requestId, isRejected, onRejected, onUnreject
     setRejectError(null);
     try {
       await Jellyseerr.approveRequest(requestId);
+      // Put it back in front of the *arrs, or approving would restore the
+      // record and leave nothing looking for it.
+      await Push.setMonitored(url, tmdbId, mediaType, true, season).catch(() => {});
       // The stored reason goes with it, or the card would keep explaining a
       // rejection that no longer exists.
       const prefs = await loadPrefs();
@@ -190,6 +199,20 @@ function Summary({ v, raw, tmdbId, requestId, isRejected, onRejected, onUnreject
     setRejectError(null);
     try {
       await Jellyseerr.declineRequest(requestId);
+      /*
+       * And actually stop the searching.
+       *
+       * Declining closes the record in Jellyseerr and nothing more - Sonarr
+       * and Radarr carry on regardless. Without this the pill went red while
+       * eight indexers were queried every thirty minutes for something that
+       * does not exist.
+       *
+       * Failing here must not undo the decline: the request is closed either
+       * way, and a title still being searched for is a smaller problem than a
+       * button that half worked and reported an error.
+       */
+      await Push.setMonitored(url, tmdbId, mediaType, false, season)
+        .catch(() => {});
       const prefs = await loadPrefs();
       await savePrefs({
         ...prefs,

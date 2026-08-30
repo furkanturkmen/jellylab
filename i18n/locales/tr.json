@@ -129,7 +129,7 @@
       "nothingWhy": "Tum indeksleyiciler bos dondu. Sonarr ve Radarr aramaya devam ediyor ama henuz bulunacak bir sey yok.",
       "reject": "Istegi reddet",
       "rejectFailed": "Reddedilemedi",
-      "rejectWhy": "Kayit kalir, arama durur. Jellyseerr uzerinden geri alinabilir.",
+      "rejectWhy": "Kayit kalir, arama durur. Geri alinabilir.",
       "rejecting": "Reddediliyor…",
       "satisfied": "Daha iyisi yok",
       "score": "puan {{score}}",
