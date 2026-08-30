@@ -404,7 +404,16 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
    * both describing a thing that is not happening. One line, so the useful
    * sentence takes it.
    */
-  const stalledWhy = state.kind === 'stalled' ? live?.error ?? null : null;
+  const stalledWhy = state.kind !== 'stalled'
+    ? null
+    // Seed counts say it shorter and with a number. Sonarr's sentence - "The
+    // download is stalled with no connections" - is thirty-nine characters
+    // longer than the card is wide, so it arrived truncated to "...no
+    // connecti" and the reader had to already know the ending. "0 of 14 seeds"
+    // fits, and says how dead the swarm is rather than only that it is.
+    : live?.seeders != null && live?.seedersTotal != null
+      ? t('requests.seedsOf', { seeders: live.seeders, total: live.seedersTotal })
+      : live?.error ?? null;
 
   /*
    * The quality, as a pill beside the state rather than buried in the detail
@@ -537,13 +546,24 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
             <>
             <View style={styles.progressWrap}>
               <View style={styles.barTrack}>
-                <View style={[styles.barFill, { width: `${pct}%` }]} />
+                <View style={[
+                  styles.barFill,
+                  { width: `${pct}%` },
+                  // A stalled download drawn in the same green as a healthy
+                  // one says the wrong thing at a glance, which is the only
+                  // glance a list gets.
+                  state.kind === 'stalled' && styles.barFillStalled,
+                ]} />
               </View>
               <Text style={styles.progressText}>
                 {pctLabel}{timeLeft && timeLeft !== '00:00:00' ? ` · ${timeLeft}` : ''}
               </Text>
             </View>
-            {detail ? <Text style={styles.detail} numberOfLines={1}>{detail}</Text> : null}
+            {detail ? (
+              // Two lines when it is a sentence rather than a row of figures:
+              // a truncated explanation explains nothing.
+              <Text style={styles.detail} numberOfLines={stalledWhy ? 2 : 1}>{detail}</Text>
+            ) : null}
             </>
           ) : detail ? (
             <Text style={styles.detail} numberOfLines={2}>{detail}</Text>
@@ -638,6 +658,9 @@ const styles = StyleSheet.create({
   progressWrap: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
   barTrack: { flex: 1, height: 5, borderRadius: 3, backgroundColor: colors.surface, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 3, backgroundColor: colors.successBorder },
+  // Muted rather than alarming: stalled is not broken, and a torrent that
+  // has lost its peers usually finds them again.
+  barFillStalled: { backgroundColor: colors.textDim },
   progressText: { ...t.caption, color: colors.textMuted, minWidth: 34, textAlign: 'right' },
   // Legible rather than decorative: this is the line you read to find out how
   // a download is going, so it carries weight and sits at muted rather than dim.
