@@ -246,8 +246,16 @@ function RequestCard({ r, onOpen, downloads }: {
     state.kind === 'searching' && state.days > 0
       ? t('requests.state.searchingDays', { count: state.days })
       : state.kind === 'unreleased'
-        // "In cinemas" is more use than "not out yet" when that is why.
-        ? t(state.status === 'inCinemas' ? 'requests.state.unreleasedCinemas' : 'requests.state.unreleased')
+        /*
+         * With the date when there is one. "Not out yet" leaves the useful
+         * half unsaid - a wait until next month and a wait until 2027 are the
+         * same sentence otherwise. "In cinemas" is kept where that is the
+         * reason, since it says something the date does not.
+         */
+        ? state.date
+          ? t(state.status === 'inCinemas' ? 'requests.state.unreleasedCinemasOn' : 'requests.state.unreleasedOn',
+              { date: formatDate(state.date) })
+          : t(state.status === 'inCinemas' ? 'requests.state.unreleasedCinemas' : 'requests.state.unreleased')
         : state.kind === 'airing'
           /*
            * Nothing aired yet is a different thing from part-way through.
@@ -256,8 +264,8 @@ function RequestCard({ r, onOpen, downloads }: {
            * produced nothing.
            */
           ? state.aired === 0
-            ? t('requests.state.notAired')
-            : t('requests.state.airing', { aired: state.aired, total: state.total })
+            ? t('requests.state.notAiredOn', { date: formatDate(state.next) })
+            : t('requests.state.airingNext', { aired: state.aired, total: state.total, date: formatDate(state.next) })
           : t(`requests.state.${state.kind}`, { defaultValue: '' });
   const pills = label ? [label] : [];
 

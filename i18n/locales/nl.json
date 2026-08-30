@@ -152,7 +152,11 @@
       "unreleased": "Nog niet uit",
       "unreleasedCinemas": "In de bioscoop",
       "airing": "Loopt nog · {{aired}}/{{total}}",
-      "notAired": "Nog niet uitgezonden"
+      "notAired": "Nog niet uitgezonden",
+      "airingNext": "Loopt nog · {{aired}}/{{total}} · volgende {{date}}",
+      "notAiredOn": "Nog niet uitgezonden · {{date}}",
+      "unreleasedOn": "Nog niet uit · {{date}}",
+      "unreleasedCinemasOn": "In de bioscoop · {{date}}"
     }
   },
   "detail": {

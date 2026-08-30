@@ -152,7 +152,11 @@
       "unreleased": "Noch nicht erschienen",
       "unreleasedCinemas": "Im Kino",
       "airing": "Läuft noch · {{aired}}/{{total}}",
-      "notAired": "Noch nicht ausgestrahlt"
+      "notAired": "Noch nicht ausgestrahlt",
+      "airingNext": "Läuft noch · {{aired}}/{{total}} · nächste {{date}}",
+      "notAiredOn": "Noch nicht ausgestrahlt · {{date}}",
+      "unreleasedOn": "Noch nicht erschienen · {{date}}",
+      "unreleasedCinemasOn": "Im Kino · {{date}}"
     }
   },
   "detail": {

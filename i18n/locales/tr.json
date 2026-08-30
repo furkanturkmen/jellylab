@@ -152,7 +152,11 @@
       "unreleased": "Henüz çıkmadı",
       "unreleasedCinemas": "Sinemalarda",
       "airing": "Yayında · {{aired}}/{{total}}",
-      "notAired": "Henüz yayınlanmadı"
+      "notAired": "Henüz yayınlanmadı",
+      "airingNext": "Yayında · {{aired}}/{{total}} · sonraki {{date}}",
+      "notAiredOn": "Henüz yayınlanmadı · {{date}}",
+      "unreleasedOn": "Henüz çıkmadı · {{date}}",
+      "unreleasedCinemasOn": "Sinemalarda · {{date}}"
     }
   },
   "detail": {

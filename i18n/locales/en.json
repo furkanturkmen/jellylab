@@ -152,7 +152,11 @@
       "unreleased": "Not out yet",
       "unreleasedCinemas": "In cinemas",
       "airing": "Airing · {{aired}}/{{total}}",
-      "notAired": "Not aired yet"
+      "notAired": "Not aired yet",
+      "airingNext": "Airing · {{aired}}/{{total}} · next {{date}}",
+      "notAiredOn": "Not aired yet · {{date}}",
+      "unreleasedOn": "Not out yet · {{date}}",
+      "unreleasedCinemasOn": "In cinemas · {{date}}"
     }
   },
   "detail": {
