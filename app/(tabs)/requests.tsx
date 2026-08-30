@@ -7,11 +7,13 @@ import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyseerr from '@/api/jellyseerr';
+import * as Push from '@/api/push';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/lib/date';
 import { formatPercent } from '@/lib/percent';
 import { requestProgress } from '@/lib/requests';
+import { loadPrefs } from '@/store/prefs';
 import { getSeerrError } from '@/store/seerrStatus';
 import { type JellyseerrRequest } from '@/types';
 import { colors, radius, spacing, type as t } from '@/theme';
@@ -40,6 +42,20 @@ export default function RequestsScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const { state } = useAuth();
   const signedIn = state.status === 'signed-in';
+
+  /**
+   * jellylab-push's view of the download queues.
+   *
+   * Jellyseerr carries a queue on each request already, but it asks Sonarr for
+   * only the first page of it - and Sonarr queues one row per episode, so a
+   * single season pack fills that page and hides everything behind it. This
+   * service pages through the whole thing.
+   *
+   * Null until it answers, and null again if it cannot: the service is
+   * optional, its URL may never have been set, and the screen has to work
+   * without it exactly as it did before.
+   */
+  const [downloads, setDownloads] = useState<Push.Downloads | null>(null);
   const [items, setItems] = useState<EnrichedRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +91,18 @@ export default function RequestsScreen() {
       );
       setItems(enriched);
       setError(null);
+
+      /*
+       * Asked for after the list rather than with it, and never allowed to
+       * break it: this is a nicety on top of a screen that has to render
+       * whether or not the homelab service is reachable.
+       */
+      try {
+        const { pushUrl } = await loadPrefs();
+        setDownloads(pushUrl ? await Push.downloads(pushUrl) : null);
+      } catch {
+        setDownloads(null);
+      }
     } catch (e) {
       // This used to be try/finally with no catch, so a rejection escaped as an
       // unhandled promise and showed up as a red screen at launch. The root
@@ -128,7 +156,10 @@ export default function RequestsScreen() {
    * being something to watch: with nothing downloading this costs nothing, and
    * it stops on its own once the last one finishes.
    */
-  const anyDownloading = items.some(r => (r.media.downloadStatus ?? []).length > 0);
+  const anyDownloading =
+    items.some(r => (r.media.downloadStatus ?? []).length > 0) ||
+    Object.keys(downloads?.tv ?? {}).length > 0 ||
+    Object.keys(downloads?.movies ?? {}).length > 0;
   useEffect(() => {
     if (!anyDownloading) return;
     const id = setInterval(() => {
@@ -158,7 +189,7 @@ export default function RequestsScreen() {
         scrollEventThrottle={16}
         ListHeaderComponent={<View style={{ height: headerHeight }} />}
         renderItem={({ item }: { item: EnrichedRequest }) => (
-          <RequestCard r={item} onOpen={() => router.push(`/tmdb/${item.media.mediaType}/${item.media.tmdbId}`)} />
+          <RequestCard r={item} downloads={downloads} onOpen={() => router.push(`/tmdb/${item.media.mediaType}/${item.media.tmdbId}`)} />
         )}
         ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
         contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 150 }}
@@ -173,7 +204,12 @@ export default function RequestsScreen() {
   );
 }
 
-function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) {
+function RequestCard({ r, onOpen, downloads }: {
+  r: EnrichedRequest;
+  onOpen: () => void;
+  /** the whole-queue view from jellylab-push, when it answered */
+  downloads: Push.Downloads | null;
+}) {
   const { t } = useTranslation();
   const requestStatus = t(`requests.status.${r.status}`, { defaultValue: '?' });
   const mediaStatus = t(`requests.mediaStatus.${r.media.status}`, { defaultValue: '?' });
@@ -182,10 +218,13 @@ function RequestCard({ r, onOpen }: { r: EnrichedRequest; onOpen: () => void }) 
   // and nothing shown twice when they agree.
   const pills = [...new Set([available ? mediaStatus : requestStatus, mediaStatus])];
 
-  // Seerr carries the Sonarr/Radarr queue on each request, and those read their
-  // figures straight from qBittorrent - so this is the same percentage the
-  // torrent client shows, without the app needing to talk to it.
-  const progress = requestProgress(r);
+  // Both sources read their figures from qBittorrent by way of Sonarr or
+  // Radarr, so either way this is the percentage the torrent client shows.
+  // jellylab-push is preferred because it reads the whole queue; Jellyseerr
+  // sees only its first page. See lib/requests.
+  // undefined rather than Date.now(): reading the clock in a render body is
+  // an impure call, and the default inside requestProgress is the same clock.
+  const progress = requestProgress(r, undefined, downloads);
   const queue = r.media.downloadStatus ?? [];
   const totals = queue.reduce<{ size: number; left: number }>(
     (acc, d) => ({ size: acc.size + (d.size ?? 0), left: acc.left + (d.sizeLeft ?? 0) }),

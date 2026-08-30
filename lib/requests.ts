@@ -1,3 +1,4 @@
+import type { DownloadProgress, Downloads } from '@/api/push';
 import type { JellyseerrRequest } from '@/types';
 
 /** Jellyseerr's own numbers, named. */
@@ -12,9 +13,22 @@ export const MEDIA_PROCESSING = 3;
 export const STALLED_AFTER_DAYS = 3;
 
 export type RequestProgress =
-  | { state: 'downloading'; percent: number | null }
+  | { state: 'downloading'; percent: number | null; stalled?: boolean; status?: string | null }
   | { state: 'waiting'; days: number; stalled: boolean }
   | { state: 'other' };
+
+/**
+ * The download jellylab-push knows about for this request, if any.
+ *
+ * Matched on TMDB id, which both sides key on. Movies and series are kept in
+ * separate maps because the two id spaces overlap - TMDB 1399 is a film and
+ * also a series, and they are not the same thing.
+ */
+function fromPush(request: JellyseerrRequest, push?: Downloads | null): DownloadProgress | null {
+  if (!push) return null;
+  const table = request.media.mediaType === 'movie' ? push.movies : push.tv;
+  return table?.[String(request.media.tmdbId)] ?? null;
+}
 
 /**
  * What is actually happening to a request.
@@ -25,8 +39,31 @@ export type RequestProgress =
  * knows the difference: an empty `downloadStatus` means Radarr or Sonarr has
  * nothing queued, and `createdAt` says how long that has been true.
  */
-export function requestProgress(request: JellyseerrRequest, now: number = Date.now()): RequestProgress {
+export function requestProgress(
+  request: JellyseerrRequest,
+  now: number = Date.now(),
+  /**
+   * jellylab-push's view of the *arr queues, when it could be reached.
+   *
+   * Preferred over Jellyseerr's because it reads the whole queue rather than
+   * the first page of it. Absent - the service is down, or its URL was never
+   * configured - and everything falls back to what Jellyseerr says, which is
+   * right more often than not and was the only source before this existed.
+   */
+  push?: Downloads | null,
+): RequestProgress {
   const media = request.media;
+
+  const live = fromPush(request, push);
+  if (live) {
+    return {
+      state: 'downloading',
+      percent: live.percent,
+      stalled: live.stalled,
+      status: live.status,
+    };
+  }
+
   const queue = media.downloadStatus ?? [];
 
   if (queue.length > 0) {
