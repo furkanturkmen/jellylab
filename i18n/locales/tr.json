@@ -150,7 +150,9 @@
       "partial": "Kısmen mevcut",
       "available": "Mevcut",
       "unreleased": "Henüz çıkmadı",
-      "unreleasedCinemas": "Sinemalarda"
+      "unreleasedCinemas": "Sinemalarda",
+      "airing": "Yayında · {{aired}}/{{total}}",
+      "notAired": "Henüz yayınlanmadı"
     }
   },
   "detail": {

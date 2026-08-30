@@ -150,7 +150,9 @@
       "partial": "Partly available",
       "available": "Available",
       "unreleased": "Not out yet",
-      "unreleasedCinemas": "In cinemas"
+      "unreleasedCinemas": "In cinemas",
+      "airing": "Airing · {{aired}}/{{total}}",
+      "notAired": "Not aired yet"
     }
   },
   "detail": {

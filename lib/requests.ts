@@ -123,6 +123,8 @@ export type RequestState =
    * identical, and only one of them is worth worrying about.
    */
   | { kind: 'unreleased'; status: string | null; date: string | null }
+  /** A season still being broadcast. `next` is when the following episode is due. */
+  | { kind: 'airing'; aired: number; total: number; next: string }
   /** Approved, nothing found yet. `days` is how long that has been true. */
   | { kind: 'searching'; days: number; overdue: boolean }
   | { kind: 'partial' }
@@ -180,6 +182,23 @@ export function requestState(
    * care: digital, then physical, then the cinema date - which is at least a
    * marker of how long the wait has already been.
    */
+  /*
+   * A season still going out. Checked alongside the film case and for the same
+   * reason - and against the seasons this request actually covers, since a
+   * request for series one says nothing about series two still airing.
+   */
+  if (media.mediaType === 'tv') {
+    const show = push?.airing?.[String(media.tmdbId)];
+    if (show) {
+      const wanted = (request.seasons ?? []).map(x => String(x.seasonNumber));
+      const keys = wanted.length > 0 ? wanted : Object.keys(show.seasons);
+      for (const k of keys) {
+        const season = show.seasons[k];
+        if (season) return { kind: 'airing', aired: season.aired, total: season.total, next: season.nextAiring };
+      }
+    }
+  }
+
   const pending = push?.unreleased?.[String(media.tmdbId)];
   if (pending && media.mediaType === 'movie') {
     return {

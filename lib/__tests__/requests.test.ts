@@ -235,3 +235,52 @@ describe('requestState, not out yet', () => {
     expect(requestState(tv, NOW, withUnreleased()).kind).toBe('searching');
   });
 });
+
+/**
+ * A season still being broadcast is not a search going wrong either.
+ *
+ * The Rookie season nine has none of its eighteen episodes and is not due
+ * until 2027; nothing is looking for it and nothing should be.
+ */
+describe('requestState, still airing', () => {
+  const airing = (seasons: any) => ({
+    tv: {}, movies: {},
+    airing: { 79744: { status: 'continuing', seasons } },
+  }) as any;
+
+  const rookie = (seasons?: any[]) => request({
+    status: 2,
+    seasons,
+    media: { tmdbId: 79744, mediaType: 'tv', status: 3, downloadStatus: [] },
+  });
+
+  it('reports a season that has not started', () => {
+    const p = requestState(rookie([{ seasonNumber: 9 }]), NOW,
+      airing({ 9: { aired: 0, total: 18, nextAiring: '2027-01-06T00:00:00Z' } }));
+    expect(p).toEqual({ kind: 'airing', aired: 0, total: 18, next: '2027-01-06T00:00:00Z' });
+  });
+
+  it('reports one part way through', () => {
+    const p = requestState(rookie([{ seasonNumber: 4 }]), NOW,
+      airing({ 4: { aired: 5, total: 8, nextAiring: '2026-09-02T07:00:00Z' } }));
+    expect(p).toMatchObject({ kind: 'airing', aired: 5, total: 8 });
+  });
+
+  it('only looks at the seasons the request covers', () => {
+    // A request for season one says nothing about season nine still airing.
+    const p = requestState(rookie([{ seasonNumber: 1 }]), NOW,
+      airing({ 9: { aired: 0, total: 18, nextAiring: '2027-01-06T00:00:00Z' } }));
+    expect(p.kind).toBe('searching');
+  });
+
+  it('lets a download outrank it', () => {
+    const push = { ...airing({ 4: { aired: 5, total: 8, nextAiring: '2026-09-02T07:00:00Z' } }),
+      tv: { 79744: { size: 100, sizeLeft: 40, percent: 0.6, status: 'downloading', stalled: false } } } as any;
+    expect(requestState(rookie([{ seasonNumber: 4 }]), NOW, push).kind).toBe('downloading');
+  });
+
+  it('does not apply to films', () => {
+    const film = request({ status: 2, media: { tmdbId: 79744, mediaType: 'movie', status: 3, downloadStatus: [] } });
+    expect(requestState(film, NOW, airing({ 1: { aired: 0, total: 8, nextAiring: 'x' } })).kind).toBe('searching');
+  });
+});

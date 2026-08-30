@@ -150,7 +150,9 @@
       "partial": "Deels beschikbaar",
       "available": "Beschikbaar",
       "unreleased": "Nog niet uit",
-      "unreleasedCinemas": "In de bioscoop"
+      "unreleasedCinemas": "In de bioscoop",
+      "airing": "Loopt nog · {{aired}}/{{total}}",
+      "notAired": "Nog niet uitgezonden"
     }
   },
   "detail": {

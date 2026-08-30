@@ -248,7 +248,17 @@ function RequestCard({ r, onOpen, downloads }: {
       : state.kind === 'unreleased'
         // "In cinemas" is more use than "not out yet" when that is why.
         ? t(state.status === 'inCinemas' ? 'requests.state.unreleasedCinemas' : 'requests.state.unreleased')
-        : t(`requests.state.${state.kind}`, { defaultValue: '' });
+        : state.kind === 'airing'
+          /*
+           * Nothing aired yet is a different thing from part-way through.
+           * The Rookie season nine has none of eighteen and is not due until
+           * 2027; "Airing · 0/18" reads as a season underway that has somehow
+           * produced nothing.
+           */
+          ? state.aired === 0
+            ? t('requests.state.notAired')
+            : t('requests.state.airing', { aired: state.aired, total: state.total })
+          : t(`requests.state.${state.kind}`, { defaultValue: '' });
   const pills = label ? [label] : [];
 
   // Both sources read their figures from qBittorrent by way of Sonarr or
@@ -325,7 +335,9 @@ function RequestCard({ r, onOpen, downloads }: {
           lit daylight exteriors - so the middle stop sits darker than it needs
           to for backdrops alone. The title and pills sit in that band. */}
       <LinearGradient
-        colors={['rgba(10,10,10,0.88)', 'rgba(10,10,10,0.68)', 'rgba(10,10,10,0.88)']}
+        // Darker than it was: the backdrop is decoration behind text, and at
+        // the old weights a bright still made the title and pill hard to read.
+        colors={['rgba(10,10,10,0.94)', 'rgba(10,10,10,0.82)', 'rgba(10,10,10,0.94)']}
         locations={[0, 0.5, 1]}
         style={StyleSheet.absoluteFill}
       />
@@ -445,6 +457,7 @@ const styles = StyleSheet.create({
   barTrack: { flex: 1, height: 5, borderRadius: 3, backgroundColor: colors.surface, overflow: 'hidden' },
   barFill: { height: '100%', borderRadius: 3, backgroundColor: colors.successBorder },
   progressText: { ...t.caption, color: colors.textMuted, minWidth: 34, textAlign: 'right' },
-  // Dimmer than the percentage: it is context for the bar, not the headline.
-  detail: { ...t.caption, color: colors.textDim, marginTop: 2 },
+  // Legible rather than decorative: this is the line you read to find out how
+  // a download is going, so it carries weight and sits at muted rather than dim.
+  detail: { ...t.caption, color: colors.textMuted, fontWeight: '600', marginTop: 2 },
 });

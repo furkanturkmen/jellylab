@@ -150,7 +150,9 @@
       "partial": "Teilweise verfügbar",
       "available": "Verfügbar",
       "unreleased": "Noch nicht erschienen",
-      "unreleasedCinemas": "Im Kino"
+      "unreleasedCinemas": "Im Kino",
+      "airing": "Läuft noch · {{aired}}/{{total}}",
+      "notAired": "Noch nicht ausgestrahlt"
     }
   },
   "detail": {

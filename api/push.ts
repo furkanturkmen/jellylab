@@ -104,6 +104,14 @@ export type Unreleased = {
   physicalRelease: string | null;
 };
 
+/** A season with episodes still to come. */
+export type Airing = {
+  /** continuing | upcoming | ended */
+  status: string | null;
+  /** keyed by season number */
+  seasons: Record<string, { aired: number; total: number; nextAiring: string }>;
+};
+
 export type Downloads = {
   /** keyed by TMDB id, which is what Jellyseerr keys a request on */
   tv: Record<string, DownloadProgress>;
@@ -116,6 +124,14 @@ export type Downloads = {
    * something nothing is looking for.
    */
   unreleased?: Record<string, Unreleased>;
+  /**
+   * Series with seasons still to air, keyed by TMDB id.
+   *
+   * The television counterpart of `unreleased`: nothing is looking for an
+   * episode that has not been broadcast, and saying so beats a search that
+   * appears to be failing.
+   */
+  airing?: Record<string, Airing>;
   /** named failures, when one of the two services could not be read */
   errors?: Record<string, string>;
 };
