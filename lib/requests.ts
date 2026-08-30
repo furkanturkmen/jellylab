@@ -1,4 +1,5 @@
 import type { DownloadProgress, Downloads } from '@/api/push';
+import { sweptOutcome } from './candidates';
 import type { JellyseerrRequest } from '@/types';
 
 /** Jellyseerr's own numbers, named. */
@@ -229,7 +230,29 @@ export function requestState(
   if (media.status === MEDIA_PROCESSING) {
     const started = Date.parse(request.createdAt);
     const days = Number.isNaN(started) ? 0 : Math.floor((now - started) / 86_400_000);
-    return { kind: 'searching', days, overdue: days >= STALLED_AFTER_DAYS };
+
+    /*
+     * Evidence first, the clock only as a fallback.
+     *
+     * Elapsed time is a guess: it says a search has been running a while, not
+     * that it has failed. A background sweep runs the real acceptance check
+     * and knows - Khatron Ke Khiladi S15 had every episode aired and zero
+     * releases anywhere, which the clock could only have inferred after three
+     * days of saying "looking for it".
+     *
+     * Only a genuine absence counts. A swept `satisfied` means something is
+     * already on its way, and `grabbable` means it should arrive, so neither
+     * makes the card give up.
+     */
+    const swept = push?.verdicts?.[String(media.tmdbId)];
+    const outcome = swept ? sweptOutcome(swept) : null;
+    const foundNothing = outcome === 'nothing' || outcome === 'deadEnd';
+
+    return {
+      kind: 'searching',
+      days,
+      overdue: foundNothing || days >= STALLED_AFTER_DAYS,
+    };
   }
 
   return { kind: 'other' };

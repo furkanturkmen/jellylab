@@ -1,5 +1,5 @@
 import type { Candidates, Release } from '@/api/push';
-import { suspicious, topReason, verdict } from '../candidates';
+import { suspicious, sweptOutcome, topReason, verdict } from '../candidates';
 
 const release = (over: Partial<Release> = {}): Release => ({
   title: 'Fall.2022.1080p.WEBRip.DD5.1.x264-NOGRP',
@@ -145,5 +145,37 @@ describe('suspicious', () => {
   it('leaves an ordinary proper alone', () => {
     expect(suspicious(release({ proper: true, score: 15 }))).toBe(false);
     expect(suspicious(release({ proper: false, score: -20 }))).toBe(false);
+  });
+});
+
+describe('sweptOutcome', () => {
+  // Khatron Ke Khiladi S15: ten episodes aired across August, nothing ever
+  // posted. The clock could only have guessed at this after three days.
+  it('knows an absence from a wait', () => {
+    expect(sweptOutcome({ found: 0, accepted: 0, rejections: {} })).toBe('nothing');
+  });
+
+  it('knows a dead end from a delay', () => {
+    expect(sweptOutcome({
+      found: 7, accepted: 0, rejections: { 'DVD is not wanted in profile': 5 },
+    })).toBe('deadEnd');
+  });
+
+  it('does not give up on something already arriving', () => {
+    // No Game No Life mid-download: 176 found, none acceptable, because the
+    // one in the queue already meets the cutoff. Counting rejections alone
+    // would have called this a dead end.
+    expect(sweptOutcome({
+      found: 176,
+      accepted: 0,
+      rejections: {
+        'Unknown Series': 70,
+        'Release in queue already meets cutoff: Bluray-1080p v1': 51,
+      },
+    })).toBe('satisfied');
+  });
+
+  it('says nothing is wrong when something is acceptable', () => {
+    expect(sweptOutcome({ found: 318, accepted: 14, rejections: {} })).toBe('grabbable');
   });
 });

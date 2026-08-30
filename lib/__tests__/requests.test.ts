@@ -284,3 +284,62 @@ describe('requestState, still airing', () => {
     expect(requestState(film, NOW, airing({ 1: { aired: 0, total: 8, nextAiring: 'x' } })).kind).toBe('searching');
   });
 });
+
+describe('requestState, on the evidence rather than the clock', () => {
+  const push = (over: any = {}) => ({ tv: {}, movies: {}, ...over }) as any;
+  const fresh = request({ createdAt: new Date(NOW).toISOString() });
+
+  it('gives up at once when a sweep found nothing at all', () => {
+    // Khatron Ke Khiladi S15: requested today, every episode already aired,
+    // and not one release anywhere. Waiting three days to say so is three days
+    // of the card claiming it is looking.
+    const state: any = requestState(fresh, NOW, push({
+      verdicts: { '1': { found: 0, accepted: 0, rejections: {}, at: NOW } },
+    }));
+    expect(state.kind).toBe('searching');
+    expect(state.days).toBe(0);
+    expect(state.overdue).toBe(true);
+  });
+
+  it('gives up at once on a dead end', () => {
+    const state: any = requestState(fresh, NOW, push({
+      verdicts: {
+        '1': { found: 7, accepted: 0, rejections: { 'DVD is not wanted in profile': 5 }, at: NOW },
+      },
+    }));
+    expect(state.overdue).toBe(true);
+  });
+
+  it('keeps waiting when the sweep says something is acceptable', () => {
+    const state: any = requestState(fresh, NOW, push({
+      verdicts: { '1': { found: 318, accepted: 14, rejections: {}, at: NOW } },
+    }));
+    expect(state.overdue).toBe(false);
+  });
+
+  it('keeps waiting when the only rejections are because it is already coming', () => {
+    // Counting rejections alone would call this dead; it is 37% downloaded.
+    const state: any = requestState(fresh, NOW, push({
+      verdicts: {
+        '1': {
+          found: 176,
+          accepted: 0,
+          rejections: {
+            'Unknown Series': 70,
+            'Release in queue already meets cutoff: Bluray-1080p v1': 51,
+          },
+          at: NOW,
+        },
+      },
+    }));
+    expect(state.overdue).toBe(false);
+  });
+
+  it('falls back to the clock when nothing has been swept', () => {
+    // A title the sweep has not reached yet is absent, which is not the same
+    // as one it swept and found nothing for.
+    const old = request({ createdAt: new Date(NOW - STALLED_AFTER_DAYS * DAY).toISOString() });
+    expect((requestState(old, NOW, push()) as any).overdue).toBe(true);
+    expect((requestState(fresh, NOW, push()) as any).overdue).toBe(false);
+  });
+});

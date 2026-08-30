@@ -151,6 +151,21 @@ export type Airing = {
   seasons: Record<string, { aired: number; total: number; nextAiring: string }>;
 };
 
+/**
+ * What a real search said about a title that has not arrived, swept in the
+ * background rather than run when a card renders.
+ *
+ * The counts, not a conclusion: the same rejection set a live check returns,
+ * so `lib/candidates` interprets both with one tested function.
+ */
+export type SweptVerdict = {
+  found: number;
+  accepted: number;
+  rejections: Record<string, number>;
+  /** epoch millis of the sweep */
+  at: number;
+};
+
 export type Downloads = {
   /** keyed by TMDB id, which is what Jellyseerr keys a request on */
   tv: Record<string, DownloadProgress>;
@@ -171,6 +186,15 @@ export type Downloads = {
    * appears to be failing.
    */
   airing?: Record<string, Airing>;
+  /**
+   * Swept search outcomes, keyed by TMDB id.
+   *
+   * Present only for titles that are monitored, missing, and not currently
+   * downloading - the question is meaningless otherwise. A title absent from
+   * here has not been swept yet, which is different from one that was swept
+   * and found nothing.
+   */
+  verdicts?: Record<string, SweptVerdict>;
   /** named failures, when one of the two services could not be read */
   errors?: Record<string, string>;
 };

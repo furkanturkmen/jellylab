@@ -115,6 +115,32 @@ export function verdict(c: Candidates): Verdict {
 }
 
 /**
+ * What a background sweep found, read with the same rules as a live check.
+ *
+ * Deliberately not `verdict()`: that needs the release list to tell grabbable
+ * from a dead end, and a sweep stores only counts. This answers the narrower
+ * question the Requests tab actually asks - is there any point waiting.
+ *
+ *   nothing    the indexers returned nothing at all
+ *   satisfied  refused because we already have it, or are fetching it
+ *   deadEnd    releases exist and none may be used. Waiting will not fix it
+ *   grabbable  something is acceptable, so it should arrive
+ */
+export function sweptOutcome(v: {
+  found: number;
+  accepted: number;
+  rejections: Record<string, number>;
+}): 'nothing' | 'satisfied' | 'deadEnd' | 'grabbable' {
+  if (v.accepted > 0) return 'grabbable';
+  if (v.found === 0) return 'nothing';
+  // Already having it wins over any count, as in verdict() and for the same
+  // reason: a handful of "in queue" rejections sit among a great many about
+  // releases that are not this title at all.
+  if (Object.keys(v.rejections).some(r => SATISFIED.test(r))) return 'satisfied';
+  return 'deadEnd';
+}
+
+/**
  * Whether a release looks like the shape that keeps poisoning this library.
  *
  * Not a safety check - the only real one opens the torrent and looks at what
