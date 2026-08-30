@@ -92,6 +92,9 @@ export default function RequestsScreen() {
       );
       setItems(enriched);
       setError(null);
+      console.log(
+        `[jellylab] requests: ${enriched.map(r => `${r.media.mediaType}:${r.media.tmdbId}`).join(' ')}`,
+      );
 
       /*
        * Asked for after the list rather than with it, and never allowed to
@@ -101,8 +104,20 @@ export default function RequestsScreen() {
       try {
         const { pushUrl } = await loadPrefs();
         const url = Push.resolveUrl(pushUrl, getJellyfinUrl());
-        setDownloads(url ? await Push.downloads(url) : null);
-      } catch {
+        if (!url) {
+          console.log('[jellylab] downloads: no url (jellyfin url not resolved yet)');
+          setDownloads(null);
+          return;
+        }
+        const d = await Push.downloads(url);
+        console.log(
+          `[jellylab] downloads: ${url}` +
+          ` tv=${Object.keys(d.tv ?? {}).join(',') || 'none'}` +
+          ` movies=${Object.keys(d.movies ?? {}).join(',') || 'none'}`,
+        );
+        setDownloads(d);
+      } catch (e) {
+        console.log(`[jellylab] downloads failed — ${e instanceof Error ? e.message : String(e)}`);
         setDownloads(null);
       }
     } catch (e) {
