@@ -343,3 +343,35 @@ describe('requestState, on the evidence rather than the clock', () => {
     expect((requestState(fresh, NOW, push()) as any).overdue).toBe(false);
   });
 });
+
+describe('requestState, a season part-way through', () => {
+  const push = (over: any = {}) => ({ tv: {}, movies: {}, ...over }) as any;
+  const airing = (aired: number, total: number) => push({
+    airing: {
+      '9': { status: 'continuing', seasons: { '4': { aired, total, nextAiring: '2026-09-02T07:00:00Z' } } },
+    },
+  });
+
+  it('leads with what you can watch, not with what is broadcasting', () => {
+    // Reacher season four: five of eight aired, all five on disk, next on
+    // 2 Sep. "Airing 5/8" never said you could watch anything.
+    const r = request({
+      status: 2,
+      seasons: [{ seasonNumber: 4 }],
+      media: { tmdbId: 9, mediaType: 'tv', status: 4 },
+    });
+    const state: any = requestState(r, NOW, airing(5, 8));
+    expect(state.kind).toBe('partial');
+    // The broadcast half survives, for the line underneath.
+    expect(state.airing).toMatchObject({ aired: 5, total: 8 });
+  });
+
+  it('still says airing when nothing has arrived yet', () => {
+    const r = request({
+      status: 2,
+      seasons: [{ seasonNumber: 4 }],
+      media: { tmdbId: 9, mediaType: 'tv', status: 3 },
+    });
+    expect(requestState(r, NOW, airing(5, 8)).kind).toBe('airing');
+  });
+});

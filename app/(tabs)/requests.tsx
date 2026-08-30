@@ -453,7 +453,24 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
    */
   const qualityKey = qualityFromLabel(live?.quality);
 
-  const detail = rejected
+  /*
+   * A part-way season says what is still to come.
+   *
+   * The pill says you can watch it; this says how much of it there is and
+   * when the rest lands - which is what "Airing 5/8" was trying to convey
+   * from a place with no room for the date.
+   */
+  const airingDetail = state.kind === 'partial' && state.airing
+    ? t('requests.airingRest', {
+        aired: state.airing.aired,
+        total: state.airing.total,
+        date: formatDate(state.airing.next),
+      })
+    : null;
+
+  const detail = airingDetail
+    ? airingDetail
+    : rejected
     // Jellyseerr records that it was declined and nothing about why, so the
     // reason comes from whatever was noted when it was rejected here.
     ? rejectionReason ?? null

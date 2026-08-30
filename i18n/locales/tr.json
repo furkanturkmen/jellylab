@@ -119,6 +119,7 @@
     "failedBody": "Jellyfin veya Jellyseerr’e ulaşılamadı."
   },
   "requests": {
+    "airingRest": "{{total}} bolumden {{aired}} yayinlandi · sonraki {{date}}",
     "check": {
       "action": "Neden takıldı?",
       "actionAgain": "Surumleri tekrar kontrol et",

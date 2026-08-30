@@ -128,7 +128,15 @@ export type RequestState =
   | { kind: 'airing'; aired: number; total: number; next: string }
   /** Approved, nothing found yet. `days` is how long that has been true. */
   | { kind: 'searching'; days: number; overdue: boolean }
-  | { kind: 'partial' }
+  /**
+   * Some episodes are in the library.
+   *
+   * `airing` rides along when the season is still being broadcast, because
+   * both are true at once and only one of them is a pill: Reacher season four
+   * has five of eight aired, all five watchable, and the next due on 2 Sep.
+   * "Airing 5/8" never said you could watch anything.
+   */
+  | { kind: 'partial'; airing?: { aired: number; total: number; next: string } }
   | { kind: 'available' }
   | { kind: 'other' };
 
@@ -211,7 +219,22 @@ export function requestState(
       const keys = wanted.length > 0 ? wanted : Object.keys(show.seasons);
       for (const k of keys) {
         const season = show.seasons[k];
-        if (season) return { kind: 'airing', aired: season.aired, total: season.total, next: season.nextAiring };
+        if (!season) continue;
+        /*
+         * Being able to watch it outranks being told it is still airing.
+         *
+         * Both are true of a season part-way through, and the pill can only
+         * carry one. "Partly available" is the one that says what you can do
+         * now; when the rest arrives goes in the line underneath, which has
+         * room for it.
+         */
+        if (media.status === MEDIA_PARTIAL) {
+          return {
+            kind: 'partial',
+            airing: { aired: season.aired, total: season.total, next: season.nextAiring },
+          };
+        }
+        return { kind: 'airing', aired: season.aired, total: season.total, next: season.nextAiring };
       }
     }
   }

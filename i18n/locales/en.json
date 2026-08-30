@@ -119,6 +119,7 @@
     "failedBody": "Could not reach Jellyfin or Jellyseerr."
   },
   "requests": {
+    "airingRest": "{{aired}} of {{total}} aired · next {{date}}",
     "check": {
       "action": "Why is this stuck?",
       "actionAgain": "Check for releases again",

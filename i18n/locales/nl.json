@@ -119,6 +119,7 @@
     "failedBody": "Jellyfin of Jellyseerr was niet bereikbaar."
   },
   "requests": {
+    "airingRest": "{{aired}} van {{total}} uitgezonden · volgende {{date}}",
     "check": {
       "action": "Waarom blijft dit hangen?",
       "actionAgain": "Opnieuw zoeken naar releases",

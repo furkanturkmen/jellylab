@@ -119,6 +119,7 @@
     "failedBody": "Jellyfin oder Jellyseerr war nicht erreichbar."
   },
   "requests": {
+    "airingRest": "{{aired}} von {{total}} gesendet · nächste {{date}}",
     "check": {
       "action": "Warum hängt das?",
       "actionAgain": "Erneut nach Releases suchen",
