@@ -50,6 +50,27 @@ export const colors = {
   // background rather than borrowing whatever is behind it.
   successTint: 'rgba(26, 112, 52, 0.92)',
   successBorder: 'rgba(52, 199, 89, 0.75)',
+  /*
+   * The status scale, in the order a request goes wrong.
+   *
+   * Blue-grey is the resting state - ordinary, working, nothing to look at.
+   * Yellow waits on time or a person, orange is wrong but recoverable, red is
+   * over. Green is reserved for arrived, so it never appears on something
+   * still in flight.
+   *
+   * All opaque, like the availability badge and for the same reason: these sit
+   * over poster artwork that can be white or near-black in the same list, and
+   * a translucent tint reads on one and vanishes on the other.
+   */
+  pillNeutralTint: 'rgba(48, 62, 82, 0.92)',
+  pillNeutralBorder: 'rgba(150, 180, 215, 0.55)',
+  pillWaitTint: 'rgba(122, 104, 22, 0.92)',
+  pillWaitBorder: 'rgba(235, 205, 80, 0.70)',
+  pillWarnTint: 'rgba(146, 80, 20, 0.92)',
+  pillWarnBorder: 'rgba(240, 152, 58, 0.78)',
+  pillBadTint: 'rgba(140, 26, 42, 0.92)',
+  pillBadBorder: 'rgba(248, 96, 122, 0.78)',
+
   overlay: 'rgba(0, 0, 0, 0.55)',
   scrimTop: 'rgba(10, 10, 10, 0)',
   scrimBottom: 'rgba(10, 10, 10, 0.95)',

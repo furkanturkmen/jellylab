@@ -315,6 +315,21 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
    * downloading at speed, and a finished download Sonarr refuses to import.
    */
   const state = requestState(r, undefined, downloads);
+  /**
+   * Which of the five tones a state wears.
+   *
+   * Green only for arrived, so it never appears on something still in flight;
+   * blue-grey for the ordinary working states, which is most of them; yellow
+   * for waiting on time or a person; orange for wrong but recoverable; red for
+   * over. Colour therefore means "how much attention", not decoration.
+   */
+  const tone =
+    state.kind === 'available' || state.kind === 'partial' ? 'good'
+    : state.kind === 'declined' || state.kind === 'failed' ? 'bad'
+    : state.kind === 'stalled' || (state.kind === 'searching' && state.overdue) ? 'warn'
+    : state.kind === 'pending' || state.kind === 'unreleased' || state.kind === 'airing' ? 'wait'
+    : 'neutral';
+
   const available = state.kind === 'available';
   const rejected = state.kind === 'declined' || state.kind === 'failed';
   /*
@@ -536,16 +551,7 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
               itself, so it no longer needs a line of its own underneath. */}
           <View style={styles.pillRow}>
             {pills.map((label, i) => (
-              <View key={label} style={[
-                styles.pill,
-                available && i === 0 && styles.pillAvailable,
-                // Rejected and failed are the two states nothing will resolve
-                // on its own, so they are the two that get a colour.
-                rejected && i === 0 && styles.pillRejected,
-                // Not a fault, so not red - but not the same as a request
-                // made this morning either.
-                state.kind === 'searching' && state.overdue && i === 0 && styles.pillOverdue,
-              ]}>
+              <View key={label} style={[styles.pill, TONE[tone]]}>
                 <Text style={styles.pillText}>{label}</Text>
               </View>
             ))}
@@ -618,6 +624,7 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
 // the tallest arrangement sets it for every card.
 const CARD_HEIGHT = 172;
 
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl, backgroundColor: colors.bg },
@@ -664,11 +671,13 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,
   },
-  pillAvailable: { backgroundColor: colors.successTint, borderColor: colors.successBorder },
+  pillGood: { backgroundColor: colors.successTint, borderColor: colors.successBorder },
+  pillNeutral: { backgroundColor: colors.pillNeutralTint, borderColor: colors.pillNeutralBorder },
+  pillWait: { backgroundColor: colors.pillWaitTint, borderColor: colors.pillWaitBorder },
+  pillWarn: { backgroundColor: colors.pillWarnTint, borderColor: colors.pillWarnBorder },
+  pillBad: { backgroundColor: colors.pillBadTint, borderColor: colors.pillBadBorder },
   // Opaque like the available pill, and for the same reason: these sit over
   // poster artwork that can be white or near-black in the same list.
-  pillRejected: { backgroundColor: 'rgba(140, 26, 42, 0.92)', borderColor: colors.pink },
-  pillOverdue: { backgroundColor: 'rgba(120, 84, 20, 0.92)', borderColor: 'rgba(230, 170, 60, 0.75)' },
   pillText: { color: colors.text, ...t.caption, textTransform: 'uppercase' },
   waiting: { fontSize: 12, fontWeight: '600', color: colors.pink },
   by: { ...t.small, color: colors.textDim, marginTop: spacing.xs },
@@ -689,3 +698,18 @@ const styles = StyleSheet.create({
   // than what it will look like.
   pillQuality: { backgroundColor: 'transparent', borderColor: colors.border },
 });
+
+/**
+ * Tone to style.
+ *
+ * Declared after the stylesheet because it names entries in it - and kept as
+ * one map so the five tones are visible together rather than scattered through
+ * a chain of conditionals in the render.
+ */
+const TONE = {
+  good: styles.pillGood,
+  neutral: styles.pillNeutral,
+  wait: styles.pillWait,
+  warn: styles.pillWarn,
+  bad: styles.pillBad,
+} as const;
