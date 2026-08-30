@@ -132,6 +132,8 @@ export type DownloadProgress = {
   peers?: number | null;
   /** downloading | stalledDL | metaDL | uploading | ... */
   clientState?: string | null;
+  /** seconds remaining, qBittorrent's own estimate */
+  eta?: number | null;
 };
 
 /** A film Radarr is deliberately not searching for yet. */

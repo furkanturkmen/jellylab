@@ -1,4 +1,4 @@
-import { averageSpeed, elapsedSince } from '../download';
+import { averageSpeed, elapsedSince, formatEta } from '../download';
 
 const NOW = Date.parse('2026-08-30T12:00:00.000Z');
 const ago = (ms: number) => new Date(NOW - ms).toISOString();
@@ -48,5 +48,28 @@ describe('elapsedSince', () => {
   it('says nothing when it cannot tell', () => {
     expect(elapsedSince(null, NOW)).toBeNull();
     expect(elapsedSince('not a date', NOW)).toBeNull();
+  });
+});
+
+describe('formatEta', () => {
+  it('gets coarser as it gets further away', () => {
+    // At three hours out, minutes are noise; a figure that moves every second
+    // reads as instability rather than precision.
+    expect(formatEta(45)).toBe('45s');
+    expect(formatEta(1169)).toBe('19m');       // real: 33MB/s, 9 seeds
+    expect(formatEta(81520)).toBe('22h 39m');  // real: 215KB/s, 1 seed
+    expect(formatEta(3600)).toBe('1h');
+    expect(formatEta(180000)).toBe('2d 2h');
+  });
+
+  it('says nothing rather than something absurd', () => {
+    // qBittorrent reports 8640000 - a hundred days - as "no idea", which a
+    // stalled torrent emits constantly. "100d left" is worse than silence.
+    expect(formatEta(8_640_000)).toBeNull();
+    expect(formatEta(null)).toBeNull();
+    expect(formatEta(undefined)).toBeNull();
+    expect(formatEta(0)).toBeNull();
+    expect(formatEta(-5)).toBeNull();
+    expect(formatEta(NaN)).toBeNull();
   });
 });

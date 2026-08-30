@@ -44,3 +44,33 @@ export function elapsedSince(added: string | null | undefined, now: number = Dat
   if (hours < 48) return `${hours}h`;
   return `${Math.floor(hours / 24)}d`;
 }
+
+/**
+ * How long until it is done, in words rather than a clock face.
+ *
+ * qBittorrent's own estimate, which is live where Sonarr's is a minute stale.
+ * Coarse on purpose: at three hours out, minutes are noise, and a figure that
+ * changes every second reads as instability rather than precision.
+ *
+ * Returns nothing when it cannot know. qBittorrent uses 8640000 - a hundred
+ * days - as its "no idea" value, which a stalled torrent reports constantly,
+ * and "100d left" is worse than saying nothing at all.
+ */
+export function formatEta(seconds: number | null | undefined): string | null {
+  if (seconds == null || !Number.isFinite(seconds) || seconds <= 0) return null;
+  // A week is beyond useful, and well short of the sentinel.
+  if (seconds >= 604_800) return null;
+
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+
+  const hours = Math.floor(minutes / 60);
+  const restMinutes = minutes % 60;
+  if (hours < 24) return restMinutes ? `${hours}h ${restMinutes}m` : `${hours}h`;
+
+  const days = Math.floor(hours / 24);
+  const restHours = hours % 24;
+  return restHours ? `${days}d ${restHours}h` : `${days}d`;
+}

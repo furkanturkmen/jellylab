@@ -16,7 +16,7 @@ import { formatDate } from '@/lib/date';
 import { formatPercent } from '@/lib/percent';
 import { qualityFromLabel } from '@/lib/quality';
 import { requestState, statePercent } from '@/lib/requests';
-import { averageSpeed, elapsedSince } from '@/lib/download';
+import { averageSpeed, formatEta } from '@/lib/download';
 import { formatBytes } from '@/lib/bytes';
 import { loadPrefs } from '@/store/prefs';
 import { getSeerrError } from '@/store/seerrStatus';
@@ -464,7 +464,9 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
           live.size ? formatBytes(live.size) : null,
           speed != null ? `${formatBytes(speed)}/s` : null,
           seeds != null ? t('requests.seeds', { seeds }) : null,
-          elapsedSince(live.added),
+          // How long it has been going is history; how long is left is the
+          // thing anyone reads a progress line to find out.
+          formatEta(live.eta),
           live.indexer?.replace(/\s*\(Prowlarr\)\s*$/, '') ?? null,
         ].filter(Boolean).join(' · ')
       : null;
@@ -482,8 +484,6 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
 
   const pct = fraction != null ? Math.round(fraction * 100) : null;
   const pctLabel = formatPercent(fraction);
-  // one entry has a real ETA; a season pack split over many does not
-  const timeLeft = queue.length === 1 ? queue[0].timeLeft : undefined;
   // Seerr files one request per season selection, so a series can appear
   // several times. Without showing which seasons each covers the rows look
   // like duplicates of each other.
@@ -578,7 +578,7 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
                 ]} />
               </View>
               <Text style={styles.progressText}>
-                {pctLabel}{timeLeft && timeLeft !== '00:00:00' ? ` · ${timeLeft}` : ''}
+                {pctLabel}
               </Text>
             </View>
             {detail ? (
