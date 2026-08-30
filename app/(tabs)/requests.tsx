@@ -265,15 +265,22 @@ export default function RequestsScreen() {
           // covers is the season this row is actually about.
           season={requestedSeasons(checking)[0]}
           title={checking.details?.title ?? String(checking.media.tmdbId)}
-          // Withheld once it is already rejected: declining a declined
-          // request does nothing, and offering it implies otherwise.
-          requestId={
-            requestState(checking, undefined, downloads).kind === 'declined'
-              ? undefined
-              : checking.id
-          }
+          requestId={checking.id}
+          // Which of the two actions the sheet offers: reject, or undo it.
+          // Declining a declined request does nothing, and offering it implies
+          // otherwise.
+          isRejected={requestState(checking, undefined, downloads).kind === 'declined'}
           onRejected={(reason) => {
             setReasons(prev => ({ ...prev, [String(checking.media.tmdbId)]: reason }));
+            setChecking(null);
+            load(true);
+          }}
+          onUnrejected={() => {
+            setReasons(prev => {
+              const next = { ...prev };
+              delete next[String(checking.media.tmdbId)];
+              return next;
+            });
             setChecking(null);
             load(true);
           }}

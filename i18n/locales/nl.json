@@ -135,6 +135,8 @@
       "searching": "Alle indexers worden bevraagd. Dit kan een minuut of twee duren.",
       "seeders": "{{count}} seeders",
       "summary": "{{accepted}} van {{found}} bruikbaar",
+      "unreject": "Afwijzing ongedaan maken",
+      "unrejecting": "Bezig met herstellen…",
       "untracked": "Er wordt niet naar gezocht",
       "untrackedWhy": "Hiervoor is nooit iets aan Sonarr of Radarr toegevoegd."
     },

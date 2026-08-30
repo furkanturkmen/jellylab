@@ -135,6 +135,8 @@
       "searching": "Alle Indexer werden abgefragt. Das kann ein bis zwei Minuten dauern.",
       "seeders": "{{count}} Seeder",
       "summary": "{{accepted}} von {{found}} brauchbar",
+      "unreject": "Ablehnung aufheben",
+      "unrejecting": "Wird wiederhergestellt…",
       "untracked": "Es wird nicht gesucht",
       "untrackedWhy": "Dafür wurde nie etwas in Sonarr oder Radarr angelegt."
     },

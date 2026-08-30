@@ -496,6 +496,65 @@ export async function listRequests(filter: 'all' | 'pending' | 'approved' | 'ava
 }
 
 /**
+ * Jellyseerr's permission bits, as far as this app cares.
+ *
+ * ADMIN implies everything else, which is why it is checked alongside the
+ * specific one rather than instead of it.
+ */
+export const PERMISSION = { ADMIN: 2, MANAGE_REQUESTS: 16 } as const;
+
+export type SeerrUser = {
+  id: number;
+  displayName: string;
+  permissions: number;
+};
+
+/**
+ * Who is signed in to Jellyseerr, and what they are allowed to do.
+ *
+ * The app signs into Jellyfin and hands those credentials to Jellyseerr, so it
+ * has a session but has never asked what that session can do. Returns null on
+ * any failure: a screen that cannot determine permissions should offer the
+ * fewest actions, not error.
+ */
+export async function currentUser(): Promise<SeerrUser | null> {
+  try {
+    const client = await authClient();
+    const u = (await client.get('/auth/me')).data;
+    return {
+      id: u.id,
+      displayName: u.displayName ?? u.username ?? '',
+      permissions: u.permissions ?? 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Whether this account may approve or decline other people's requests. */
+export function canManageRequests(user: SeerrUser | null): boolean {
+  if (!user) return false;
+  return (user.permissions & PERMISSION.ADMIN) !== 0
+    || (user.permissions & PERMISSION.MANAGE_REQUESTS) !== 0;
+}
+
+/**
+ * Undo a rejection.
+ *
+ * A dead swarm can come back and a release that did not exist last week may
+ * now, so a rejected request is a judgement rather than a verdict. Approving
+ * puts it back in front of Radarr or Sonarr, which resume searching.
+ *
+ * Guarded by permission at the call site as well as by Jellyseerr itself - the
+ * server is the authority, the client check exists so nobody is shown a button
+ * that will fail.
+ */
+export async function approveRequest(requestId: number): Promise<void> {
+  const client = await authClient();
+  await client.post(`/request/${requestId}/approve`);
+}
+
+/**
  * Decline a request, so a title nobody can get stops looking like one that is
  * still being worked on.
  *

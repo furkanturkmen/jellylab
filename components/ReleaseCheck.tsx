@@ -44,7 +44,9 @@ export function ReleaseCheck({
   season,
   title,
   requestId,
+  isRejected,
   onRejected,
+  onUnrejected,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -55,7 +57,10 @@ export function ReleaseCheck({
   title: string;
   /** the Jellyseerr request, so a dead end can be closed from here */
   requestId?: number;
+  /** already rejected - offer to undo instead of to reject */
+  isRejected?: boolean;
   onRejected?: (reason: string) => void;
+  onUnrejected?: () => void;
 }) {
   const { t: tr } = useTranslation();
   const [state, setState] = useState<
@@ -110,7 +115,9 @@ export function ReleaseCheck({
               raw={state.raw}
               tmdbId={tmdbId}
               requestId={requestId}
+              isRejected={isRejected}
               onRejected={onRejected}
+              onUnrejected={onUnrejected}
             />
           )}
         </View>
@@ -119,16 +126,32 @@ export function ReleaseCheck({
   );
 }
 
-function Summary({ v, raw, tmdbId, requestId, onRejected }: {
+function Summary({ v, raw, tmdbId, requestId, isRejected, onRejected, onUnrejected }: {
   v: Verdict;
   raw: Push.Candidates;
   tmdbId: number;
   requestId?: number;
+  isRejected?: boolean;
   onRejected?: (reason: string) => void;
+  onUnrejected?: () => void;
 }) {
   const { t: tr } = useTranslation();
   const [rejecting, setRejecting] = useState(false);
   const [rejectError, setRejectError] = useState<string | null>(null);
+
+  /*
+   * Undoing a rejection is an administrator's action, so the button only
+   * exists for one. Jellyseerr enforces this itself - the check here is so
+   * nobody is shown a control that would fail, not as the boundary.
+   */
+  const [mayManage, setMayManage] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    Jellyseerr.currentUser()
+      .then(u => { if (alive) setMayManage(Jellyseerr.canManageRequests(u)); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   /*
    * Close a request nothing can satisfy.
@@ -141,6 +164,26 @@ function Summary({ v, raw, tmdbId, requestId, onRejected }: {
    * The reason is stored on the device because Jellyseerr has no field for
    * one - so a rejected row can say why rather than just going quiet.
    */
+  async function unreject() {
+    if (requestId == null) return;
+    setRejecting(true);
+    setRejectError(null);
+    try {
+      await Jellyseerr.approveRequest(requestId);
+      // The stored reason goes with it, or the card would keep explaining a
+      // rejection that no longer exists.
+      const prefs = await loadPrefs();
+      await savePrefs({
+        ...prefs,
+        rejectionReasons: withRejectionReason(prefs, tmdbId, null),
+      });
+      onUnrejected?.();
+    } catch (e: unknown) {
+      setRejectError(e instanceof Error ? e.message : String(e));
+      setRejecting(false);
+    }
+  }
+
   async function reject(reason: string) {
     if (requestId == null) return;
     setRejecting(true);
@@ -200,7 +243,13 @@ function Summary({ v, raw, tmdbId, requestId, onRejected }: {
         {/* Offered only here. A dead end is the one verdict where the honest
             next step is to stop, and it is the one place the reason to record
             is already on screen. */}
-        {requestId != null && onRejected ? (
+        {requestId != null && isRejected && mayManage && onUnrejected ? (
+          <TouchableOpacity style={styles.unreject} disabled={rejecting} onPress={unreject}>
+            <Text style={styles.unrejectText}>
+              {rejecting ? tr('requests.check.unrejecting') : tr('requests.check.unreject')}
+            </Text>
+          </TouchableOpacity>
+        ) : requestId != null && !isRejected && onRejected ? (
           <TouchableOpacity
             style={styles.reject}
             disabled={rejecting}
@@ -281,6 +330,17 @@ const styles = StyleSheet.create({
     borderColor: colors.pink,
   },
   rejectText: { ...t.bodyStrong, color: colors.pink },
+  // Neutral rather than green: putting a request back is ordinary, not a
+  // success worth celebrating.
+  unreject: {
+    marginTop: spacing.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.button,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderStrong,
+  },
+  unrejectText: { ...t.bodyStrong, color: colors.text },
   list: { gap: spacing.md, paddingBottom: spacing.lg },
   row: { gap: spacing.sm, paddingVertical: spacing.sm },
   rowTitle: { ...t.small, color: colors.text },

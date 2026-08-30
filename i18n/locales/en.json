@@ -135,6 +135,8 @@
       "searching": "Asking every indexer. This can take a minute or two.",
       "seeders": "{{count}} seeders",
       "summary": "{{accepted}} of {{found}} can be used",
+      "unreject": "Undo rejection",
+      "unrejecting": "Restoring…",
       "untracked": "Not being looked for",
       "untrackedWhy": "Nothing was ever added to Sonarr or Radarr for this."
     },

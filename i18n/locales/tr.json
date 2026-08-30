@@ -135,6 +135,8 @@
       "searching": "Tüm indeksleyiciler sorgulanıyor. Bu bir iki dakika sürebilir.",
       "seeders": "{{count}} seeder",
       "summary": "{{found}} sürümden {{accepted}} tanesi kullanılabilir",
+      "unreject": "Reddi geri al",
+      "unrejecting": "Geri aliniyor…",
       "untracked": "Aranmıyor",
       "untrackedWhy": "Bunun için Sonarr veya Radarr’a hiçbir şey eklenmemiş."
     },
