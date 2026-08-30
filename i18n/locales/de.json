@@ -121,6 +121,7 @@
   "requests": {
     "check": {
       "action": "Warum hängt das?",
+      "actionAgain": "Erneut nach Releases suchen",
       "deadEnd": "{{count}} gefunden, keines brauchbar",
       "deadEndWhy": "Das löst sich nicht von selbst. Das Qualitätsprofil muss eines zulassen.",
       "failed": "Server nicht erreichbar",

@@ -121,6 +121,7 @@
   "requests": {
     "check": {
       "action": "Why is this stuck?",
+      "actionAgain": "Check for releases again",
       "deadEnd": "{{count}} found, none can be used",
       "deadEndWhy": "This will not resolve on its own. The quality profile has to allow one of them.",
       "failed": "Could not reach the server",

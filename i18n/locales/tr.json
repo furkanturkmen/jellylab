@@ -121,6 +121,7 @@
   "requests": {
     "check": {
       "action": "Neden takıldı?",
+      "actionAgain": "Surumleri tekrar kontrol et",
       "deadEnd": "{{count}} bulundu, kullanılabilir yok",
       "deadEndWhy": "Bu kendiliğinden çözülmez. Kalite profilinin birine izin vermesi gerekir.",
       "failed": "Sunucuya ulaşılamadı",

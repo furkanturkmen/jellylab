@@ -121,6 +121,7 @@
   "requests": {
     "check": {
       "action": "Waarom blijft dit hangen?",
+      "actionAgain": "Opnieuw zoeken naar releases",
       "deadEnd": "{{count}} gevonden, geen bruikbare",
       "deadEndWhy": "Dit lost zichzelf niet op. Het kwaliteitsprofiel moet er een toestaan.",
       "failed": "Server niet bereikbaar",

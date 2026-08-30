@@ -265,7 +265,13 @@ export default function RequestsScreen() {
           // covers is the season this row is actually about.
           season={requestedSeasons(checking)[0]}
           title={checking.details?.title ?? String(checking.media.tmdbId)}
-          requestId={checking.id}
+          // Withheld once it is already rejected: declining a declined
+          // request does nothing, and offering it implies otherwise.
+          requestId={
+            requestState(checking, undefined, downloads).kind === 'declined'
+              ? undefined
+              : checking.id
+          }
           onRejected={(reason) => {
             setReasons(prev => ({ ...prev, [String(checking.media.tmdbId)]: reason }));
             setChecking(null);
@@ -548,7 +554,13 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
           */}
           {canCheck ? (
             <TouchableOpacity onPress={onCheck} hitSlop={8}>
-              <Text style={styles.check}>{t('requests.check.action')}</Text>
+              {/* A rejected request is not stuck - it was closed on purpose,
+                  and the reason is already on the card above. What is still
+                  worth offering is another look, because a dead swarm can come
+                  back and a release that did not exist last week may now. */}
+              <Text style={styles.check}>
+                {t(rejected ? 'requests.check.actionAgain' : 'requests.check.action')}
+              </Text>
             </TouchableOpacity>
           ) : null}
         </View>
