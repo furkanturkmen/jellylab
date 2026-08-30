@@ -330,45 +330,30 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
    * arrived yet. Tapping through runs a real search and says whether anything
    * exists at all.
    */
+  /*
+   * One pill, one fact.
+   *
+   * The day counters went: the card already says "talha - 30-08-2026" two
+   * lines below, so "Nothing found - 15d" was the same fact twice, and the
+   * pill is the place with least room for it. The airing pill lost its "next"
+   * date for the same reason the unreleased ones were merged - a count and a
+   * date in one pill is two answers to one question.
+   */
   const label =
-    state.kind === 'searching' && state.overdue
-      // The counter is only worth showing once it counts something. A sweep
-      // can mark a request hopeless the minute it is made, and "0d" beside
-      // that reads like a broken field rather than a fact.
-      ? state.days > 0
-        ? t('requests.state.searchingNothing', { count: state.days })
-        : t('requests.state.nothingFound')
-      : state.kind === 'searching' && state.days > 0
-      ? t('requests.state.searchingDays', { count: state.days })
+    state.kind === 'searching'
+      ? t(state.overdue ? 'requests.state.nothingFound' : 'requests.state.searching')
       : state.kind === 'unreleased'
-        /*
-         * One shape for everything that has not happened yet.
-         *
-         * There were eight labels here - "Not out yet", "In cinemas", each
-         * with and without a date, and the two television equivalents - and
-         * they all answered the same question with different words. Two cards
-         * side by side read "IN CINEMAS - 15-11-2026" and "NOT OUT YET -
-         * 02-09-2026", which is one fact dressed two ways.
-         *
-         * The date is the fact. Where it is showing right now is trivia to an
-         * app that will fetch it when it can be fetched.
-         */
         ? state.date
           ? t('requests.state.expectedOn', { date: formatDate(state.date) })
           : t('requests.state.expected')
         : state.kind === 'airing'
-          /*
-           * Nothing aired yet is not part-way through. The Rookie season nine
-           * has none of eighteen and is not due until 2027; "Airing 0/18"
-           * reads as a season underway that has somehow produced nothing - so
-           * it joins the expected group, while a season genuinely part-way
-           * keeps its count, which says something a date cannot.
-           */
+          // Nothing aired yet is not part-way through: "Airing 0/18" reads as
+          // a season underway that has somehow produced nothing.
           ? state.aired === 0
             ? state.next
               ? t('requests.state.expectedOn', { date: formatDate(state.next) })
               : t('requests.state.expected')
-            : t('requests.state.airingNext', { aired: state.aired, total: state.total, date: formatDate(state.next) })
+            : t('requests.state.airing', { aired: state.aired, total: state.total })
           : t(`requests.state.${state.kind}`, { defaultValue: '' });
   const pills = label ? [label] : [];
 

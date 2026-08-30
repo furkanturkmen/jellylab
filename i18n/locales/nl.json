@@ -155,7 +155,7 @@
     "seedsOf": "{{seeders}} van {{total}} seeds",
     "signedOut": "Log in bij Jellyseerr om je verzoeken te zien",
     "state": {
-      "airingNext": "Loopt nog · {{aired}}/{{total}} · volgende {{date}}",
+      "airing": "Wordt uitgezonden · {{aired}}/{{total}}",
       "available": "Beschikbaar",
       "declined": "Afgewezen",
       "downloading": "Downloaden",
@@ -167,8 +167,6 @@
       "partial": "Deels beschikbaar",
       "pending": "Wacht op goedkeuring",
       "searching": "Zoeken",
-      "searchingDays": "Zoeken · {{count}}d",
-      "searchingNothing": "Niets gevonden · {{count}}d",
       "stalled": "Vastgelopen"
     },
     "status": {

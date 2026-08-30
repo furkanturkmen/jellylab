@@ -155,7 +155,7 @@
     "seedsOf": "{{seeders}} of {{total}} seeds",
     "signedOut": "Sign in to Jellyseerr to see your requests",
     "state": {
-      "airingNext": "Airing · {{aired}}/{{total}} · next {{date}}",
+      "airing": "Airing · {{aired}}/{{total}}",
       "available": "Available",
       "declined": "Rejected",
       "downloading": "Downloading",
@@ -167,8 +167,6 @@
       "partial": "Partly available",
       "pending": "Waiting for approval",
       "searching": "Looking for it",
-      "searchingDays": "Looking for it · {{count}}d",
-      "searchingNothing": "Nothing found · {{count}}d",
       "stalled": "Stalled"
     },
     "status": {

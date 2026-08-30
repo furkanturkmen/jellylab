@@ -155,7 +155,7 @@
     "seedsOf": "{{total}} seeder’dan {{seeders}} tanesi",
     "signedOut": "İsteklerini görmek için Jellyseerr’e giriş yap",
     "state": {
-      "airingNext": "Yayında · {{aired}}/{{total}} · sonraki {{date}}",
+      "airing": "Yayinda · {{aired}}/{{total}}",
       "available": "Mevcut",
       "declined": "Reddedildi",
       "downloading": "İndiriliyor",
@@ -167,8 +167,6 @@
       "partial": "Kısmen mevcut",
       "pending": "Onay bekliyor",
       "searching": "Aranıyor",
-      "searchingDays": "Aranıyor · {{count}}g",
-      "searchingNothing": "Bulunamadi · {{count}}g",
       "stalled": "Takıldı"
     },
     "status": {

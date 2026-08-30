@@ -155,7 +155,7 @@
     "seedsOf": "{{seeders}} von {{total}} Seedern",
     "signedOut": "Melde dich bei Jellyseerr an, um deine Anfragen zu sehen",
     "state": {
-      "airingNext": "Läuft noch · {{aired}}/{{total}} · nächste {{date}}",
+      "airing": "Läuft · {{aired}}/{{total}}",
       "available": "Verfügbar",
       "declined": "Abgelehnt",
       "downloading": "Wird geladen",
@@ -167,8 +167,6 @@
       "partial": "Teilweise verfügbar",
       "pending": "Wartet auf Freigabe",
       "searching": "Wird gesucht",
-      "searchingDays": "Wird gesucht · {{count}}d",
-      "searchingNothing": "Nichts gefunden · {{count}}T",
       "stalled": "Steht still"
     },
     "status": {
