@@ -202,6 +202,40 @@ function Summary({ v, raw, tmdbId, requestId, isRejected, onRejected, onUnreject
     }
   }
 
+  /*
+   * Reject, or undo it - wherever the verdict makes stopping the honest step.
+   *
+   * Offered on `nothing` as well as `deadEnd`. Those are the two answers that
+   * will not fix themselves, and "no releases exist" is if anything the
+   * clearer case of the two: a dead end has releases that a profile change
+   * might admit, an absence has nothing to admit.
+   */
+  function actions(reason: string) {
+    if (requestId == null) return null;
+    return (
+      <>
+        {isRejected && mayManage && onUnrejected ? (
+          <TouchableOpacity style={styles.unreject} disabled={rejecting} onPress={unreject}>
+            <Text style={styles.unrejectText}>
+              {rejecting ? tr('requests.check.unrejecting') : tr('requests.check.unreject')}
+            </Text>
+          </TouchableOpacity>
+        ) : !isRejected && onRejected ? (
+          <TouchableOpacity style={styles.reject} disabled={rejecting} onPress={() => reject(reason)}>
+            <Text style={styles.rejectText}>
+              {rejecting ? tr('requests.check.rejecting') : tr('requests.check.reject')}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+        {rejectError ? (
+          <Text style={styles.reason}>{tr('requests.check.rejectFailed')}: {rejectError}</Text>
+        ) : (
+          <Text style={styles.dim}>{tr('requests.check.rejectWhy')}</Text>
+        )}
+      </>
+    );
+  }
+
   if (v.kind === 'untracked') {
     return (
       <View style={styles.centre}>
@@ -215,6 +249,8 @@ function Summary({ v, raw, tmdbId, requestId, isRejected, onRejected, onUnreject
     return (
       <View style={styles.centre}>
         <Text style={styles.headline}>{tr('requests.check.nothing')}</Text>
+        <Text style={styles.dim}>{tr('requests.check.nothingWhy')}</Text>
+        {actions(tr('requests.check.nothing'))}
       </View>
     );
   }
@@ -243,28 +279,7 @@ function Summary({ v, raw, tmdbId, requestId, isRejected, onRejected, onUnreject
         {/* Offered only here. A dead end is the one verdict where the honest
             next step is to stop, and it is the one place the reason to record
             is already on screen. */}
-        {requestId != null && isRejected && mayManage && onUnrejected ? (
-          <TouchableOpacity style={styles.unreject} disabled={rejecting} onPress={unreject}>
-            <Text style={styles.unrejectText}>
-              {rejecting ? tr('requests.check.unrejecting') : tr('requests.check.unreject')}
-            </Text>
-          </TouchableOpacity>
-        ) : requestId != null && !isRejected && onRejected ? (
-          <TouchableOpacity
-            style={styles.reject}
-            disabled={rejecting}
-            onPress={() => reject(v.reason ?? tr('requests.check.deadEnd', { count: v.found }))}
-          >
-            <Text style={styles.rejectText}>
-              {rejecting ? tr('requests.check.rejecting') : tr('requests.check.reject')}
-            </Text>
-          </TouchableOpacity>
-        ) : null}
-        {rejectError ? (
-          <Text style={styles.reason}>{tr('requests.check.rejectFailed')}: {rejectError}</Text>
-        ) : (
-          <Text style={styles.dim}>{tr('requests.check.rejectWhy')}</Text>
-        )}
+        {actions(v.reason ?? tr('requests.check.deadEnd', { count: v.found }))}
       </View>
     );
   }
