@@ -317,8 +317,23 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
   const state = requestState(r, undefined, downloads);
   const available = state.kind === 'available';
   const rejected = state.kind === 'declined' || state.kind === 'failed';
+  /*
+   * A search that has found nothing for days should stop sounding busy.
+   *
+   * "Looking for it" is true on the first day and misleading on the fifteenth:
+   * Radarr and Sonarr are not working through a queue, they are running the
+   * same query on a schedule and getting the same nothing. Khatron Ke Khiladi
+   * S15 is the case - every episode aired, none was ever posted, and the card
+   * would have said "looking" indefinitely.
+   *
+   * Overdue is time-based, so it claims no more than it knows: nothing has
+   * arrived yet. Tapping through runs a real search and says whether anything
+   * exists at all.
+   */
   const label =
-    state.kind === 'searching' && state.days > 0
+    state.kind === 'searching' && state.overdue
+      ? t('requests.state.searchingNothing', { count: state.days })
+      : state.kind === 'searching' && state.days > 0
       ? t('requests.state.searchingDays', { count: state.days })
       : state.kind === 'unreleased'
         /*
@@ -529,6 +544,9 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
                 // Rejected and failed are the two states nothing will resolve
                 // on its own, so they are the two that get a colour.
                 rejected && i === 0 && styles.pillRejected,
+                // Not a fault, so not red - but not the same as a request
+                // made this morning either.
+                state.kind === 'searching' && state.overdue && i === 0 && styles.pillOverdue,
               ]}>
                 <Text style={styles.pillText}>{label}</Text>
               </View>
@@ -652,6 +670,7 @@ const styles = StyleSheet.create({
   // Opaque like the available pill, and for the same reason: these sit over
   // poster artwork that can be white or near-black in the same list.
   pillRejected: { backgroundColor: 'rgba(140, 26, 42, 0.92)', borderColor: colors.pink },
+  pillOverdue: { backgroundColor: 'rgba(120, 84, 20, 0.92)', borderColor: 'rgba(230, 170, 60, 0.75)' },
   pillText: { color: colors.text, ...t.caption, textTransform: 'uppercase' },
   waiting: { fontSize: 12, fontWeight: '600', color: colors.pink },
   by: { ...t.small, color: colors.textDim, marginTop: spacing.xs },
