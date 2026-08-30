@@ -51,7 +51,35 @@ That message is also the seed count expressed as a symptom, which matters
 because the queue record has no `seeders` field and getting one would mean a
 second credential for qBittorrent.
 
-## Speed is an average, never a spot reading
+## Live figures come from qBittorrent, not the *arrs
+
+Sonarr and Radarr refresh their queues from the torrent client **once a
+minute**, so anything derived from them is up to a minute stale — over a
+gigabyte at 20MB/s. Midsommar rendered `0% · < 1 MB/s` while qBittorrent had it
+at 22.5% and 20MB/s, because Radarr had not looked again since grabbing it.
+
+`jellylab-push` reads the client directly and the card prefers those numbers.
+It is also the only place a **seed count** exists — the queue record has no
+such field — and it carries both halves: connected over what the tracker
+claims. Bin Roye sat at `0/14` for hours, which is the entire diagnosis of a
+dead swarm and invisible from either number alone.
+
+Entirely optional. With no qBittorrent credential the service returns nothing
+extra and every caller falls back to the *arr figures, exactly as before.
+
+Two things that bite:
+
+- The session cookie is named **`QBT_SID_<port>`**, not `SID`. Matching the old
+  name meant a login that succeeded with a 204 and a perfectly good cookie was
+  reported as "no session cookie", which reads like bad credentials.
+- A rejected login is a **200 carrying "Fails."**, not an error status, so an
+  empty cookie is the only signal it genuinely failed.
+
+Radarr's own percentage can also be a flat lie: it derives from `sizeleft`,
+which is 0 while metadata is still resolving — so a torrent that has downloaded
+nothing reads as **100%**. `livePercent` says 0.
+
+## Speed is an average when there is no live figure
 
 `lib/download.ts` derives it from bytes done over time elapsed. A torrent
 averaging 2MB/s over ten hours is a different situation from one that briefly
@@ -82,8 +110,19 @@ that into a verdict:
 |---|---|
 | `untracked` | never added to Sonarr/Radarr — nobody is looking |
 | `nothing` | the indexers returned nothing at all |
+| `satisfied` | none acceptable **because we already have it** — success |
 | `deadEnd` | releases exist, none may be grabbed. **Will not resolve on its own** |
 | `grabbable` | something is acceptable now, so waiting is reasonable |
+
+`satisfied` and `deadEnd` arrive identically — zero acceptable releases — and
+are opposite situations. Pinocchio: Unstrung finished downloading, imported as
+a 1.52GB Bluray-1080p, and the sheet announced *"48 found, none can be used —
+this will not resolve on its own"*, because every remaining release was refused
+for the entirely correct reason that the file on disk already met the cutoff.
+
+Told apart on Radarr's own words: *existing file*, *in queue*, *already meets
+cutoff*, *equal or higher*. An unrecognised reason still falls through to
+`deadEnd`, because that is the louder answer and being wrong quietly is worse.
 
 Rules for it:
 
@@ -109,9 +148,29 @@ score. See `docs/release-rules.md` in the homelab repo, R0.
 It is a flag on a row, not a safety check. The only real check opens the
 torrent and looks inside, which happens on the server.
 
+## Choosing a quality is not choosing a copy
+
+`components/QualityPicker.tsx` sets which profile a title uses. A title is one
+object in Radarr or Sonarr holding exactly one profile, so this changes what it
+*seeks* — it never produces a second copy, and an upgrade replaces the file
+rather than adding one. The sheet says so plainly, because that is the fear the
+control invites.
+
+Rendered only where there is a real choice: an account without Seerr's
+advanced-request permission gets no profiles back, and one profile is not a
+decision. The default is sent as **no profile id at all**, so a request that
+wants the server default keeps working if that default is ever changed.
+
+The five it offers are described in `docs/release-rules.md` in the homelab
+repo; the app reads them live from Jellyseerr rather than hardcoding a list.
+
 ## The phone holds no credential
 
 Everything above comes from `jellylab-push`, which keeps the Sonarr and Radarr
 API keys on the server. The app asks a service rather than holding a key that
 could rewrite the library — so `/candidates` is read-only, and there is
 deliberately no "grab this one" button.
+
+Changing a title's profile *after* the fact would need a write endpoint on
+`jellylab-push` — narrow (set a profile, nothing else) but a real change in
+what the phone can do. Deferred.
