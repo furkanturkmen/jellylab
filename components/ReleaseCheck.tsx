@@ -126,6 +126,17 @@ function Summary({ v, raw }: { v: Verdict; raw: Push.Candidates }) {
     );
   }
 
+  if (v.kind === 'satisfied') {
+    return (
+      <View style={styles.centre}>
+        <Text style={styles.headline}>{tr('requests.check.satisfied')}</Text>
+        {/* Radarr's own sentence, same as the dead-end case - but this one is
+            good news, so it is not painted as a fault. */}
+        {v.reason ? <Text style={styles.dim}>{v.reason}</Text> : null}
+      </View>
+    );
+  }
+
   if (v.kind === 'deadEnd') {
     return (
       <View style={styles.centre}>

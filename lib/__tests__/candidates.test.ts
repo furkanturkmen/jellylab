@@ -42,6 +42,37 @@ describe('verdict', () => {
     expect(v.kind).toBe('grabbable');
   });
 
+  it('does not call a finished download a dead end', () => {
+    // Pinocchio: Unstrung downloaded, imported as a 1.52GB Bluray-1080p, and
+    // then reported "48 found, none can be used - this will not resolve on its
+    // own". Every remaining release was refused because the file on disk
+    // already met the cutoff, which is success wearing the same clothes.
+    expect(
+      verdict(answer({
+        found: 48,
+        accepted: 0,
+        rejections: { 'Existing file meets cutoff: WEB 1080p': 40 },
+      })),
+    ).toMatchObject({ kind: 'satisfied', found: 48 });
+
+    // Same shape while something is still downloading.
+    expect(
+      verdict(answer({
+        found: 256,
+        accepted: 0,
+        rejections: { 'Quality for release in queue already meets cutoff: WEBRip-1080p v1': 110 },
+      })).kind,
+    ).toBe('satisfied');
+  });
+
+  it('still calls a real dead end a dead end', () => {
+    // An unrecognised reason must fall through to the louder answer rather
+    // than being quietly treated as success.
+    expect(
+      verdict(answer({ found: 7, accepted: 0, rejections: { 'Some new reason': 3 } })).kind,
+    ).toBe('deadEnd');
+  });
+
   it('tells "never added" apart from "nothing found"', () => {
     // Both show no releases; only one of them is worth fixing by requesting it
     // again, and the other by waiting.

@@ -20,8 +20,26 @@ import type { Candidates, Release } from '@/api/push';
 export type Verdict =
   | { kind: 'untracked' }
   | { kind: 'nothing' }
+  | { kind: 'satisfied'; found: number; reason: string | null }
   | { kind: 'deadEnd'; found: number; reason: string | null }
   | { kind: 'grabbable'; found: number; accepted: number; best: Release };
+
+/**
+ * Rejections that mean "we already have this", not "this cannot be had".
+ *
+ * Both arrive as zero acceptable releases and they are opposite situations.
+ * Pinocchio: Unstrung finished downloading, imported as a 1.52GB Bluray-1080p,
+ * and then reported "48 found, none can be used - this will not resolve on its
+ * own" - because every remaining release was refused for the entirely correct
+ * reason that the file on disk already meets the cutoff.
+ *
+ * Matched on Radarr's own words. They are shown to the user untranslated for
+ * the same reason they are matched here: keeping a table of every string the
+ * *arrs can emit in step with them is a losing game, but recognising the shape
+ * of the satisfied ones is cheap and fails safe - an unmatched reason falls
+ * through to deadEnd, which is the louder answer.
+ */
+const SATISFIED = /existing file|in queue|already meets cutoff|equal or higher/i;
 
 /**
  * The commonest reason releases were refused.
@@ -52,7 +70,12 @@ export function verdict(c: Candidates): Verdict {
   // whenever more than ten are acceptable, which is the ordinary case.
   const best = c.releases[0];
   if (c.accepted === 0 || !best) {
-    return { kind: 'deadEnd', found: c.found, reason: topReason(c.rejections) };
+    const reason = topReason(c.rejections);
+    // Nothing acceptable *because we already have it* is success, and saying
+    // "this will not resolve on its own" about a finished download is worse
+    // than saying nothing at all.
+    const kind = reason && SATISFIED.test(reason) ? 'satisfied' : 'deadEnd';
+    return { kind, found: c.found, reason };
   }
   return { kind: 'grabbable', found: c.found, accepted: c.accepted, best };
 }

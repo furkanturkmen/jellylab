@@ -125,6 +125,7 @@
       "deadEndWhy": "This will not resolve on its own. The quality profile has to allow one of them.",
       "failed": "Could not reach the server",
       "nothing": "No releases exist yet",
+      "satisfied": "Already downloaded - nothing better to fetch",
       "score": "score {{score}}",
       "searching": "Asking every indexer. This can take a minute or two.",
       "seeders": "{{count}} seeders",

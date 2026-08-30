@@ -125,6 +125,7 @@
       "deadEndWhy": "Dit lost zichzelf niet op. Het kwaliteitsprofiel moet er een toestaan.",
       "failed": "Server niet bereikbaar",
       "nothing": "Nog geen releases beschikbaar",
+      "satisfied": "Al binnengehaald - er is niets beters te halen",
       "score": "score {{score}}",
       "searching": "Alle indexers worden bevraagd. Dit kan een minuut of twee duren.",
       "seeders": "{{count}} seeders",
