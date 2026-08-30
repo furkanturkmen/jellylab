@@ -495,6 +495,22 @@ export async function listRequests(filter: 'all' | 'pending' | 'approved' | 'ava
   return res.data.results ?? [];
 }
 
+/**
+ * Decline a request, so a title nobody can get stops looking like one that is
+ * still being worked on.
+ *
+ * Jellyseerr keeps the record and marks it declined - it does not delete it -
+ * which is exactly what is wanted: the request stays in the history, and
+ * nothing keeps searching for it. It carries no field for a reason, so that is
+ * kept on the device (see store/prefs, rejectionReasons).
+ *
+ * Reversible: re-approving in Jellyseerr undoes it.
+ */
+export async function declineRequest(requestId: number): Promise<void> {
+  const client = await authClient();
+  await client.post(`/request/${requestId}/decline`);
+}
+
 export async function deleteRequest(requestId: number): Promise<void> {
   const client = await authClient();
   await client.delete(`/request/${requestId}`);

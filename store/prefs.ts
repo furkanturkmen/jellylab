@@ -51,6 +51,19 @@ export type Prefs = {
   maxBitrateMbps: number; // 0 = unlimited: always direct play the original file
   /** jellylab-push base URL, e.g. http://192.168.1.10:8099 - used for the storage readout */
   pushUrl: string;
+  /**
+   * Why a request was rejected, keyed by TMDB id.
+   *
+   * Jellyseerr records *that* a request was declined and nothing about why, so
+   * a rejected row is a dead end with no explanation - which is the state Bin
+   * Roye was in for a day before anyone worked out that all seven of its
+   * releases had dead swarms.
+   *
+   * Kept on the device rather than pushed anywhere: it is a note to self about
+   * a decision made on this phone, and the alternative is a write endpoint on
+   * a service that is deliberately read-only.
+   */
+  rejectionReasons: Record<string, string>;
 };
 
 export const DEFAULT_PREFS: Prefs = {
@@ -65,6 +78,7 @@ export const DEFAULT_PREFS: Prefs = {
   uiLanguage: 'system',
   maxBitrateMbps: 0,
   pushUrl: '',
+  rejectionReasons: {},
 };
 
 export async function loadPrefs(): Promise<Prefs> {
@@ -94,6 +108,26 @@ const MAX_SUBTITLE_DELAYS = 50;
  * An empty label is stored as a deletion: "no choice made here" is the state
  * that lets the language preference decide again.
  */
+/**
+ * Remember why a title was rejected, bounded like the other per-title maps.
+ *
+ * Fifty is far more than anyone rejects, and an unbounded map that only ever
+ * grows is a slow leak in a file read on every launch.
+ */
+export function withRejectionReason(
+  prefs: Prefs,
+  tmdbId: number | string,
+  reason: string | null,
+): Record<string, string> {
+  const key = String(tmdbId);
+  const next = { ...(prefs.rejectionReasons ?? {}) };
+  delete next[key];
+  if (reason) next[key] = reason;
+  const keys = Object.keys(next);
+  if (keys.length > 50) delete next[keys[0]];
+  return next;
+}
+
 export function withSubtitleChoice(prefs: Prefs, key: string, label: string): Prefs {
   const next = { ...(prefs.subtitleChoices ?? {}) };
   delete next[key];

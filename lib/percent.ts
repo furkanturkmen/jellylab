@@ -6,8 +6,9 @@
  * minute. qBittorrent shows decimals near the end for this reason, and this
  * does the same.
  *
- * Whole numbers for most of the way - nobody needs 43.2% - and one decimal
- * once it is close enough that the difference is the whole story.
+ * One decimal throughout, and floored rather than rounded. Whole numbers hid a
+ * tenth of a percent, which on a 30GB season is 30MB - enough to make a bar
+ * that is visibly moving look frozen for tens of seconds.
  */
 export function formatPercent(fraction: number | null | undefined): string {
   if (fraction == null || !Number.isFinite(fraction)) return '';
@@ -15,9 +16,11 @@ export function formatPercent(fraction: number | null | undefined): string {
   const pct = Math.max(0, Math.min(1, fraction)) * 100;
   if (pct >= 100) return '100%';
 
-  // Anything above 99 gets a decimal, and it is floored, so 99.97 shows as
-  // 99.9 rather than becoming 100 while bytes are outstanding.
-  if (pct > 99) return `${(Math.floor(pct * 10) / 10).toFixed(1)}%`;
-
-  return `${Math.floor(pct)}%`;
+  // Always floored, never rounded: 99.97 shows as 99.9 rather than becoming
+  // 100% while bytes are still outstanding, and 43.7 does not become 44.
+  //
+  // One decimal throughout. Whole numbers hid a tenth of a percent, which on a
+  // 30GB season is 30MB - and made a bar that was visibly moving look frozen
+  // for tens of seconds at a time.
+  return `${(Math.floor(pct * 10) / 10).toFixed(1)}%`;
 }

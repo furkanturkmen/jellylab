@@ -10,7 +10,9 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import * as Jellyseerr from '@/api/jellyseerr';
 import * as Push from '@/api/push';
+import { loadPrefs, savePrefs, withRejectionReason } from '@/store/prefs';
 import { suspicious, verdict, type Verdict } from '@/lib/candidates';
 import { formatBytes } from '@/lib/bytes';
 import { colors, radius, spacing, type as t } from '@/theme';
@@ -41,6 +43,8 @@ export function ReleaseCheck({
   mediaType,
   season,
   title,
+  requestId,
+  onRejected,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -49,6 +53,9 @@ export function ReleaseCheck({
   mediaType: 'movie' | 'tv';
   season?: number;
   title: string;
+  /** the Jellyseerr request, so a dead end can be closed from here */
+  requestId?: number;
+  onRejected?: (reason: string) => void;
 }) {
   const { t: tr } = useTranslation();
   const [state, setState] = useState<
@@ -98,7 +105,13 @@ export function ReleaseCheck({
               <Text style={styles.dim}>{state.message}</Text>
             </View>
           ) : (
-            <Summary v={state.v} raw={state.raw} />
+            <Summary
+              v={state.v}
+              raw={state.raw}
+              tmdbId={tmdbId}
+              requestId={requestId}
+              onRejected={onRejected}
+            />
           )}
         </View>
       </View>
@@ -106,8 +119,45 @@ export function ReleaseCheck({
   );
 }
 
-function Summary({ v, raw }: { v: Verdict; raw: Push.Candidates }) {
+function Summary({ v, raw, tmdbId, requestId, onRejected }: {
+  v: Verdict;
+  raw: Push.Candidates;
+  tmdbId: number;
+  requestId?: number;
+  onRejected?: (reason: string) => void;
+}) {
   const { t: tr } = useTranslation();
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectError, setRejectError] = useState<string | null>(null);
+
+  /*
+   * Close a request nothing can satisfy.
+   *
+   * Bin Roye had seven releases and a dead swarm behind every one of them. It
+   * sat reporting "searching" for a day, indistinguishable from something
+   * about to arrive. Declining keeps the record and stops the searching, and
+   * Jellyseerr can undo it.
+   *
+   * The reason is stored on the device because Jellyseerr has no field for
+   * one - so a rejected row can say why rather than just going quiet.
+   */
+  async function reject(reason: string) {
+    if (requestId == null) return;
+    setRejecting(true);
+    setRejectError(null);
+    try {
+      await Jellyseerr.declineRequest(requestId);
+      const prefs = await loadPrefs();
+      await savePrefs({
+        ...prefs,
+        rejectionReasons: withRejectionReason(prefs, tmdbId, reason),
+      });
+      onRejected?.(reason);
+    } catch (e: unknown) {
+      setRejectError(e instanceof Error ? e.message : String(e));
+      setRejecting(false);
+    }
+  }
 
   if (v.kind === 'untracked') {
     return (
@@ -146,6 +196,26 @@ function Summary({ v, raw }: { v: Verdict; raw: Push.Candidates }) {
             step with them, and getting it wrong silently. */}
         {v.reason ? <Text style={styles.reason}>{v.reason}</Text> : null}
         <Text style={styles.dim}>{tr('requests.check.deadEndWhy')}</Text>
+
+        {/* Offered only here. A dead end is the one verdict where the honest
+            next step is to stop, and it is the one place the reason to record
+            is already on screen. */}
+        {requestId != null && onRejected ? (
+          <TouchableOpacity
+            style={styles.reject}
+            disabled={rejecting}
+            onPress={() => reject(v.reason ?? tr('requests.check.deadEnd', { count: v.found }))}
+          >
+            <Text style={styles.rejectText}>
+              {rejecting ? tr('requests.check.rejecting') : tr('requests.check.reject')}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+        {rejectError ? (
+          <Text style={styles.reason}>{tr('requests.check.rejectFailed')}: {rejectError}</Text>
+        ) : (
+          <Text style={styles.dim}>{tr('requests.check.rejectWhy')}</Text>
+        )}
       </View>
     );
   }
@@ -202,6 +272,15 @@ const styles = StyleSheet.create({
   note: { ...t.small, color: colors.textMuted, textAlign: 'center' },
   dim: { ...t.small, color: colors.textDim, textAlign: 'center' },
   reason: { ...t.small, color: colors.pink, textAlign: 'center' },
+  reject: {
+    marginTop: spacing.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.button,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.pink,
+  },
+  rejectText: { ...t.bodyStrong, color: colors.pink },
   list: { gap: spacing.md, paddingBottom: spacing.lg },
   row: { gap: spacing.sm, paddingVertical: spacing.sm },
   rowTitle: { ...t.small, color: colors.text },

@@ -12,21 +12,24 @@ describe('formatPercent', () => {
     expect(formatPercent(1.2)).toBe('100%');
   });
 
-  // Decimals in the middle of a download are noise.
-  it('keeps whole numbers for the long stretch', () => {
-    expect(formatPercent(0.432)).toBe('43%');
-    expect(formatPercent(0.5)).toBe('50%');
-    expect(formatPercent(0.99)).toBe('99%');
+  // Whole numbers used to hide a tenth of a percent, which on a 30GB season is
+  // 30MB - enough to make a bar that is visibly moving look frozen.
+  it('keeps one decimal the whole way', () => {
+    expect(formatPercent(0.432)).toBe('43.2%');
+    expect(formatPercent(0.5)).toBe('50.0%');
+    expect(formatPercent(0.99)).toBe('99.0%');
   });
 
   it('floors rather than rounds, so it never runs ahead', () => {
-    expect(formatPercent(0.789)).toBe('78%');
+    expect(formatPercent(0.789)).toBe('78.9%');
+    // 43.79 must not become 43.8, let alone 44.
+    expect(formatPercent(0.4379)).toBe('43.7%');
   });
 
   it('has nothing to show for nothing', () => {
     expect(formatPercent(null)).toBe('');
     expect(formatPercent(undefined)).toBe('');
     expect(formatPercent(NaN)).toBe('');
-    expect(formatPercent(-0.5)).toBe('0%');
+    expect(formatPercent(-0.5)).toBe('0.0%');
   });
 });

@@ -14,6 +14,7 @@ import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/lib/date';
 import { formatPercent } from '@/lib/percent';
+import { qualityFromLabel } from '@/lib/quality';
 import { requestState, statePercent } from '@/lib/requests';
 import { averageSpeed, elapsedSince } from '@/lib/download';
 import { formatBytes } from '@/lib/bytes';
@@ -78,6 +79,9 @@ export default function RequestsScreen() {
    * to reopening on a scroll.
    */
   const [checking, setChecking] = useState<EnrichedRequest | null>(null);
+
+  /** Why rejected titles were rejected, keyed by TMDB id. See store/prefs. */
+  const [reasons, setReasons] = useState<Record<string, string>>({});
   const [items, setItems] = useState<EnrichedRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -123,8 +127,9 @@ export default function RequestsScreen() {
        * whether or not the homelab service is reachable.
        */
       try {
-        const { pushUrl: configured } = await loadPrefs();
-        const url = Push.resolveUrl(configured, getJellyfinUrl());
+        const prefs = await loadPrefs();
+        setReasons(prefs.rejectionReasons ?? {});
+        const url = Push.resolveUrl(prefs.pushUrl, getJellyfinUrl());
         setPushUrl(url);
         if (!url) {
           console.log('[jellylab] downloads: no url (jellyfin url not resolved yet)');
@@ -233,6 +238,7 @@ export default function RequestsScreen() {
             downloads={downloads}
             onOpen={() => router.push(`/tmdb/${item.media.mediaType}/${item.media.tmdbId}`)}
             onCheck={pushUrl ? () => setChecking(item) : undefined}
+            rejectionReason={reasons[String(item.media.tmdbId)]}
           />
         )}
         ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
@@ -259,13 +265,19 @@ export default function RequestsScreen() {
           // covers is the season this row is actually about.
           season={requestedSeasons(checking)[0]}
           title={checking.details?.title ?? String(checking.media.tmdbId)}
+          requestId={checking.id}
+          onRejected={(reason) => {
+            setReasons(prev => ({ ...prev, [String(checking.media.tmdbId)]: reason }));
+            setChecking(null);
+            load(true);
+          }}
         />
       ) : null}
     </View>
   );
 }
 
-function RequestCard({ r, onOpen, onCheck, downloads }: {
+function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
   r: EnrichedRequest;
   onOpen: () => void;
   /**
@@ -275,6 +287,8 @@ function RequestCard({ r, onOpen, onCheck, downloads }: {
   onCheck?: () => void;
   /** the whole-queue view from jellylab-push, when it answered */
   downloads: Push.Downloads | null;
+  /** why this was rejected, if it was and a reason was noted */
+  rejectionReason?: string;
 }) {
   const { t } = useTranslation();
 
@@ -289,6 +303,7 @@ function RequestCard({ r, onOpen, onCheck, downloads }: {
    */
   const state = requestState(r, undefined, downloads);
   const available = state.kind === 'available';
+  const rejected = state.kind === 'declined' || state.kind === 'failed';
   const label =
     state.kind === 'searching' && state.days > 0
       ? t('requests.state.searchingDays', { count: state.days })
@@ -378,17 +393,24 @@ function RequestCard({ r, onOpen, onCheck, downloads }: {
    */
   const stalledWhy = state.kind === 'stalled' ? live?.error ?? null : null;
 
-  // Shown only when it is not English, which is when it is worth knowing: two
-  // of the releases Radarr ranked highest for Fall were Italian, because
-  // Radarr has no Italian custom format and Sonarr does.
-  const language = live?.languages?.find(l => l && l !== 'English') ?? null;
+  /*
+   * The quality, as a pill beside the state rather than buried in the detail
+   * line.
+   *
+   * Translated through the same helper the item screen uses, so a request and
+   * the thing it becomes are described identically - and in words from a
+   * television box rather than from Radarr: "Full HD", not "WEBDL-1080p".
+   */
+  const qualityKey = qualityFromLabel(live?.quality);
 
-  const detail = stalledWhy
+  const detail = rejected
+    // Jellyseerr records that it was declined and nothing about why, so the
+    // reason comes from whatever was noted when it was rejected here.
+    ? rejectionReason ?? null
+    : stalledWhy
     ? stalledWhy
     : live
       ? [
-          live.quality,
-          language,
           live.size ? formatBytes(live.size) : null,
           speed != null ? `${formatBytes(speed)}/s` : null,
           seeds != null ? t('requests.seeds', { seeds }) : null,
@@ -405,7 +427,8 @@ function RequestCard({ r, onOpen, onCheck, downloads }: {
    * the state already is the explanation.
    */
   const canCheck = onCheck != null
-    && (state.kind === 'searching' || state.kind === 'stalled' || state.kind === 'importing');
+    && (state.kind === 'searching' || state.kind === 'stalled'
+        || state.kind === 'importing' || rejected);
 
   const pct = fraction != null ? Math.round(fraction * 100) : null;
   const pctLabel = formatPercent(fraction);
@@ -478,10 +501,24 @@ function RequestCard({ r, onOpen, onCheck, downloads }: {
               itself, so it no longer needs a line of its own underneath. */}
           <View style={styles.pillRow}>
             {pills.map((label, i) => (
-              <View key={label} style={[styles.pill, available && i === 0 && styles.pillAvailable]}>
+              <View key={label} style={[
+                styles.pill,
+                available && i === 0 && styles.pillAvailable,
+                // Rejected and failed are the two states nothing will resolve
+                // on its own, so they are the two that get a colour.
+                rejected && i === 0 && styles.pillRejected,
+              ]}>
                 <Text style={styles.pillText}>{label}</Text>
               </View>
             ))}
+            {/* Only while something is being fetched. Once a title is in the
+                library its quality belongs on the item screen, which reads it
+                from the file itself rather than from whatever was grabbed. */}
+            {qualityKey ? (
+              <View style={[styles.pill, styles.pillQuality]}>
+                <Text style={styles.pillText}>{t(qualityKey)}</Text>
+              </View>
+            ) : null}
           </View>
           {pct !== null ? (
             <>
@@ -495,6 +532,8 @@ function RequestCard({ r, onOpen, onCheck, downloads }: {
             </View>
             {detail ? <Text style={styles.detail} numberOfLines={1}>{detail}</Text> : null}
             </>
+          ) : detail ? (
+            <Text style={styles.detail} numberOfLines={2}>{detail}</Text>
           ) : (
             <Text style={styles.by}>
               {r.requestedBy.displayName} · {formatDate(r.createdAt)}
@@ -571,6 +610,9 @@ const styles = StyleSheet.create({
     borderColor: colors.glassBorder,
   },
   pillAvailable: { backgroundColor: colors.successTint, borderColor: colors.successBorder },
+  // Opaque like the available pill, and for the same reason: these sit over
+  // poster artwork that can be white or near-black in the same list.
+  pillRejected: { backgroundColor: 'rgba(140, 26, 42, 0.92)', borderColor: colors.pink },
   pillText: { color: colors.text, ...t.caption, textTransform: 'uppercase' },
   waiting: { fontSize: 12, fontWeight: '600', color: colors.pink },
   by: { ...t.small, color: colors.textDim, marginTop: spacing.xs },
@@ -584,4 +626,7 @@ const styles = StyleSheet.create({
   // An action, so it reads as tappable rather than as one more fact about
   // the request - everything else in this column is a statement.
   check: { ...t.caption, color: colors.textMuted, marginTop: spacing.xs, textDecorationLine: 'underline' },
+  // Quieter than the state pill beside it: what is happening matters more
+  // than what it will look like.
+  pillQuality: { backgroundColor: 'transparent', borderColor: colors.border },
 });

@@ -8,6 +8,15 @@ describe('formatBytes', () => {
     expect(formatBytes(340 * MB)).toBe('340 MB');
   });
 
+  // A live speed reading is the case this exists for: rounding 2.6 to 3 is a
+  // 15% overstatement of the number people judge a download by.
+  it('keeps a decimal where a tenth of a megabyte is the whole point', () => {
+    expect(formatBytes(2.6 * MB)).toBe('2.6 MB');
+    expect(formatBytes(12.4 * MB)).toBe('12.4 MB');
+    // Past a hundred the decimal is noise again.
+    expect(formatBytes(340 * MB)).toBe('340 MB');
+  });
+
   it('gains a decimal where one gigabyte of difference matters', () => {
     expect(formatBytes(2.4 * GB)).toBe('2.4 GB');
   });
