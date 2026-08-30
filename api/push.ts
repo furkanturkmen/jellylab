@@ -93,6 +93,23 @@ export type DownloadProgress = {
   timeLeft?: string | null;
   indexer?: string | null;
   client?: string | null;
+  /** what was chosen: "WEBRip-1080p", "HDTV-1080p" */
+  quality?: string | null;
+  /**
+   * The custom format score of the release being fetched.
+   *
+   * Worth showing. A release carrying PROPER in its title outranks everything
+   * on revision before any score is read, so a negative score here means the
+   * ranking picked something the quality profile actively did not want.
+   */
+  score?: number | null;
+  languages?: string[];
+  /**
+   * Sonarr's own words for why it is stuck - "The download is stalled with no
+   * connections". This is a seed count expressed as a symptom, and unlike a
+   * seed count it costs no second credential to read.
+   */
+  error?: string | null;
 };
 
 /** A film Radarr is deliberately not searching for yet. */
@@ -151,6 +168,67 @@ export type Downloads = {
  */
 export async function downloads(url: string): Promise<Downloads> {
   const res = await fetch(`${base(url)}/downloads`);
+  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+  return res.json();
+}
+
+/** One release that could be grabbed, as the indexers describe it. */
+export type Release = {
+  title: string | null;
+  quality: string | null;
+  /** a PROPER or REPACK - the flag that wins a ranking, and the one forged */
+  proper: boolean;
+  score: number;
+  seeders: number | null;
+  leechers: number | null;
+  /** bytes */
+  size: number | null;
+  indexer: string | null;
+  languages: string[];
+  age: number | null;
+};
+
+export type Candidates = {
+  /** false when the *arr has never heard of it, which is its own answer */
+  tracked: boolean;
+  title?: string | null;
+  /** how many releases the indexers returned */
+  found: number;
+  /** how many of those the quality profile would accept */
+  accepted: number;
+  /** the acceptable ones, best first. Empty is a diagnosis, not an error. */
+  releases: Release[];
+  /** why the rest were refused, commonest first */
+  rejections: Record<string, number>;
+};
+
+/**
+ * What could actually be grabbed for one title.
+ *
+ * A request that sits still reads as "searching" whether the problem is that
+ * the wrong release keeps being chosen or that no permitted release exists at
+ * all - and those need opposite fixes. Fall found 256 releases and accepted
+ * 34, then repeatedly grabbed a PROPER that was malware. Bin Roye found seven,
+ * accepted none, and would have searched forever: every one was a DVDRip and
+ * the profile starts at 720p.
+ *
+ * Only acceptable releases come back, because a list of things that cannot be
+ * grabbed is noise. When that list is empty, the count and the rejection
+ * reasons are the whole answer.
+ *
+ * This runs a live search across every indexer on the server and takes tens of
+ * seconds. Ask for it when someone taps, never on a poll.
+ */
+export async function candidates(
+  url: string,
+  tmdbId: number | string,
+  type: 'movie' | 'tv',
+  season?: number,
+  signal?: AbortSignal,
+): Promise<Candidates> {
+  const q = new URLSearchParams({ tmdbId: String(tmdbId), type });
+  if (type === 'tv' && season != null) q.set('season', String(season));
+  const res = await fetch(`${base(url)}/candidates?${q}`, { signal });
   if (!res.ok) throw new Error(`Server returned ${res.status}`);
   return res.json();
 }

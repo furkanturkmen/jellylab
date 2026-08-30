@@ -157,6 +157,19 @@
       "notAiredOn": "Noch nicht ausgestrahlt · {{date}}",
       "unreleasedOn": "Noch nicht erschienen · {{date}}",
       "unreleasedCinemasOn": "Im Kino · {{date}}"
+    },
+    "check": {
+      "action": "Warum hängt das?",
+      "deadEnd": "{{count}} gefunden, keines brauchbar",
+      "deadEndWhy": "Das löst sich nicht von selbst. Das Qualitätsprofil muss eines zulassen.",
+      "failed": "Server nicht erreichbar",
+      "nothing": "Noch keine Releases vorhanden",
+      "score": "Wert {{score}}",
+      "searching": "Alle Indexer werden abgefragt. Das dauert einen Moment.",
+      "seeders": "{{count}} Seeder",
+      "summary": "{{accepted}} von {{found}} brauchbar",
+      "untracked": "Es wird nicht gesucht",
+      "untrackedWhy": "Dafür wurde nie etwas in Sonarr oder Radarr angelegt."
     }
   },
   "detail": {

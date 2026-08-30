@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import * as Jellyseerr from '@/api/jellyseerr';
 import * as Push from '@/api/push';
 import { getJellyfinUrl } from '@/config';
+import { ReleaseCheck } from '@/components/ReleaseCheck';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/lib/date';
@@ -59,6 +60,24 @@ export default function RequestsScreen() {
    * without it exactly as it did before.
    */
   const [downloads, setDownloads] = useState<Push.Downloads | null>(null);
+
+  /**
+   * Where jellylab-push is, kept so a card can ask it something directly.
+   *
+   * Resolved once alongside the download poll rather than per card: it is the
+   * Jellyfin URL with the port swapped, and every card would derive the same
+   * answer.
+   */
+  const [pushUrl, setPushUrl] = useState('');
+
+  /**
+   * The request whose releases are being looked at, if any.
+   *
+   * One sheet for the whole screen rather than one per card - the list is
+   * virtualised, and a Modal inside a recycled row is both wasteful and prone
+   * to reopening on a scroll.
+   */
+  const [checking, setChecking] = useState<EnrichedRequest | null>(null);
   const [items, setItems] = useState<EnrichedRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,8 +123,9 @@ export default function RequestsScreen() {
        * whether or not the homelab service is reachable.
        */
       try {
-        const { pushUrl } = await loadPrefs();
-        const url = Push.resolveUrl(pushUrl, getJellyfinUrl());
+        const { pushUrl: configured } = await loadPrefs();
+        const url = Push.resolveUrl(configured, getJellyfinUrl());
+        setPushUrl(url);
         if (!url) {
           console.log('[jellylab] downloads: no url (jellyfin url not resolved yet)');
           setDownloads(null);
@@ -208,7 +228,12 @@ export default function RequestsScreen() {
         scrollEventThrottle={16}
         ListHeaderComponent={<View style={{ height: headerHeight }} />}
         renderItem={({ item }: { item: EnrichedRequest }) => (
-          <RequestCard r={item} downloads={downloads} onOpen={() => router.push(`/tmdb/${item.media.mediaType}/${item.media.tmdbId}`)} />
+          <RequestCard
+            r={item}
+            downloads={downloads}
+            onOpen={() => router.push(`/tmdb/${item.media.mediaType}/${item.media.tmdbId}`)}
+            onCheck={pushUrl ? () => setChecking(item) : undefined}
+          />
         )}
         ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
         contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 150 }}
@@ -219,13 +244,35 @@ export default function RequestsScreen() {
         }
       />
       <TabHeader title={tr('tabs.requests')} scrollY={scrollY} />
+      {checking ? (
+        <ReleaseCheck
+          // Fresh per request, so opening a second card never shows the first
+          // card's answer while the new search runs.
+          key={checking.id}
+          visible
+          onClose={() => setChecking(null)}
+          url={pushUrl}
+          tmdbId={checking.media.tmdbId}
+          mediaType={checking.media.mediaType === 'movie' ? 'movie' : 'tv'}
+          // Sonarr searches a season or an episode, never a whole series. A
+          // Seerr request is filed per season selection, so the lowest one it
+          // covers is the season this row is actually about.
+          season={requestedSeasons(checking)[0]}
+          title={checking.details?.title ?? String(checking.media.tmdbId)}
+        />
+      ) : null}
     </View>
   );
 }
 
-function RequestCard({ r, onOpen, downloads }: {
+function RequestCard({ r, onOpen, onCheck, downloads }: {
   r: EnrichedRequest;
   onOpen: () => void;
+  /**
+   * Ask the server what could be grabbed. Absent when jellylab-push has no
+   * URL yet, which is the one case where there is nobody to ask.
+   */
+  onCheck?: () => void;
   /** the whole-queue view from jellylab-push, when it answered */
   downloads: Push.Downloads | null;
 }) {
@@ -300,14 +347,45 @@ function RequestCard({ r, onOpen, downloads }: {
     ? (r.media.mediaType === 'movie' ? downloads?.movies : downloads?.tv)?.[String(r.media.tmdbId)]
     : undefined;
   const speed = live ? averageSpeed(live.size, live.sizeLeft, live.added) : null;
-  const detail = live
-    ? [
-        live.size ? formatBytes(live.size) : null,
-        speed != null ? `${formatBytes(speed)}/s` : null,
-        elapsedSince(live.added),
-        live.indexer?.replace(/\s*\(Prowlarr\)\s*$/, '') ?? null,
-      ].filter(Boolean).join(' · ')
-    : null;
+
+  /*
+   * A stalled download says why instead of how fast.
+   *
+   * Sonarr puts the reason in errorMessage - "The download is stalled with no
+   * connections" - and while it is stalled the size and the average speed are
+   * both describing a thing that is not happening. One line, so the useful
+   * sentence takes it.
+   */
+  const stalledWhy = state.kind === 'stalled' ? live?.error ?? null : null;
+
+  // Shown only when it is not English, which is when it is worth knowing: two
+  // of the releases Radarr ranked highest for Fall were Italian, because
+  // Radarr has no Italian custom format and Sonarr does.
+  const language = live?.languages?.find(l => l && l !== 'English') ?? null;
+
+  const detail = stalledWhy
+    ? stalledWhy
+    : live
+      ? [
+          live.quality,
+          language,
+          live.size ? formatBytes(live.size) : null,
+          speed != null ? `${formatBytes(speed)}/s` : null,
+          elapsedSince(live.added),
+          live.indexer?.replace(/\s*\(Prowlarr\)\s*$/, '') ?? null,
+        ].filter(Boolean).join(' · ')
+      : null;
+  /*
+   * Whether asking the server would tell you anything.
+   *
+   * Only for the states where "searching" is hiding two different situations:
+   * a release exists and the choosing is going wrong, or no release the
+   * profile permits exists at all and it will search forever. Everywhere else
+   * the state already is the explanation.
+   */
+  const canCheck = onCheck != null
+    && (state.kind === 'searching' || state.kind === 'stalled' || state.kind === 'importing');
+
   const pct = fraction != null ? Math.round(fraction * 100) : null;
   const pctLabel = formatPercent(fraction);
   // one entry has a real ETA; a season pack split over many does not
@@ -401,15 +479,29 @@ function RequestCard({ r, onOpen, downloads }: {
               {r.requestedBy.displayName} · {formatDate(r.createdAt)}
             </Text>
           )}
+          {/*
+            Offered only where the answer would change what you do. On a
+            request that is downloading, or already available, or waiting on a
+            broadcast date, there is nothing to diagnose - the state is the
+            explanation. On one that is searching or stuck it is the difference
+            between "wait" and "this will never finish".
+          */}
+          {canCheck ? (
+            <TouchableOpacity onPress={onCheck} hitSlop={8}>
+              <Text style={styles.check}>{t('requests.check.action')}</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
     </TouchableOpacity>
   );
 }
 
-// Room for the detail line under the bar. Fixed rather than measured because
-// the list is virtualised and a varying height makes it jump while scrolling.
-const CARD_HEIGHT = 156;
+// Room for the detail line under the bar, and for the release-check action on
+// a request that is stuck. Fixed rather than measured because the list is
+// virtualised and a varying height makes it jump while scrolling - which means
+// the tallest arrangement sets it for every card.
+const CARD_HEIGHT = 172;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
@@ -468,4 +560,7 @@ const styles = StyleSheet.create({
   // Legible rather than decorative: this is the line you read to find out how
   // a download is going, so it carries weight and sits at muted rather than dim.
   detail: { ...t.caption, color: colors.textMuted, fontWeight: '600', marginTop: 2 },
+  // An action, so it reads as tappable rather than as one more fact about
+  // the request - everything else in this column is a statement.
+  check: { ...t.caption, color: colors.textMuted, marginTop: spacing.xs, textDecorationLine: 'underline' },
 });

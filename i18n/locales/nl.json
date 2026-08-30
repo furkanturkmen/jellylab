@@ -157,6 +157,19 @@
       "notAiredOn": "Nog niet uitgezonden · {{date}}",
       "unreleasedOn": "Nog niet uit · {{date}}",
       "unreleasedCinemasOn": "In de bioscoop · {{date}}"
+    },
+    "check": {
+      "action": "Waarom blijft dit hangen?",
+      "deadEnd": "{{count}} gevonden, geen bruikbare",
+      "deadEndWhy": "Dit lost zichzelf niet op. Het kwaliteitsprofiel moet er een toestaan.",
+      "failed": "Server niet bereikbaar",
+      "nothing": "Nog geen releases beschikbaar",
+      "score": "score {{score}}",
+      "searching": "Alle indexers worden bevraagd. Dit duurt even.",
+      "seeders": "{{count}} seeders",
+      "summary": "{{accepted}} van {{found}} bruikbaar",
+      "untracked": "Er wordt niet naar gezocht",
+      "untrackedWhy": "Hiervoor is nooit iets aan Sonarr of Radarr toegevoegd."
     }
   },
   "detail": {

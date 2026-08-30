@@ -157,6 +157,19 @@
       "notAiredOn": "Not aired yet · {{date}}",
       "unreleasedOn": "Not out yet · {{date}}",
       "unreleasedCinemasOn": "In cinemas · {{date}}"
+    },
+    "check": {
+      "action": "Why is this stuck?",
+      "deadEnd": "{{count}} found, none can be used",
+      "deadEndWhy": "This will not resolve on its own. The quality profile has to allow one of them.",
+      "failed": "Could not reach the server",
+      "nothing": "No releases exist yet",
+      "score": "score {{score}}",
+      "searching": "Asking every indexer. This takes a moment.",
+      "seeders": "{{count}} seeders",
+      "summary": "{{accepted}} of {{found}} can be used",
+      "untracked": "Not being looked for",
+      "untrackedWhy": "Nothing was ever added to Sonarr or Radarr for this."
     }
   },
   "detail": {

@@ -157,6 +157,19 @@
       "notAiredOn": "Henüz yayınlanmadı · {{date}}",
       "unreleasedOn": "Henüz çıkmadı · {{date}}",
       "unreleasedCinemasOn": "Sinemalarda · {{date}}"
+    },
+    "check": {
+      "action": "Neden takıldı?",
+      "deadEnd": "{{count}} bulundu, kullanılabilir yok",
+      "deadEndWhy": "Bu kendiliğinden çözülmez. Kalite profilinin birine izin vermesi gerekir.",
+      "failed": "Sunucuya ulaşılamadı",
+      "nothing": "Henüz yayınlanmış sürüm yok",
+      "score": "puan {{score}}",
+      "searching": "Tüm indeksleyiciler sorgulanıyor. Bu biraz sürer.",
+      "seeders": "{{count}} seeder",
+      "summary": "{{found}} sürümden {{accepted}} tanesi kullanılabilir",
+      "untracked": "Aranmıyor",
+      "untrackedWhy": "Bunun için Sonarr veya Radarr’a hiçbir şey eklenmemiş."
     }
   },
   "detail": {
