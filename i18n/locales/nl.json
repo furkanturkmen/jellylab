@@ -119,14 +119,20 @@
     "failedBody": "Jellyfin of Jellyseerr was niet bereikbaar."
   },
   "requests": {
-    "empty": "Nog geen aanvragen",
-    "status": {
-      "1": "In behandeling",
-      "2": "Goedgekeurd",
-      "3": "Afgewezen",
-      "4": "Mislukt",
-      "5": "Voltooid"
+    "check": {
+      "action": "Waarom blijft dit hangen?",
+      "deadEnd": "{{count}} gevonden, geen bruikbare",
+      "deadEndWhy": "Dit lost zichzelf niet op. Het kwaliteitsprofiel moet er een toestaan.",
+      "failed": "Server niet bereikbaar",
+      "nothing": "Nog geen releases beschikbaar",
+      "score": "score {{score}}",
+      "searching": "Alle indexers worden bevraagd. Dit kan een minuut of twee duren.",
+      "seeders": "{{count}} seeders",
+      "summary": "{{accepted}} van {{found}} bruikbaar",
+      "untracked": "Er wordt niet naar gezocht",
+      "untrackedWhy": "Hiervoor is nooit iets aan Sonarr of Radarr toegevoegd."
     },
+    "empty": "Nog geen aanvragen",
     "mediaStatus": {
       "1": "Onbekend",
       "2": "In behandeling",
@@ -136,8 +142,8 @@
       "6": "Geblokkeerd",
       "7": "Verwijderd"
     },
+    "seeds": "{{seeds}} seeds",
     "signedOut": "Log in bij Jellyseerr om je verzoeken te zien",
-    "unavailable": "Geen verbinding met Jellyseerr",
     "state": {
       "pending": "Wacht op goedkeuring",
       "declined": "Afgewezen",
@@ -158,19 +164,14 @@
       "unreleasedOn": "Nog niet uit · {{date}}",
       "unreleasedCinemasOn": "In de bioscoop · {{date}}"
     },
-    "check": {
-      "action": "Waarom blijft dit hangen?",
-      "deadEnd": "{{count}} gevonden, geen bruikbare",
-      "deadEndWhy": "Dit lost zichzelf niet op. Het kwaliteitsprofiel moet er een toestaan.",
-      "failed": "Server niet bereikbaar",
-      "nothing": "Nog geen releases beschikbaar",
-      "score": "score {{score}}",
-      "searching": "Alle indexers worden bevraagd. Dit kan een minuut of twee duren.",
-      "seeders": "{{count}} seeders",
-      "summary": "{{accepted}} van {{found}} bruikbaar",
-      "untracked": "Er wordt niet naar gezocht",
-      "untrackedWhy": "Hiervoor is nooit iets aan Sonarr of Radarr toegevoegd."
-    }
+    "status": {
+      "1": "In behandeling",
+      "2": "Goedgekeurd",
+      "3": "Afgewezen",
+      "4": "Mislukt",
+      "5": "Voltooid"
+    },
+    "unavailable": "Geen verbinding met Jellyseerr"
   },
   "detail": {
     "overview": "Overzicht",
@@ -395,39 +396,42 @@
     "upNextIn": "Start over {{seconds}}s"
   },
   "request": {
-    "failed": "Details konden niet worden geladen",
-    "downloading": "Bezig met downloaden",
-    "notDownloading": "Nog niet aan het downloaden",
-    "deleteRequest": "Aanvraag verwijderen",
-    "removeFromJellyfin": "Verwijderen uit Jellyfin",
-    "seasons": "Seizoenen",
     "cancel": "Annuleer",
-    "status": "Status",
-    "onJellyfin": "Op Jellyfin",
-    "notRequested": "Niet aangevraagd",
-    "released": "Uitgebracht",
-    "language": "Taal",
-    "seasonCount": "Seizoenen",
-    "episodeCount": "Afleveringen",
     "countries": "Landen",
-    "seasonNumber": "Seizoen {{number}}",
-    "seasonsNote": "Seizoenen die al beschikbaar zijn, gedownload worden of nog niet zijn uitgezonden kun je niet aanvragen - daarom staan ze grijs in plaats van verborgen.",
-    "nothingTitle": "Niets aan te vragen",
-    "nothingBody": "Elk seizoen is al beschikbaar, wordt gedownload of is nog niet uitgezonden.",
-    "loadSeasonsFailed": "Seizoenen konden niet worden geladen",
-    "submitFailed": "Aanvraag mislukt",
-    "deleteTitle": "Aanvraag verwijderen?",
     "deleteBody": "De aanvraag wordt geannuleerd, maar gedownloade bestanden blijven op Jellyfin staan.",
     "deleteFailed": "Verwijderen mislukt",
-    "removeTitle": "Verwijderen van Jellyfin?",
+    "deleteRequest": "Aanvraag verwijderen",
+    "deleteTitle": "Aanvraag verwijderen?",
+    "downloading": "Bezig met downloaden",
+    "episodeCount": "Afleveringen",
+    "failed": "Details konden niet worden geladen",
+    "language": "Taal",
+    "loadSeasonsFailed": "Seizoenen konden niet worden geladen",
+    "notDownloading": "Nog niet aan het downloaden",
+    "notRequested": "Niet aangevraagd",
+    "nothingBody": "Elk seizoen is al beschikbaar, wordt gedownload of is nog niet uitgezonden.",
+    "nothingTitle": "Niets aan te vragen",
+    "onJellyfin": "Op Jellyfin",
+    "quality": "Kwaliteit",
+    "qualityDefault": "standaard",
+    "qualityNote": "Bepaalt waar dit item naar zoekt. Het blijft één item in je bibliotheek - een betere release vervangt het bestand en voegt nooit een tweede kopie toe.",
+    "released": "Uitgebracht",
     "removeBody": "Dit verwijdert de media uit Jellyseerr en vraagt Radarr/Sonarr het bestand te verwijderen. Onomkeerbaar.",
     "removeFailed": "Verwijderen mislukt",
+    "removeFromJellyfin": "Verwijderen uit Jellyfin",
+    "removeTitle": "Verwijderen van Jellyfin?",
+    "seasonCount": "Seizoenen",
+    "seasonNumber": "Seizoen {{number}}",
+    "seasons": "Seizoenen",
+    "seasonsNote": "Seizoenen die al beschikbaar zijn, gedownload worden of nog niet zijn uitgezonden kun je niet aanvragen - daarom staan ze grijs in plaats van verborgen.",
+    "stalled": "Nog niets gevonden",
+    "stalledBody": "Al {{days}} dagen geleden goedgekeurd en er is nog niets begonnen met downloaden. Meestal betekent dat: geen release die aan je kwaliteitsregels voldoet, of wel een, maar zonder seeders.",
+    "status": "Status",
+    "submitFailed": "Aanvraag mislukt",
     "waitingCinema": "Draait nog in de bioscoop. Er valt niets te downloaden tot de digitale release op {{date}} - je server pakt het dan automatisch op.",
-    "waitingMatch": "Goedgekeurd en wachtend op een match. Je server blijft zoeken, dus dit kan even duren als er nog niets goeds beschikbaar is.",
     "waitingDays_one": "Wacht {{count}} dag - er wordt niets gedownload",
     "waitingDays_other": "Wacht {{count}} dagen - er wordt niets gedownload",
-    "stalled": "Nog niets gevonden",
-    "stalledBody": "Al {{days}} dagen geleden goedgekeurd en er is nog niets begonnen met downloaden. Meestal betekent dat: geen release die aan je kwaliteitsregels voldoet, of wel een, maar zonder seeders."
+    "waitingMatch": "Goedgekeurd en wachtend op een match. Je server blijft zoeken, dus dit kan even duren als er nog niets goeds beschikbaar is."
   },
   "badge": {
     "available": "Beschikbaar",

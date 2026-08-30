@@ -346,7 +346,27 @@ function RequestCard({ r, onOpen, onCheck, downloads }: {
   const live = state.kind === 'downloading' || state.kind === 'stalled'
     ? (r.media.mediaType === 'movie' ? downloads?.movies : downloads?.tv)?.[String(r.media.tmdbId)]
     : undefined;
-  const speed = live ? averageSpeed(live.size, live.sizeLeft, live.added) : null;
+  /*
+   * Live speed when jellylab-push could read qBittorrent, an average since the
+   * download started otherwise.
+   *
+   * The average is not a worse number, it is a different one - a torrent that
+   * has held 2MB/s for ten hours is a different situation from one that
+   * briefly touched 20. But when the live figure exists it is what a person
+   * means by "how fast is it going", and it is what qBittorrent shows.
+   */
+  const speed = live
+    ? live.liveSpeed ?? averageSpeed(live.size, live.sizeLeft, live.added)
+    : null;
+
+  // Connected peers over what the tracker claims. The gap is the whole story
+  // on a dead swarm: Bin Roye sat at 0 of 14 for hours while reporting a
+  // perfectly healthy-looking seeder count.
+  const seeds = live?.seeders != null
+    ? live.seedersTotal != null && live.seedersTotal !== live.seeders
+      ? `${live.seeders}/${live.seedersTotal}`
+      : String(live.seeders)
+    : null;
 
   /*
    * A stalled download says why instead of how fast.
@@ -371,6 +391,7 @@ function RequestCard({ r, onOpen, onCheck, downloads }: {
           language,
           live.size ? formatBytes(live.size) : null,
           speed != null ? `${formatBytes(speed)}/s` : null,
+          seeds != null ? t('requests.seeds', { seeds }) : null,
           elapsedSince(live.added),
           live.indexer?.replace(/\s*\(Prowlarr\)\s*$/, '') ?? null,
         ].filter(Boolean).join(' · ')

@@ -251,16 +251,74 @@ export async function discoverUpcomingMovies(page = 1): Promise<JellyseerrSearch
   return res.data.results ?? [];
 }
 
+/** One of the quality profiles configured on the Radarr or Sonarr behind Seerr. */
+export type QualityProfile = {
+  id: number;
+  name: string;
+  /** the profile the server uses when a request does not name one */
+  isDefault: boolean;
+};
+
+/**
+ * The quality profiles a request may choose between.
+ *
+ * A title is one object in Radarr or Sonarr with exactly one profile, so this
+ * chooses what that object *seeks* - it never produces a second copy. An
+ * upgrade replaces the file rather than adding one.
+ *
+ * (The one arrangement that does duplicate is a separate 4K server, which is
+ * why Seerr has its own "request 4K" flow. This server has none.)
+ *
+ * Returns nothing rather than throwing when the account may not choose:
+ * picking a profile needs Seerr's advanced-request permission, and a caller
+ * without it should render the ordinary request button, not an error.
+ */
+export async function qualityProfiles(
+  mediaType: 'movie' | 'tv',
+): Promise<QualityProfile[]> {
+  const kind = mediaType === 'tv' ? 'sonarr' : 'radarr';
+  try {
+    const client = await authClient();
+    const servers = (await client.get(`/service/${kind}`)).data as {
+      id: number;
+      isDefault?: boolean;
+      is4k?: boolean;
+      activeProfileId?: number;
+    }[];
+    // The default non-4K server. A 4K one is a different Radarr with its own
+    // root folder, which is the arrangement this deliberately does not touch.
+    const server = servers.find(s => s.isDefault && !s.is4k) ?? servers.find(s => !s.is4k);
+    if (!server) return [];
+
+    const detail = (await client.get(`/service/${kind}/${server.id}`)).data as {
+      profiles?: { id: number; name: string }[];
+    };
+    return (detail.profiles ?? []).map(p => ({
+      id: p.id,
+      name: p.name,
+      isDefault: p.id === server.activeProfileId,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function createRequest(
   mediaType: 'movie' | 'tv',
   mediaId: number,
-  seasons?: number[] | 'all'
+  seasons?: number[] | 'all',
+  /**
+   * Which quality profile the title should use. Omitted means the server's
+   * default, which is what every request did before this existed.
+   */
+  qualityProfileId?: number,
 ): Promise<void> {
   const client = await authClient();
   await client.post('/request', {
     mediaType,
     mediaId,
     ...(mediaType === 'tv' ? { seasons: seasons ?? 'all' } : {}),
+    ...(qualityProfileId != null ? { qualityProfileId } : {}),
   });
 }
 

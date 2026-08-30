@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 
 import * as Jellyseerr from '@/api/jellyseerr';
 import { GlassButton, PrimaryButton } from '@/components/AppleButton';
+import { QualityPicker } from '@/components/QualityPicker';
 import { formatDate } from '@/lib/date';
 import { kindKey, tmdbKind } from '@/lib/kind';
 import { plainText } from '@/lib/text';
@@ -72,11 +73,35 @@ export default function TmdbDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
 
+  /**
+   * The quality profiles this account may choose between, and the choice.
+   *
+   * A title is one object in Radarr or Sonarr with exactly one profile, so
+   * this picks what that object seeks - never a second copy. Empty when the
+   * account lacks Seerr's advanced-request permission, which is why the
+   * picker renders nothing rather than erroring.
+   *
+   * undefined means "the server default", sent as no profile id at all, so a
+   * request keeps working if that default is later changed.
+   */
+  const [profiles, setProfiles] = useState<Jellyseerr.QualityProfile[]>([]);
+  const [profileId, setProfileId] = useState<number | undefined>(undefined);
+
   const refresh = useCallback(async () => {
     const d = await Jellyseerr.getTmdbDetails(type, tmdbId);
     setDetails(d);
     setLoading(false);
   }, [type, tmdbId]);
+
+  // Asked for once, and never allowed to break the screen: this is a control
+  // that may legitimately not appear.
+  useEffect(() => {
+    let alive = true;
+    Jellyseerr.qualityProfiles(type)
+      .then(p => { if (alive) setProfiles(p); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [type]);
 
   useEffect(() => {
     if (!type || !tmdbId) return;
@@ -112,7 +137,7 @@ export default function TmdbDetailScreen() {
     if (type !== 'tv') {
       setActing(true);
       try {
-        await Jellyseerr.createRequest(type, details.id);
+        await Jellyseerr.createRequest(type, details.id, undefined, profileId);
         await refresh();
       } catch (e: any) {
         Alert.alert(t('request.submitFailed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
@@ -149,7 +174,7 @@ export default function TmdbDetailScreen() {
     if (!details || seasons.length === 0) return;
     setActing(true);
     try {
-      await Jellyseerr.createRequest('tv', details.id, seasons);
+      await Jellyseerr.createRequest('tv', details.id, seasons, profileId);
       await refresh();
     } catch (e: any) {
       Alert.alert(t('request.submitFailed'), e?.response?.data?.message ?? e?.message ?? t('common.unknownError'));
@@ -318,6 +343,18 @@ export default function TmdbDetailScreen() {
               </View>
             </View>
           </View>
+
+          {/* Above the button, because it changes what the button will do.
+              Hidden once a title is fully available: there is nothing left to
+              ask for, and changing the profile then is an upgrade decision
+              that belongs in Radarr rather than behind a request button. */}
+          {!available ? (
+            <QualityPicker
+              profiles={profiles}
+              selected={profileId}
+              onSelect={setProfileId}
+            />
+          ) : null}
 
           <PrimaryAction
             available={available}

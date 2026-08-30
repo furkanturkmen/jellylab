@@ -110,6 +110,28 @@ export type DownloadProgress = {
    * seed count it costs no second credential to read.
    */
   error?: string | null;
+  /*
+   * Straight from qBittorrent, when jellylab-push has a password for it.
+   *
+   * Sonarr and Radarr refresh their queues from the client once a minute, so
+   * everything above is up to a minute stale - over a gigabyte at 20MB/s. A
+   * download read 0% and "< 1 MB/s" here while qBittorrent had it at 22.5%
+   * and 20MB/s, because Radarr had not looked again since grabbing it.
+   *
+   * All optional: the service works without a qBittorrent credential and the
+   * screen has to render either way.
+   */
+  /** 0..1, live */
+  livePercent?: number | null;
+  /** bytes per second, live */
+  liveSpeed?: number | null;
+  /** peers we are actually connected to */
+  seeders?: number | null;
+  /** what the tracker claims exists - the gap tells you a swarm is dead */
+  seedersTotal?: number | null;
+  peers?: number | null;
+  /** downloading | stalledDL | metaDL | uploading | ... */
+  clientState?: string | null;
 };
 
 /** A film Radarr is deliberately not searching for yet. */

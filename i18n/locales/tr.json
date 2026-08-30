@@ -119,14 +119,20 @@
     "failedBody": "Jellyfin veya Jellyseerr’e ulaşılamadı."
   },
   "requests": {
-    "empty": "Henüz istek yok",
-    "status": {
-      "1": "Beklemede",
-      "2": "Onaylandı",
-      "3": "Reddedildi",
-      "4": "Başarısız",
-      "5": "Tamamlandı"
+    "check": {
+      "action": "Neden takıldı?",
+      "deadEnd": "{{count}} bulundu, kullanılabilir yok",
+      "deadEndWhy": "Bu kendiliğinden çözülmez. Kalite profilinin birine izin vermesi gerekir.",
+      "failed": "Sunucuya ulaşılamadı",
+      "nothing": "Henüz yayınlanmış sürüm yok",
+      "score": "puan {{score}}",
+      "searching": "Tüm indeksleyiciler sorgulanıyor. Bu bir iki dakika sürebilir.",
+      "seeders": "{{count}} seeder",
+      "summary": "{{found}} sürümden {{accepted}} tanesi kullanılabilir",
+      "untracked": "Aranmıyor",
+      "untrackedWhy": "Bunun için Sonarr veya Radarr’a hiçbir şey eklenmemiş."
     },
+    "empty": "Henüz istek yok",
     "mediaStatus": {
       "1": "Bilinmiyor",
       "2": "Beklemede",
@@ -136,8 +142,8 @@
       "6": "Engellendi",
       "7": "Kaldırıldı"
     },
+    "seeds": "{{seeds}} seeder",
     "signedOut": "İsteklerini görmek için Jellyseerr’e giriş yap",
-    "unavailable": "Jellyseerr’e ulaşılamıyor",
     "state": {
       "pending": "Onay bekliyor",
       "declined": "Reddedildi",
@@ -158,19 +164,14 @@
       "unreleasedOn": "Henüz çıkmadı · {{date}}",
       "unreleasedCinemasOn": "Sinemalarda · {{date}}"
     },
-    "check": {
-      "action": "Neden takıldı?",
-      "deadEnd": "{{count}} bulundu, kullanılabilir yok",
-      "deadEndWhy": "Bu kendiliğinden çözülmez. Kalite profilinin birine izin vermesi gerekir.",
-      "failed": "Sunucuya ulaşılamadı",
-      "nothing": "Henüz yayınlanmış sürüm yok",
-      "score": "puan {{score}}",
-      "searching": "Tüm indeksleyiciler sorgulanıyor. Bu bir iki dakika sürebilir.",
-      "seeders": "{{count}} seeder",
-      "summary": "{{found}} sürümden {{accepted}} tanesi kullanılabilir",
-      "untracked": "Aranmıyor",
-      "untrackedWhy": "Bunun için Sonarr veya Radarr’a hiçbir şey eklenmemiş."
-    }
+    "status": {
+      "1": "Beklemede",
+      "2": "Onaylandı",
+      "3": "Reddedildi",
+      "4": "Başarısız",
+      "5": "Tamamlandı"
+    },
+    "unavailable": "Jellyseerr’e ulaşılamıyor"
   },
   "detail": {
     "overview": "Özet",
@@ -395,39 +396,42 @@
     "upNextIn": "{{seconds}} sn içinde başlıyor"
   },
   "request": {
-    "failed": "Ayrıntılar yüklenemedi",
-    "downloading": "İndiriliyor",
-    "notDownloading": "Henüz indirilmiyor",
-    "deleteRequest": "İsteği sil",
-    "removeFromJellyfin": "Jellyfin'den kaldır",
-    "seasons": "Sezonlar",
     "cancel": "İptal",
-    "status": "Durum",
-    "onJellyfin": "Jellyfin'de",
-    "notRequested": "İstenmedi",
-    "released": "Yayın tarihi",
-    "language": "Dil",
-    "seasonCount": "Sezon",
-    "episodeCount": "Bölüm",
     "countries": "Ülkeler",
-    "seasonNumber": "{{number}}. sezon",
-    "seasonsNote": "Hâlihazırda mevcut olan, indirilen ya da henüz yayınlanmamış sezonlar istenemez - bu yüzden gizlenmek yerine soluk gösterilir.",
-    "nothingTitle": "İstenecek bir şey yok",
-    "nothingBody": "Her sezon ya mevcut, ya indiriliyor ya da henüz yayınlanmadı.",
-    "loadSeasonsFailed": "Sezonlar yüklenemedi",
-    "submitFailed": "İstek başarısız",
-    "deleteTitle": "İstek silinsin mi?",
     "deleteBody": "İstek iptal edilir, ancak indirilen dosyalar Jellyfin’de kalır.",
     "deleteFailed": "Silme başarısız",
-    "removeTitle": "Jellyfin’den kaldırılsın mı?",
+    "deleteRequest": "İsteği sil",
+    "deleteTitle": "İstek silinsin mi?",
+    "downloading": "İndiriliyor",
+    "episodeCount": "Bölüm",
+    "failed": "Ayrıntılar yüklenemedi",
+    "language": "Dil",
+    "loadSeasonsFailed": "Sezonlar yüklenemedi",
+    "notDownloading": "Henüz indirilmiyor",
+    "notRequested": "İstenmedi",
+    "nothingBody": "Her sezon ya mevcut, ya indiriliyor ya da henüz yayınlanmadı.",
+    "nothingTitle": "İstenecek bir şey yok",
+    "onJellyfin": "Jellyfin'de",
+    "quality": "Kalite",
+    "qualityDefault": "varsayilan",
+    "qualityNote": "Bu basligin ne aradigini belirler. Kitapliginizda tek kayit olarak kalir - daha iyi bir surum dosyayi degistirir, ikinci kopya eklemez.",
+    "released": "Yayın tarihi",
     "removeBody": "Bu, medyayı Jellyseerr’den kaldırır ve Radarr/Sonarr’dan dosyayı silmesini ister. Geri alınamaz.",
     "removeFailed": "Kaldırma başarısız",
+    "removeFromJellyfin": "Jellyfin'den kaldır",
+    "removeTitle": "Jellyfin’den kaldırılsın mı?",
+    "seasonCount": "Sezon",
+    "seasonNumber": "{{number}}. sezon",
+    "seasons": "Sezonlar",
+    "seasonsNote": "Hâlihazırda mevcut olan, indirilen ya da henüz yayınlanmamış sezonlar istenemez - bu yüzden gizlenmek yerine soluk gösterilir.",
+    "stalled": "Henüz bir şey bulunamadı",
+    "stalledBody": "{{days}} gün önce onaylandı ve hâlâ indirme başlamadı. Genelde bu, kalite kurallarına uyan bir sürüm olmadığı ya da olanların seed edilmediği anlamına gelir.",
+    "status": "Durum",
+    "submitFailed": "İstek başarısız",
     "waitingCinema": "Hâlâ sinemalarda. {{date}} tarihindeki dijital çıkışa kadar indirilecek bir şey yok - sunucun o zaman otomatik olarak alacak.",
-    "waitingMatch": "Onaylandı ve eşleşme bekleniyor. Sunucun aramayı sürdürüyor, uygun bir şey yoksa bu biraz zaman alabilir.",
     "waitingDays_one": "{{count}} gündür bekliyor - hiçbir şey inmiyor",
     "waitingDays_other": "{{count}} gündür bekliyor - hiçbir şey inmiyor",
-    "stalled": "Henüz bir şey bulunamadı",
-    "stalledBody": "{{days}} gün önce onaylandı ve hâlâ indirme başlamadı. Genelde bu, kalite kurallarına uyan bir sürüm olmadığı ya da olanların seed edilmediği anlamına gelir."
+    "waitingMatch": "Onaylandı ve eşleşme bekleniyor. Sunucun aramayı sürdürüyor, uygun bir şey yoksa bu biraz zaman alabilir."
   },
   "badge": {
     "available": "Mevcut",

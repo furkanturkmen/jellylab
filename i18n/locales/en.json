@@ -119,14 +119,20 @@
     "failedBody": "Could not reach Jellyfin or Jellyseerr."
   },
   "requests": {
-    "empty": "No requests yet",
-    "status": {
-      "1": "Pending",
-      "2": "Approved",
-      "3": "Declined",
-      "4": "Failed",
-      "5": "Completed"
+    "check": {
+      "action": "Why is this stuck?",
+      "deadEnd": "{{count}} found, none can be used",
+      "deadEndWhy": "This will not resolve on its own. The quality profile has to allow one of them.",
+      "failed": "Could not reach the server",
+      "nothing": "No releases exist yet",
+      "score": "score {{score}}",
+      "searching": "Asking every indexer. This can take a minute or two.",
+      "seeders": "{{count}} seeders",
+      "summary": "{{accepted}} of {{found}} can be used",
+      "untracked": "Not being looked for",
+      "untrackedWhy": "Nothing was ever added to Sonarr or Radarr for this."
     },
+    "empty": "No requests yet",
     "mediaStatus": {
       "1": "Unknown",
       "2": "Pending",
@@ -136,8 +142,8 @@
       "6": "Blocked",
       "7": "Removed"
     },
+    "seeds": "{{seeds}} seeds",
     "signedOut": "Sign in to Jellyseerr to see your requests",
-    "unavailable": "Can't reach Jellyseerr",
     "state": {
       "pending": "Waiting for approval",
       "declined": "Declined",
@@ -158,19 +164,14 @@
       "unreleasedOn": "Not out yet · {{date}}",
       "unreleasedCinemasOn": "In cinemas · {{date}}"
     },
-    "check": {
-      "action": "Why is this stuck?",
-      "deadEnd": "{{count}} found, none can be used",
-      "deadEndWhy": "This will not resolve on its own. The quality profile has to allow one of them.",
-      "failed": "Could not reach the server",
-      "nothing": "No releases exist yet",
-      "score": "score {{score}}",
-      "searching": "Asking every indexer. This can take a minute or two.",
-      "seeders": "{{count}} seeders",
-      "summary": "{{accepted}} of {{found}} can be used",
-      "untracked": "Not being looked for",
-      "untrackedWhy": "Nothing was ever added to Sonarr or Radarr for this."
-    }
+    "status": {
+      "1": "Pending",
+      "2": "Approved",
+      "3": "Declined",
+      "4": "Failed",
+      "5": "Completed"
+    },
+    "unavailable": "Can't reach Jellyseerr"
   },
   "detail": {
     "overview": "Overview",
@@ -395,39 +396,42 @@
     "upNextIn": "Starting in {{seconds}}s"
   },
   "request": {
-    "failed": "Failed to load details",
-    "downloading": "Downloading",
-    "notDownloading": "Not downloading yet",
-    "deleteRequest": "Delete request",
-    "removeFromJellyfin": "Remove from Jellyfin",
-    "seasons": "Seasons",
     "cancel": "Cancel",
-    "status": "Status",
-    "onJellyfin": "On Jellyfin",
-    "notRequested": "Not requested",
-    "released": "Released",
-    "language": "Language",
-    "seasonCount": "Seasons",
-    "episodeCount": "Episodes",
     "countries": "Countries",
-    "seasonNumber": "Season {{number}}",
-    "seasonsNote": "Seasons already available, downloading or not yet aired cannot be requested - that is why they are greyed out rather than hidden.",
-    "nothingTitle": "Nothing to request",
-    "nothingBody": "Every season is already available, downloading, or has not aired yet.",
-    "loadSeasonsFailed": "Could not load seasons",
-    "submitFailed": "Request failed",
-    "deleteTitle": "Delete request?",
     "deleteBody": "The request will be cancelled but any downloaded files stay on Jellyfin.",
     "deleteFailed": "Delete failed",
-    "removeTitle": "Remove from Jellyfin?",
+    "deleteRequest": "Delete request",
+    "deleteTitle": "Delete request?",
+    "downloading": "Downloading",
+    "episodeCount": "Episodes",
+    "failed": "Failed to load details",
+    "language": "Language",
+    "loadSeasonsFailed": "Could not load seasons",
+    "notDownloading": "Not downloading yet",
+    "notRequested": "Not requested",
+    "nothingBody": "Every season is already available, downloading, or has not aired yet.",
+    "nothingTitle": "Nothing to request",
+    "onJellyfin": "On Jellyfin",
+    "quality": "Quality",
+    "qualityDefault": "default",
+    "qualityNote": "Sets what this title looks for. It stays one entry in your library - a better release replaces the file, it never adds a second copy.",
+    "released": "Released",
     "removeBody": "This removes the media from Jellyseerr and asks Radarr/Sonarr to remove the file. Irreversible.",
     "removeFailed": "Remove failed",
+    "removeFromJellyfin": "Remove from Jellyfin",
+    "removeTitle": "Remove from Jellyfin?",
+    "seasonCount": "Seasons",
+    "seasonNumber": "Season {{number}}",
+    "seasons": "Seasons",
+    "seasonsNote": "Seasons already available, downloading or not yet aired cannot be requested - that is why they are greyed out rather than hidden.",
+    "stalled": "Nothing found yet",
+    "stalledBody": "Approved {{days}} days ago and nothing has started downloading. Usually that means no release exists that fits your quality rules, or the ones that do have no seeders.",
+    "status": "Status",
+    "submitFailed": "Request failed",
     "waitingCinema": "Still in cinemas. Nothing to download until the digital release on {{date}} - your server will pick it up automatically then.",
-    "waitingMatch": "Approved and waiting for a match. Your server keeps searching, so this can take a while if nothing good is available yet.",
     "waitingDays_one": "Waiting {{count}} day - nothing downloading",
     "waitingDays_other": "Waiting {{count}} days - nothing downloading",
-    "stalled": "Nothing found yet",
-    "stalledBody": "Approved {{days}} days ago and nothing has started downloading. Usually that means no release exists that fits your quality rules, or the ones that do have no seeders."
+    "waitingMatch": "Approved and waiting for a match. Your server keeps searching, so this can take a while if nothing good is available yet."
   },
   "badge": {
     "available": "Available",

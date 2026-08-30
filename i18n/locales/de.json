@@ -119,14 +119,20 @@
     "failedBody": "Jellyfin oder Jellyseerr war nicht erreichbar."
   },
   "requests": {
-    "empty": "Noch keine Anfragen",
-    "status": {
-      "1": "Ausstehend",
-      "2": "Genehmigt",
-      "3": "Abgelehnt",
-      "4": "Fehlgeschlagen",
-      "5": "Abgeschlossen"
+    "check": {
+      "action": "Warum hängt das?",
+      "deadEnd": "{{count}} gefunden, keines brauchbar",
+      "deadEndWhy": "Das löst sich nicht von selbst. Das Qualitätsprofil muss eines zulassen.",
+      "failed": "Server nicht erreichbar",
+      "nothing": "Noch keine Releases vorhanden",
+      "score": "Wert {{score}}",
+      "searching": "Alle Indexer werden abgefragt. Das kann ein bis zwei Minuten dauern.",
+      "seeders": "{{count}} Seeder",
+      "summary": "{{accepted}} von {{found}} brauchbar",
+      "untracked": "Es wird nicht gesucht",
+      "untrackedWhy": "Dafür wurde nie etwas in Sonarr oder Radarr angelegt."
     },
+    "empty": "Noch keine Anfragen",
     "mediaStatus": {
       "1": "Unbekannt",
       "2": "Ausstehend",
@@ -136,8 +142,8 @@
       "6": "Blockiert",
       "7": "Entfernt"
     },
+    "seeds": "{{seeds}} Seeder",
     "signedOut": "Melde dich bei Jellyseerr an, um deine Anfragen zu sehen",
-    "unavailable": "Jellyseerr nicht erreichbar",
     "state": {
       "pending": "Wartet auf Freigabe",
       "declined": "Abgelehnt",
@@ -158,19 +164,14 @@
       "unreleasedOn": "Noch nicht erschienen · {{date}}",
       "unreleasedCinemasOn": "Im Kino · {{date}}"
     },
-    "check": {
-      "action": "Warum hängt das?",
-      "deadEnd": "{{count}} gefunden, keines brauchbar",
-      "deadEndWhy": "Das löst sich nicht von selbst. Das Qualitätsprofil muss eines zulassen.",
-      "failed": "Server nicht erreichbar",
-      "nothing": "Noch keine Releases vorhanden",
-      "score": "Wert {{score}}",
-      "searching": "Alle Indexer werden abgefragt. Das kann ein bis zwei Minuten dauern.",
-      "seeders": "{{count}} Seeder",
-      "summary": "{{accepted}} von {{found}} brauchbar",
-      "untracked": "Es wird nicht gesucht",
-      "untrackedWhy": "Dafür wurde nie etwas in Sonarr oder Radarr angelegt."
-    }
+    "status": {
+      "1": "Ausstehend",
+      "2": "Genehmigt",
+      "3": "Abgelehnt",
+      "4": "Fehlgeschlagen",
+      "5": "Abgeschlossen"
+    },
+    "unavailable": "Jellyseerr nicht erreichbar"
   },
   "detail": {
     "overview": "Übersicht",
@@ -395,39 +396,42 @@
     "upNextIn": "Startet in {{seconds}}s"
   },
   "request": {
-    "failed": "Details konnten nicht geladen werden",
-    "downloading": "Wird geladen",
-    "notDownloading": "Noch kein Download",
-    "deleteRequest": "Anfrage löschen",
-    "removeFromJellyfin": "Aus Jellyfin entfernen",
-    "seasons": "Staffeln",
     "cancel": "Abbrechen",
-    "status": "Status",
-    "onJellyfin": "Auf Jellyfin",
-    "notRequested": "Nicht angefragt",
-    "released": "Veröffentlicht",
-    "language": "Sprache",
-    "seasonCount": "Staffeln",
-    "episodeCount": "Folgen",
     "countries": "Länder",
-    "seasonNumber": "Staffel {{number}}",
-    "seasonsNote": "Staffeln, die bereits verfügbar sind, geladen werden oder noch nicht ausgestrahlt wurden, lassen sich nicht anfragen - deshalb sind sie ausgegraut statt ausgeblendet.",
-    "nothingTitle": "Nichts anzufragen",
-    "nothingBody": "Jede Staffel ist bereits verfügbar, wird geladen oder ist noch nicht ausgestrahlt.",
-    "loadSeasonsFailed": "Staffeln konnten nicht geladen werden",
-    "submitFailed": "Anfrage fehlgeschlagen",
-    "deleteTitle": "Anfrage löschen?",
     "deleteBody": "Die Anfrage wird storniert, heruntergeladene Dateien bleiben auf Jellyfin.",
     "deleteFailed": "Löschen fehlgeschlagen",
-    "removeTitle": "Von Jellyfin entfernen?",
+    "deleteRequest": "Anfrage löschen",
+    "deleteTitle": "Anfrage löschen?",
+    "downloading": "Wird geladen",
+    "episodeCount": "Folgen",
+    "failed": "Details konnten nicht geladen werden",
+    "language": "Sprache",
+    "loadSeasonsFailed": "Staffeln konnten nicht geladen werden",
+    "notDownloading": "Noch kein Download",
+    "notRequested": "Nicht angefragt",
+    "nothingBody": "Jede Staffel ist bereits verfügbar, wird geladen oder ist noch nicht ausgestrahlt.",
+    "nothingTitle": "Nichts anzufragen",
+    "onJellyfin": "Auf Jellyfin",
+    "quality": "Qualität",
+    "qualityDefault": "Standard",
+    "qualityNote": "Legt fest, wonach dieser Titel sucht. Er bleibt ein Eintrag in der Bibliothek - eine bessere Version ersetzt die Datei und legt nie eine zweite an.",
+    "released": "Veröffentlicht",
     "removeBody": "Das entfernt die Medien aus Jellyseerr und bittet Radarr/Sonarr, die Datei zu löschen. Nicht umkehrbar.",
     "removeFailed": "Entfernen fehlgeschlagen",
+    "removeFromJellyfin": "Aus Jellyfin entfernen",
+    "removeTitle": "Von Jellyfin entfernen?",
+    "seasonCount": "Staffeln",
+    "seasonNumber": "Staffel {{number}}",
+    "seasons": "Staffeln",
+    "seasonsNote": "Staffeln, die bereits verfügbar sind, geladen werden oder noch nicht ausgestrahlt wurden, lassen sich nicht anfragen - deshalb sind sie ausgegraut statt ausgeblendet.",
+    "stalled": "Noch nichts gefunden",
+    "stalledBody": "Vor {{days}} Tagen genehmigt und noch nichts geladen. Meist heißt das: keine Veröffentlichung passt zu deinen Qualitätsregeln, oder die passenden haben keine Seeder.",
+    "status": "Status",
+    "submitFailed": "Anfrage fehlgeschlagen",
     "waitingCinema": "Läuft noch im Kino. Bis zur digitalen Veröffentlichung am {{date}} gibt es nichts zu laden - dein Server holt es dann automatisch.",
-    "waitingMatch": "Genehmigt und wartet auf einen Treffer. Dein Server sucht weiter, das kann dauern, solange nichts Gutes gefunden wird.",
     "waitingDays_one": "Wartet seit {{count}} Tag - nichts lädt",
     "waitingDays_other": "Wartet seit {{count}} Tagen - nichts lädt",
-    "stalled": "Noch nichts gefunden",
-    "stalledBody": "Vor {{days}} Tagen genehmigt und noch nichts geladen. Meist heißt das: keine Veröffentlichung passt zu deinen Qualitätsregeln, oder die passenden haben keine Seeder."
+    "waitingMatch": "Genehmigt und wartet auf einen Treffer. Dein Server sucht weiter, das kann dauern, solange nichts Gutes gefunden wird."
   },
   "badge": {
     "available": "Verfügbar",

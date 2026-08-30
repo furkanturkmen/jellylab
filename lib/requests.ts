@@ -161,8 +161,11 @@ export function requestState(
     // something is stopping it reaching the library - a state that looks
     // identical to "downloading" from a percentage, and needs attention.
     if (/import/i.test(live.status ?? '')) return { kind: 'importing' };
-    if (live.stalled) return { kind: 'stalled', percent: live.percent };
-    return { kind: 'downloading', percent: live.percent };
+    // qBittorrent's own figure when we have it: the *arr one is a snapshot
+    // taken up to a minute ago, which at speed is more than a gigabyte out.
+    const percent = live.livePercent ?? live.percent;
+    if (live.stalled) return { kind: 'stalled', percent };
+    return { kind: 'downloading', percent };
   }
 
   const queue = media.downloadStatus ?? [];
