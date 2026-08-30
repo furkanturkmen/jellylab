@@ -163,6 +163,7 @@
       "importing": "Tamamlanıyor",
       "notAired": "Henüz yayınlanmadı",
       "notAiredOn": "Henüz yayınlanmadı · {{date}}",
+      "nothingFound": "Bulunamadi",
       "partial": "Kısmen mevcut",
       "pending": "Onay bekliyor",
       "searching": "Aranıyor",

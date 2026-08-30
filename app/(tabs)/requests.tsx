@@ -332,7 +332,12 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
    */
   const label =
     state.kind === 'searching' && state.overdue
-      ? t('requests.state.searchingNothing', { count: state.days })
+      // The counter is only worth showing once it counts something. A sweep
+      // can mark a request hopeless the minute it is made, and "0d" beside
+      // that reads like a broken field rather than a fact.
+      ? state.days > 0
+        ? t('requests.state.searchingNothing', { count: state.days })
+        : t('requests.state.nothingFound')
       : state.kind === 'searching' && state.days > 0
       ? t('requests.state.searchingDays', { count: state.days })
       : state.kind === 'unreleased'
