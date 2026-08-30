@@ -165,7 +165,7 @@
       "failed": "Server niet bereikbaar",
       "nothing": "Nog geen releases beschikbaar",
       "score": "score {{score}}",
-      "searching": "Alle indexers worden bevraagd. Dit duurt even.",
+      "searching": "Alle indexers worden bevraagd. Dit kan een minuut of twee duren.",
       "seeders": "{{count}} seeders",
       "summary": "{{accepted}} van {{found}} bruikbaar",
       "untracked": "Er wordt niet naar gezocht",

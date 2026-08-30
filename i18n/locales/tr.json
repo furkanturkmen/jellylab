@@ -165,7 +165,7 @@
       "failed": "Sunucuya ulaşılamadı",
       "nothing": "Henüz yayınlanmış sürüm yok",
       "score": "puan {{score}}",
-      "searching": "Tüm indeksleyiciler sorgulanıyor. Bu biraz sürer.",
+      "searching": "Tüm indeksleyiciler sorgulanıyor. Bu bir iki dakika sürebilir.",
       "seeders": "{{count}} seeder",
       "summary": "{{found}} sürümden {{accepted}} tanesi kullanılabilir",
       "untracked": "Aranmıyor",

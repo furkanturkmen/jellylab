@@ -165,7 +165,7 @@
       "failed": "Could not reach the server",
       "nothing": "No releases exist yet",
       "score": "score {{score}}",
-      "searching": "Asking every indexer. This takes a moment.",
+      "searching": "Asking every indexer. This can take a minute or two.",
       "seeders": "{{count}} seeders",
       "summary": "{{accepted}} of {{found}} can be used",
       "untracked": "Not being looked for",

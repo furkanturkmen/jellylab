@@ -165,7 +165,7 @@
       "failed": "Server nicht erreichbar",
       "nothing": "Noch keine Releases vorhanden",
       "score": "Wert {{score}}",
-      "searching": "Alle Indexer werden abgefragt. Das dauert einen Moment.",
+      "searching": "Alle Indexer werden abgefragt. Das kann ein bis zwei Minuten dauern.",
       "seeders": "{{count}} Seeder",
       "summary": "{{accepted}} von {{found}} brauchbar",
       "untracked": "Es wird nicht gesucht",
