@@ -148,7 +148,9 @@
       "searching": "Looking for it",
       "searchingDays": "Looking for it · {{count}}d",
       "partial": "Partly available",
-      "available": "Available"
+      "available": "Available",
+      "unreleased": "Not out yet",
+      "unreleasedCinemas": "In cinemas"
     }
   },
   "detail": {

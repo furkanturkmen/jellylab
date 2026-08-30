@@ -148,7 +148,9 @@
       "searching": "Wird gesucht",
       "searchingDays": "Wird gesucht · {{count}}d",
       "partial": "Teilweise verfügbar",
-      "available": "Verfügbar"
+      "available": "Verfügbar",
+      "unreleased": "Noch nicht erschienen",
+      "unreleasedCinemas": "Im Kino"
     }
   },
   "detail": {

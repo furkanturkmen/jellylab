@@ -115,6 +115,14 @@ export type RequestState =
   | { kind: 'stalled'; percent: number | null }
   /** Fetched in full, but not yet in the library. Usually Sonarr refusing an import. */
   | { kind: 'importing' }
+  /**
+   * Not out yet, so nothing is looking - and nothing should be.
+   *
+   * Distinct from 'searching' on purpose: one is the world not having released
+   * the thing, the other is a search that may be going wrong. They looked
+   * identical, and only one of them is worth worrying about.
+   */
+  | { kind: 'unreleased'; status: string | null; date: string | null }
   /** Approved, nothing found yet. `days` is how long that has been true. */
   | { kind: 'searching'; days: number; overdue: boolean }
   | { kind: 'partial' }
@@ -161,6 +169,24 @@ export function requestState(
     const left = queue.reduce((sum, d) => sum + (d.sizeLeft ?? 0), 0);
     const percent = size > 0 ? Math.max(0, Math.min(1, (size - left) / size)) : null;
     return { kind: 'downloading', percent };
+  }
+
+  /*
+   * Checked after the queue, before the search: something being downloaded is
+   * more current than what Radarr thought of its availability, and a film that
+   * is not out cannot be "searching" in any meaningful sense.
+   *
+   * The date shown is the first one that exists, in the order a person would
+   * care: digital, then physical, then the cinema date - which is at least a
+   * marker of how long the wait has already been.
+   */
+  const pending = push?.unreleased?.[String(media.tmdbId)];
+  if (pending && media.mediaType === 'movie') {
+    return {
+      kind: 'unreleased',
+      status: pending.status,
+      date: pending.digitalRelease ?? pending.physicalRelease ?? pending.inCinemas,
+    };
   }
 
   if (media.status === MEDIA_PARTIAL) return { kind: 'partial' };

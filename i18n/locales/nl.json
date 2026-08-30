@@ -148,7 +148,9 @@
       "searching": "Zoeken",
       "searchingDays": "Zoeken · {{count}}d",
       "partial": "Deels beschikbaar",
-      "available": "Beschikbaar"
+      "available": "Beschikbaar",
+      "unreleased": "Nog niet uit",
+      "unreleasedCinemas": "In de bioscoop"
     }
   },
   "detail": {

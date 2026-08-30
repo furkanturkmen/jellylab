@@ -196,3 +196,42 @@ describe('requestState', () => {
     expect(statePercent({ kind: 'searching', days: 2, overdue: false })).toBeNull();
   });
 });
+
+/**
+ * A film still in cinemas is not a search going wrong. Radarr will not look
+ * for it until it reaches minimumAvailability, and saying "Looking for it"
+ * claims work that nobody is doing.
+ */
+describe('requestState, not out yet', () => {
+  const withUnreleased = (over: any = {}) =>
+    ({ tv: {}, movies: {}, unreleased: { 1444466: { status: 'inCinemas', inCinemas: '2026-08-14T00:00:00Z', digitalRelease: null, physicalRelease: null, ...over } } }) as any;
+
+  const awarapan = () => request({
+    status: 2,
+    media: { tmdbId: 1444466, mediaType: 'movie', status: 3, downloadStatus: [] },
+  });
+
+  it('says it is not out rather than that it is looking', () => {
+    expect(requestState(awarapan(), NOW, withUnreleased())).toEqual({
+      kind: 'unreleased', status: 'inCinemas', date: '2026-08-14T00:00:00Z',
+    });
+  });
+
+  it('prefers the digital date, which is the one that matters', () => {
+    const p = requestState(awarapan(), NOW, withUnreleased({ digitalRelease: '2026-11-01T00:00:00Z' }));
+    expect(p).toMatchObject({ date: '2026-11-01T00:00:00Z' });
+  });
+
+  it('lets a download outrank it', () => {
+    // If it is being fetched, whatever Radarr last thought about availability
+    // is out of date.
+    const push = { ...withUnreleased(), movies: { 1444466: { size: 100, sizeLeft: 40, percent: 0.6, status: 'downloading', stalled: false } } } as any;
+    expect(requestState(awarapan(), NOW, push).kind).toBe('downloading');
+  });
+
+  it('does not apply to series', () => {
+    // The map is Radarr's, and TMDB ids overlap between films and series.
+    const tv = request({ status: 2, media: { tmdbId: 1444466, mediaType: 'tv', status: 3, downloadStatus: [] } });
+    expect(requestState(tv, NOW, withUnreleased()).kind).toBe('searching');
+  });
+});

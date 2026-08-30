@@ -89,10 +89,27 @@ export type DownloadProgress = {
   title: string | null;
 };
 
+/** A film Radarr is deliberately not searching for yet. */
+export type Unreleased = {
+  /** announced | inCinemas | released | deleted */
+  status: string | null;
+  inCinemas: string | null;
+  digitalRelease: string | null;
+  physicalRelease: string | null;
+};
+
 export type Downloads = {
   /** keyed by TMDB id, which is what Jellyseerr keys a request on */
   tv: Record<string, DownloadProgress>;
   movies: Record<string, DownloadProgress>;
+  /**
+   * Films that have not reached their minimum availability.
+   *
+   * Radarr will not search for these and is right not to - a film still in
+   * cinemas has nothing to find. Without this the app says it is looking for
+   * something nothing is looking for.
+   */
+  unreleased?: Record<string, Unreleased>;
   /** named failures, when one of the two services could not be read */
   errors?: Record<string, string>;
 };

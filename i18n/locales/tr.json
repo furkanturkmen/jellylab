@@ -148,7 +148,9 @@
       "searching": "Aranıyor",
       "searchingDays": "Aranıyor · {{count}}g",
       "partial": "Kısmen mevcut",
-      "available": "Mevcut"
+      "available": "Mevcut",
+      "unreleased": "Henüz çıkmadı",
+      "unreleasedCinemas": "Sinemalarda"
     }
   },
   "detail": {

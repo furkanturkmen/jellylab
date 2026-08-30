@@ -243,7 +243,10 @@ function RequestCard({ r, onOpen, downloads }: {
   const label =
     state.kind === 'searching' && state.days > 0
       ? t('requests.state.searchingDays', { count: state.days })
-      : t(`requests.state.${state.kind}`, { defaultValue: '' });
+      : state.kind === 'unreleased'
+        // "In cinemas" is more use than "not out yet" when that is why.
+        ? t(state.status === 'inCinemas' ? 'requests.state.unreleasedCinemas' : 'requests.state.unreleased')
+        : t(`requests.state.${state.kind}`, { defaultValue: '' });
   const pills = label ? [label] : [];
 
   // Both sources read their figures from qBittorrent by way of Sonarr or
