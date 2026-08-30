@@ -130,7 +130,7 @@
       "rejectFailed": "Afwijzen mislukt",
       "rejectWhy": "Blijft bewaard, maar er wordt niet meer gezocht. Ongedaan maken kan in Jellyseerr.",
       "rejecting": "Bezig met afwijzen…",
-      "satisfied": "Al binnengehaald - er is niets beters te halen",
+      "satisfied": "Er is niets beters te halen",
       "score": "score {{score}}",
       "searching": "Alle indexers worden bevraagd. Dit kan een minuut of twee duren.",
       "seeders": "{{count}} seeders",

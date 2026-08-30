@@ -130,7 +130,7 @@
       "rejectFailed": "Ablehnen fehlgeschlagen",
       "rejectWhy": "Bleibt erhalten, die Suche endet. In Jellyseerr widerrufbar.",
       "rejecting": "Wird abgelehnt…",
-      "satisfied": "Bereits geladen - es gibt nichts Besseres",
+      "satisfied": "Es gibt nichts Besseres zu holen",
       "score": "Wert {{score}}",
       "searching": "Alle Indexer werden abgefragt. Das kann ein bis zwei Minuten dauern.",
       "seeders": "{{count}} Seeder",

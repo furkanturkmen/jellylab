@@ -42,6 +42,18 @@ export type Verdict =
 const SATISFIED = /existing file|in queue|already meets cutoff|equal or higher/i;
 
 /**
+ * Rejections that are not about this title at all.
+ *
+ * A search returns whatever the indexers matched on the name, and the *arrs
+ * reject the ones that turn out to be something else - a different show, a
+ * title they could not parse. Those say nothing about whether *this* can be
+ * had, and they are numerous: No Game No Life returned 70 of them out of 176,
+ * more than any real reason, so counting them made "Unknown Series" the
+ * headline on a download that was 20% complete and moving.
+ */
+const NOISE = /unknown series|unknown movie|unable to parse|unable to match/i;
+
+/**
  * The commonest reason releases were refused.
  *
  * Counted rather than listed: seven rejections all reading "DVD is not wanted
@@ -52,13 +64,25 @@ const SATISFIED = /existing file|in queue|already meets cutoff|equal or higher/i
 export function topReason(rejections: Record<string, number>): string | null {
   let best: string | null = null;
   let bestCount = 0;
+  let fallback: string | null = null;
+  let fallbackCount = 0;
+
   for (const [reason, count] of Object.entries(rejections)) {
+    // Noise only wins when there is nothing else, so a title whose every
+    // rejection is "not this show" still gets an answer rather than a blank.
+    if (NOISE.test(reason)) {
+      if (count > fallbackCount) {
+        fallback = reason;
+        fallbackCount = count;
+      }
+      continue;
+    }
     if (count > bestCount) {
       best = reason;
       bestCount = count;
     }
   }
-  return best;
+  return best ?? fallback;
 }
 
 export function verdict(c: Candidates): Verdict {
@@ -71,11 +95,21 @@ export function verdict(c: Candidates): Verdict {
   const best = c.releases[0];
   if (c.accepted === 0 || !best) {
     const reason = topReason(c.rejections);
-    // Nothing acceptable *because we already have it* is success, and saying
-    // "this will not resolve on its own" about a finished download is worse
-    // than saying nothing at all.
-    const kind = reason && SATISFIED.test(reason) ? 'satisfied' : 'deadEnd';
-    return { kind, found: c.found, reason };
+
+    /*
+     * Already having it wins over anything else, however few releases say so.
+     *
+     * Checked across every reason rather than only the top one: a download in
+     * progress produces a handful of "release in queue already meets cutoff"
+     * among a great many rejections about unrelated releases, and ranking by
+     * count alone offered to reject a download that was 20% done and moving.
+     */
+    const satisfied = Object.keys(c.rejections).some(r => SATISFIED.test(r));
+    if (satisfied) {
+      const own = Object.keys(c.rejections).find(r => SATISFIED.test(r)) ?? reason;
+      return { kind: 'satisfied', found: c.found, reason: own };
+    }
+    return { kind: 'deadEnd', found: c.found, reason };
   }
   return { kind: 'grabbable', found: c.found, accepted: c.accepted, best };
 }

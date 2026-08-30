@@ -164,7 +164,20 @@ export function requestState(
     // qBittorrent's own figure when we have it: the *arr one is a snapshot
     // taken up to a minute ago, which at speed is more than a gigabyte out.
     const percent = live.livePercent ?? live.percent;
-    if (live.stalled) return { kind: 'stalled', percent };
+
+    /*
+     * And its own opinion on whether anything is moving.
+     *
+     * `stalled` is derived from Sonarr's errorMessage, which persists after
+     * the download recovers - a torrent that found peers again still carried
+     * "stalled with no connections" and showed a STALLED pill while the bar
+     * climbed from 11% to 20%. qBittorrent's state is what is true now.
+     */
+    const stalled = live.clientState
+      ? /stalled|missingfiles|error/i.test(live.clientState)
+      : live.stalled;
+
+    if (stalled) return { kind: 'stalled', percent };
     return { kind: 'downloading', percent };
   }
 

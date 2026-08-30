@@ -130,7 +130,7 @@
       "rejectFailed": "Could not reject it",
       "rejectWhy": "Keeps the record, stops the searching. Undo it in Jellyseerr.",
       "rejecting": "Rejecting…",
-      "satisfied": "Already downloaded - nothing better to fetch",
+      "satisfied": "Nothing better to fetch",
       "score": "score {{score}}",
       "searching": "Asking every indexer. This can take a minute or two.",
       "seeders": "{{count}} seeders",

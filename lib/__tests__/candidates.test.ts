@@ -65,6 +65,36 @@ describe('verdict', () => {
     ).toBe('satisfied');
   });
 
+  it('does not offer to reject a download that is running', () => {
+    // No Game No Life, mid-download at 20%: 176 releases, 70 of them rejected
+    // as a different show entirely. Counting those made "Unknown Series" the
+    // headline and the sheet offered to reject a moving download.
+    const v = verdict(answer({
+      found: 176,
+      accepted: 0,
+      rejections: {
+        'Unknown Series': 70,
+        'Release in queue already meets cutoff: Bluray-1080p v1': 51,
+        'Not enough seeders: 0. Minimum seeders: 1': 34,
+      },
+    }));
+    expect(v.kind).toBe('satisfied');
+    expect(v).toMatchObject({ reason: expect.stringContaining('in queue') });
+  });
+
+  it('ignores rejections about other titles when ranking the reason', () => {
+    // "Unknown Series" describes releases that are not this show. It says
+    // nothing about whether this one can be had, however many there are.
+    expect(topReason({ 'Unknown Series': 70, 'DVD is not wanted in profile': 5 }))
+      .toBe('DVD is not wanted in profile');
+  });
+
+  it('falls back to noise when there is nothing else', () => {
+    // Better than a blank: at least it says the search matched nothing real.
+    expect(topReason({ 'Unknown Movie. Unable to match': 12 }))
+      .toBe('Unknown Movie. Unable to match');
+  });
+
   it('still calls a real dead end a dead end', () => {
     // An unrecognised reason must fall through to the louder answer rather
     // than being quietly treated as success.
