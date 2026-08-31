@@ -44,7 +44,9 @@ export default function RequestsScreen() {
   const router = useRouter();
   const { t: tr } = useTranslation();
   const { headerHeight } = useTabHeaderMetrics();
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // Lazy useState, not useRef().current: one instance for the life of the
+  // screen either way, but this one is not a ref read during render.
+  const [scrollY] = useState(() => new Animated.Value(0));
   const { state } = useAuth();
   const signedIn = state.status === 'signed-in';
 
@@ -344,7 +346,6 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
     : state.kind === 'pending' || state.kind === 'unreleased' || state.kind === 'airing' ? 'wait'
     : 'neutral';
 
-  const available = state.kind === 'available';
   const rejected = state.kind === 'declined' || state.kind === 'failed';
   /*
    * A search that has found nothing for days should stop sounding busy.
@@ -388,9 +389,6 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
 
   // Both sources read their figures from qBittorrent by way of Sonarr or
   // Radarr, so either way this is the percentage the torrent client shows.
-  // jellylab-push is preferred because it reads the whole queue; Jellyseerr
-  // sees only its first page. See lib/requests.
-  const queue = r.media.downloadStatus ?? [];
   /*
    * The figure comes from whichever source answered, which is the whole point:
    * requestProgress already decided between them, so recomputing it from

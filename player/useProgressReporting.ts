@@ -103,6 +103,5 @@ export function useProgressReporting({
       paused,
       live.current.playMethod,
     ).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paused, itemId]);
 }

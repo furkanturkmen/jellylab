@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Stack, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as WebBrowser from 'expo-web-browser';
-import { SymbolView } from 'expo-symbols';
 import { useTranslation } from 'react-i18next';
-import { Button, Form, HStack, Host, Image as UIImage, Label, LabeledContent, ProgressView, Section as UISection, Spacer, Text as UIText } from '@expo/ui/swift-ui';
+import { Button, Form, HStack, Host, Image as UIImage, Label, ProgressView, Section as UISection, Spacer, Text as UIText } from '@expo/ui/swift-ui';
 import { buttonStyle, foregroundColor, frame, scrollContentBackground, tint } from '@expo/ui/swift-ui/modifiers';
 
 import * as Jellyfin from '@/api/jellyfin';
@@ -22,19 +21,24 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { state, signOut } = useAuth();
+  // Hoisted so the effects below depend on the id itself. Depending on
+  // state.status alone missed a change of server, which keeps the status
+  // 'signed-in' while the user behind it becomes someone else.
+  const userId = state.status === 'signed-in' ? state.auth.userId : null;
+
   const [user, setUser] = useState<any>(null);
-  const [avatarBust, setAvatarBust] = useState(Date.now());
+  const [avatarBust, setAvatarBust] = useState(() => Date.now());
   const [storage, setStorage] = useState<Push.StorageInfo | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
-    if (state.status !== 'signed-in') return;
+    if (!userId) return;
     // Caught, not left to reject: an unreachable server should leave the name
     // field empty, not put a red screen over the whole app.
-    Jellyfin.getCurrentUser(state.auth.userId)
+    Jellyfin.getCurrentUser(userId)
       .then(setUser)
       .catch(err => console.warn('profile: could not load user —', err?.message ?? err));
-  }, [state.status]);
+  }, [userId]);
 
   // Above the signed-out guard below, not after it. Hooks must run in the same
   // order on every render, and a hook placed after an early return runs only on
@@ -287,10 +291,6 @@ export default function ProfileScreen() {
   );
 }
 
-
-function SectionHeader({ children }: { children: React.ReactNode }) {
-  return <Text style={styles.sectionHeader}>{children}</Text>;
-}
 
 
 /**

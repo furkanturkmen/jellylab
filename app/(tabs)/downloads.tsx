@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Alert, Animated, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -40,7 +40,9 @@ export default function DownloadsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { headerHeight } = useTabHeaderMetrics();
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // Lazy useState, not useRef().current: one instance for the life of the
+  // screen either way, but this one is not a ref read during render.
+  const [scrollY] = useState(() => new Animated.Value(0));
   const { entries, bytes, ready } = useDownloads();
 
   const active = entries.filter(e => e.status === 'downloading' || e.status === 'queued');

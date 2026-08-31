@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { Platform } from 'react-native';
-import { getJellyseerrUrl, requireJellyfinUrl, requireJellyseerrUrl } from '@/config';
+import { requireJellyfinUrl, requireJellyseerrUrl } from '@/config';
 import i18n from '@/i18n';
 import { metadataLanguage } from '@/lib/text';
 import { loadJellyseerrAuth, saveJellyseerrAuth, clearJellyseerrAuth } from '@/store/auth';

@@ -534,7 +534,7 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
           } catch {}
         }
       }
-    } catch (e) {
+    } catch {
       setExternalCues([]);
     }
   }

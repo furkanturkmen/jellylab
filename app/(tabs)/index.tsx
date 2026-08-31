@@ -122,7 +122,9 @@ export default function LibraryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [heroIndex, setHeroIndex] = useState(0);
   const [heroArt, setHeroArt] = useState<Record<string, string>>({});
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // Lazy useState, not useRef().current: one instance for the life of the
+  // screen either way, but this one is not a ref read during render.
+  const [scrollY] = useState(() => new Animated.Value(0));
   // What is on the phone, for the one screen where the server being gone is
   // the whole story.
   const { entries: downloaded } = useDownloads();

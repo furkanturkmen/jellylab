@@ -35,6 +35,11 @@ export default function SearchScreen() {
   const { headerHeight } = useTabHeaderMetrics();
   const scrollY = useRef(new Animated.Value(0)).current;
   const { state } = useAuth();
+  // Hoisted so the effects below depend on the id itself. Depending on
+  // state.status alone missed a change of server, which keeps the status
+  // 'signed-in' while the user behind it becomes someone else.
+  const userId = state.status === 'signed-in' ? state.auth.userId : null;
+
   // The field is the system's, and the system's field is uncontrolled: it
   // reports what was typed, it does not take a value back. So the query lives
   // here rather than in a store, which is also the last thing that store was
@@ -112,7 +117,6 @@ export default function SearchScreen() {
     }
     setBusy(true);
     const handle = setTimeout(async () => {
-      const userId = state.status === 'signed-in' ? state.auth.userId : null;
       // Both sources in parallel. A failing Jellyseerr shouldn't hide results
       // for media you already own, and vice versa.
       const [seerr, mine] = await Promise.all([
@@ -127,7 +131,7 @@ export default function SearchScreen() {
       }
     }, 350);
     return () => clearTimeout(handle);
-  }, [query, state.status]);
+  }, [query, userId]);
 
   function openDetail(item: JellyseerrSearchResult) {
     router.push(`/tmdb/${item.mediaType}/${item.id}`);

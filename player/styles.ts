@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-import { colors, radius, spacing, type } from '@/theme';
+import { colors, spacing, type } from '@/theme';
 
 /**
  * The chrome both player engines draw: the overlay, its buttons, the subtitle

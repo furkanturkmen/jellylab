@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, AppState, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,7 +27,9 @@ const HERO_SHADE = 0.3;
 export default function TmdbDetailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // Lazy useState, not useRef().current: one instance for the life of the
+  // screen either way, but this one is not a ref read during render.
+  const [scrollY] = useState(() => new Animated.Value(0));
 
   /**
    * The hero drifts and fades as the page moves, the same way the library and
@@ -130,6 +132,7 @@ export default function TmdbDetailScreen() {
    * not. Best-effort on purpose: the homelab service being unreachable must not
    * stop the page rendering.
    */
+  const [now] = useState(() => Date.now());
   const [onDisk, setOnDisk] = useState<Push.OnDisk | undefined>(undefined);
   useEffect(() => {
     if (!isProcessing || !tmdbId) return;
@@ -332,7 +335,7 @@ export default function TmdbDetailScreen() {
       return { label: t('requests.state.importing'), text: t('request.waitingImport') };
     }
     const digital = type === 'movie' ? Jellyseerr.digitalReleaseDate(details) : null;
-    if (digital && digital.getTime() > Date.now()) {
+    if (digital && digital.getTime() > now) {
       return {
         label: t('request.notDownloading'),
         text: t('request.waitingCinema', { date: formatDate(digital) }),

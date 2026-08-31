@@ -57,6 +57,11 @@ export default function ItemScreen() {
   const { id, play: autoplay } = useLocalSearchParams<{ id: string; play?: string }>();
   const router = useRouter();
   const { state } = useAuth();
+  // Hoisted so the effects below depend on the id itself. Depending on
+  // state.status alone missed a change of server, which keeps the status
+  // 'signed-in' while the user behind it becomes someone else.
+  const userId = state.status === 'signed-in' ? state.auth.userId : null;
+
   const [item, setItem] = useState<JellyfinItem | null>(null);
   const [playback, setPlayback] = useState<PlaybackConfig | null>(null);
   /** The episode after this one, and whether this one has finished. */
@@ -128,8 +133,8 @@ export default function ItemScreen() {
   }, [download, item, id]);
 
   useEffect(() => {
-    if (state.status !== 'signed-in' || !id) return;
-    Jellyfin.getItem(state.auth.userId, id)
+    if (!userId || !id) return;
+    Jellyfin.getItem(userId, id)
       .then(fetched => {
         setItem(fetched);
         // The server answered, so anything watched offline can be handed over.
@@ -152,7 +157,7 @@ export default function ItemScreen() {
         }
         logRequestFailure('item:get', e);
       });
-  }, [state.status, id]);
+  }, [userId, id]);
 
   // Fetched here rather than inside the episode list, because the pill above it
   // needs to count them - and counting them is the only way to get the number

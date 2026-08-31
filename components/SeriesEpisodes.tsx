@@ -12,7 +12,6 @@ import { enqueueDownload } from '@/store/downloads';
 import { formatBytes } from '@/lib/bytes';
 import { formatDate } from '@/lib/date';
 import { metadataLanguage, oneLine } from '@/lib/text';
-import { IS_TABLET } from '@/lib/device';
 import { colors, radius, spacing, type } from '@/theme';
 
 /**

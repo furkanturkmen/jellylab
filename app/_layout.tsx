@@ -121,7 +121,7 @@ function RootLayoutNav() {
       dismissModals();
       router.replace('/(tabs)');
     }
-  }, [state.status, segments, server, serverReady]);
+  }, [state.status, segments, server, serverReady, router]);
 
   if (!serverReady) return null;
 
