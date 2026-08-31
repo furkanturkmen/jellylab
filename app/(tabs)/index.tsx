@@ -206,13 +206,21 @@ export default function LibraryScreen() {
   }
 
   useEffect(() => {
+    // Fetching on mount and whenever sign-in state changes. Setting state
+    // from the result is what the effect exists to do.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
+  // load is redefined every render; the focus effect below reads it through
+  // a ref for exactly that reason.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.status]);
 
   // `load` is redefined every render, so the focus callback reads it through a
   // ref - otherwise the effect would either capture a stale closure or re-run
   // on every render, which for a focus effect means refetching constantly.
   const loadRef = useRef(load);
+  // Written during render on purpose - see the comment above.
+  // eslint-disable-next-line react-hooks/refs
   loadRef.current = load;
 
   /**
@@ -261,6 +269,9 @@ export default function LibraryScreen() {
       }
     })();
     return () => { cancelled = true; };
+  // Keyed on the ids rather than the array, so new art does not restart the
+  // fetch it just produced.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heroItems.map(i => i.Id).join(','), heroArt]);
 
   if (state.status !== 'signed-in' || (loading && libs.length === 0 && resume.length === 0)) {

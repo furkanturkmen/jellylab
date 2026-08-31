@@ -170,6 +170,9 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
       } catch {}
     });
     return () => sub.remove();
+  // Resubscribing on a playMethod change would drop the listener mid-playback,
+  // which is the moment it matters most.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player, itemId]);
 
   // Apply pref-based subtitle size + auto-select preferred language sub on mount.
@@ -208,6 +211,8 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
         const exact = externalSubs.find(s => s.label === chosen);
         if (exact) {
           console.log(`[jellylab] player:subPick via=remembered picked=${exact.label}`);
+          // pickExternalSub is a function declaration below, so it is hoisted.
+          // eslint-disable-next-line react-hooks/immutability
           pickExternalSub(exact.index, /* persistPref */ false, 'prefs:remembered');
           return;
         }
@@ -271,6 +276,8 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
       } catch {}
     }, 15000);
     return () => clearInterval(id);
+  // Same listener, same reason.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player, itemId, playing]);
 
   useEffect(() => {
@@ -296,6 +303,8 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
 
   useEffect(() => {
     if (externalCues.length === 0) {
+      // Follows the player: no cues means no active cue to draw.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (activeCue) setActiveCue(null);
       return;
     }
@@ -308,6 +317,8 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
   // A drag that never ended would freeze position for good, so anything that
   // takes the controls away mid-gesture - an error, a rotation - ends it.
   useEffect(() => {
+    // Ends a drag the controls disappeared out from under. See the comment above.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!controlsVisible && scrubbing) setScrubbing(false);
   }, [controlsVisible, scrubbing]);
 
@@ -328,6 +339,8 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
   function skip(seconds: number) {
     try {
       const next = Math.max(0, Math.min(duration, (player.currentTime ?? 0) + seconds));
+      // expo-video exposes playback position as a settable property.
+      // eslint-disable-next-line react-hooks/immutability
       player.currentTime = next;
       setPosition(next);
       setControlsVisible(true);
@@ -336,6 +349,8 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
 
   function seekTo(t: number) {
     try {
+      // Same setter.
+      // eslint-disable-next-line react-hooks/immutability
       player.currentTime = t;
       setPosition(t);
     } catch {}
@@ -409,6 +424,8 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
 
   function pickEmbeddedSub(track: any | null) {
     try {
+      // Same, for the embedded subtitle track.
+      // eslint-disable-next-line react-hooks/immutability
       player.subtitleTrack = track;
       // An embedded track replaces the overlay, and vice versa.
       if (track) pickExternalSub(null, true, 'embedded-wins');
@@ -487,6 +504,8 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
 
   function changeSpeed(rate: number) {
     try {
+      // Same, for playback rate.
+      // eslint-disable-next-line react-hooks/immutability
       player.playbackRate = rate;
       setSpeed(rate);
     } catch {}

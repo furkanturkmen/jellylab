@@ -70,6 +70,8 @@ export default function SearchScreen() {
 
   useEffect(() => {
     loadDiscover();
+  // Discover is loaded once, on mount.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadDiscover() {
@@ -110,6 +112,9 @@ export default function SearchScreen() {
   // Debounced auto-search when the shared query changes.
   useEffect(() => {
     if (!query.trim()) {
+      // An emptied query clears the results it produced. There is no render-time
+      // value to derive that from - the results came from the network.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResults([]);
       setLibrary([]);
       setBusy(false);
@@ -131,7 +136,7 @@ export default function SearchScreen() {
       }
     }, 350);
     return () => clearTimeout(handle);
-  }, [query, userId]);
+  }, [query, userId, t]);
 
   function openDetail(item: JellyseerrSearchResult) {
     router.push(`/tmdb/${item.mediaType}/${item.id}`);

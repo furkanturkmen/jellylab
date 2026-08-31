@@ -42,9 +42,13 @@ function usePressScale(disabled?: boolean) {
   return {
     animatedStyle,
     onPressIn: () => {
+      // Reanimated shared values are assigned from handlers. That is the API.
+      // eslint-disable-next-line react-hooks/immutability
       if (!disabled) scale.value = withSpring(PRESSED_SCALE, PRESS_IN);
     },
     onPressOut: () => {
+      // Same.
+      // eslint-disable-next-line react-hooks/immutability
       scale.value = withSpring(1, PRESS_OUT);
     },
   };

@@ -129,6 +129,9 @@ export default function ItemScreen() {
   useEffect(() => {
     if (item || !id || download?.status !== 'done') return;
     const stored = offlineItemSync(id);
+    // Reads the offline store when the server did not answer. Disk is the
+    // external system here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (stored) setItem(stored);
   }, [download, item, id]);
 
@@ -217,6 +220,9 @@ export default function ItemScreen() {
     }
     autoplayed.current = true;
     play();
+  // Autoplay fires once, guarded by a ref; depending on play would rebuild
+  // the effect on every render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoplay, item, id]);
 
   useEffect(() => {

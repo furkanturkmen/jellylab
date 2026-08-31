@@ -170,7 +170,11 @@ export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audi
    * plain `{{ uri: url }}` here did before.
    */
   const initOptions = useMemo(() => {
+    // Read at build time on purpose - see the comment above.
+    // eslint-disable-next-line react-hooks/refs
     const startAt = positionRef.current > 0 ? positionRef.current : resumeSeconds;
+    // Same.
+    // eslint-disable-next-line react-hooks/refs
     startAtRef.current = startAt;
     return startAt > 0 ? [`--start-time=${startAt.toFixed(3)}`] : [];
     // positionRef is deliberately absent: this is meant to be read at the
@@ -282,6 +286,8 @@ export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audi
         const exact = externalSubs.find(s => s.label === chosen);
         if (exact) {
           console.log(`[jellylab] player:subPick via=remembered picked=${exact.label}`);
+          // pickExternalSub is a function declaration below, so it is hoisted.
+          // eslint-disable-next-line react-hooks/immutability
           pickExternalSub(exact.index, false, 'prefs:remembered');
           return;
         }
@@ -328,6 +334,8 @@ export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audi
 
   useEffect(() => {
     if (externalCues.length === 0) {
+      // Follows the player: no cues means no active cue to draw.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (activeCue) setActiveCue(null);
       return;
     }
@@ -522,6 +530,8 @@ export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audi
   // A drag that never ended would freeze position for good, so anything that
   // takes the controls away mid-gesture - an error, a rotation - ends it.
   useEffect(() => {
+    // Ends a drag the controls disappeared out from under. See the comment above.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!controlsVisible && scrubbing) setScrubbing(false);
   }, [controlsVisible, scrubbing]);
 

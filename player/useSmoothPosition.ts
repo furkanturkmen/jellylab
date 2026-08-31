@@ -49,8 +49,15 @@ export function useSmoothPosition(
    * Written during render rather than in an effect: a sample that arrives and
    * is timestamped one tick later has already lost the thing being measured.
    */
+  // The clock is read during render deliberately: a sample timestamped one
+  // tick later has already lost the interval being measured.
+  // eslint-disable-next-line react-hooks/purity
   const base = useRef({ at: Date.now(), position: reported });
+  // Timestamped during render on purpose - see the comment above.
+  // eslint-disable-next-line react-hooks/refs
   if (base.current.position !== reported) {
+    // Same clock read, same reason, and the same ref write as above.
+    // eslint-disable-next-line react-hooks/purity, react-hooks/refs
     base.current = { at: Date.now(), position: reported };
   }
 
@@ -58,6 +65,9 @@ export function useSmoothPosition(
     // Paused, or scrubbing: the reported position is the truth and guessing
     // past it would run the overlay ahead of a picture that is not moving.
     if (!playing) {
+      // Snaps to the reported position when playback stops. The player is the
+      // external system this hook exists to follow.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSmooth(reported);
       return;
     }

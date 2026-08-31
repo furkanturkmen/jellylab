@@ -14,6 +14,8 @@ export function currentLanguage(): string {
 }
 
 async function makeClient(cookie?: string): Promise<AxiosInstance> {
+  // Same as jellyfin.ts: axios.create on the default export is the API.
+  // eslint-disable-next-line import/no-named-as-default-member
   const client = axios.create({
     // awaited, not read synchronously: the store may still be hydrating
     baseURL: `${await requireJellyseerrUrl()}/api/v1`,

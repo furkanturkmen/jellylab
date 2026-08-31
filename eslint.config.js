@@ -13,8 +13,13 @@ const expoConfig = require('eslint-config-expo/flat');
  *
  * The React Compiler rules that ship alongside it are a different matter. They
  * assume a codebase without Reanimated shared values or refs written during
- * render, and this one has both by design, so they fire dozens of times on code
- * that is correct. Left on as warnings: worth reading, not worth failing over.
+ * render, and this one has both by design.
+ *
+ * They used to fire dozens of times on correct code, which made the whole set
+ * unreadable - 53 warnings nobody could triage. Every one of those sites now
+ * carries its own eslint-disable and a line saying why, so the count is zero
+ * and a warning that appears from here is genuinely new. Grep for
+ * eslint-disable-next-line to read the deliberate ones.
  */
 module.exports = defineConfig([
   expoConfig,

@@ -111,6 +111,8 @@ export default function TmdbDetailScreen() {
 
   useEffect(() => {
     if (!type || !tmdbId) return;
+    // Fetch on mount and when the title changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh();
   }, [type, tmdbId, refresh]);
 

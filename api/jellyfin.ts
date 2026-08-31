@@ -21,6 +21,9 @@ async function authHeader(token?: string): Promise<string> {
 
 async function makeClient(token?: string): Promise<AxiosInstance> {
   const baseURL = await requireJellyfinUrl();
+  // The default export is axios itself; create() on it is the documented
+  // entry point, not the named-export shadowing this rule guards against.
+  // eslint-disable-next-line import/no-named-as-default-member
   const client = axios.create({
     // awaited, not read synchronously: the store may still be hydrating
     baseURL,

@@ -66,6 +66,8 @@ export function SeriesEpisodes({ seriesId, userId, tmdbId, seasons }: {
 
   useEffect(() => {
     if (seasons.length === 0) return;
+    // Picks the first season once the seasons arrive from the network.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(false);
     setActiveSeasonId(current => current ?? seasons[0]?.Id ?? null);
   }, [seasons]);
@@ -99,6 +101,8 @@ export function SeriesEpisodes({ seriesId, userId, tmdbId, seasons }: {
 
   useEffect(() => {
     if (!activeSeasonId) return;
+    // Spinner around a fetch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingEps(true);
     Jellyfin.getEpisodes(userId, seriesId, activeSeasonId)
       .then(setEpisodes)

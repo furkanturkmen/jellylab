@@ -42,7 +42,13 @@ export function Scrubber({
   const durationRef = useRef(duration);
   const widthRef = useRef(width);
   const startXRef = useRef(0);
+  // The responder is built once and reads these at gesture time. An effect
+  // would leave them one render stale, which is how a drag ended up measured
+  // against a duration of zero.
+  // eslint-disable-next-line react-hooks/refs
   durationRef.current = duration;
+  // Same: read at gesture time, not captured at build time.
+  // eslint-disable-next-line react-hooks/refs
   widthRef.current = width;
 
   function xToTime(x: number): number {
@@ -66,8 +72,12 @@ export function Scrubber({
    * drops the gesture mid-drag.
    */
   const handlers = useRef({ onScrubStart, onScrub, onScrubEnd });
+  // Same: the callbacks have to be current when the finger moves.
+  // eslint-disable-next-line react-hooks/refs
   handlers.current = { onScrubStart, onScrub, onScrubEnd };
 
+  // Same.
+  // eslint-disable-next-line react-hooks/refs
   const pan = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => widthRef.current > 0,
     onMoveShouldSetPanResponder: () => widthRef.current > 0,

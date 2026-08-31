@@ -69,6 +69,8 @@ export default function HistoryScreen() {
   }, [state]);
 
   useEffect(() => {
+    // First page on mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadPage(0);
   }, [loadPage]);
 

@@ -175,6 +175,8 @@ export default function RequestsScreen() {
   // Nothing to ask Jellyseerr for until there is a session to ask with.
   useEffect(() => {
     if (!signedIn) {
+      // Signed out has nothing to fetch, so the spinner has to be cleared here.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
       return;
     }

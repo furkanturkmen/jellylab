@@ -22,6 +22,9 @@ export function detectDeviceLang(): SupportedLang {
   return 'en';
 }
 
+// i18n here is the singleton instance, so use() is its method - not the
+// module's same-named export.
+// eslint-disable-next-line import/no-named-as-default-member
 i18n.use(initReactI18next).init({
   compatibilityJSON: 'v4',
   lng: detectDeviceLang(),
@@ -38,14 +41,20 @@ i18n.use(initReactI18next).init({
 // Apply the user-picked language after prefs load.
 loadPrefs().then(p => {
   if (p.uiLanguage && p.uiLanguage !== 'system' && (SUPPORTED_LANGS as readonly string[]).includes(p.uiLanguage)) {
+    // Method on the instance, not the module export.
+    // eslint-disable-next-line import/no-named-as-default-member
     i18n.changeLanguage(p.uiLanguage);
   }
 });
 
 export async function setLanguage(lang: 'system' | SupportedLang) {
   if (lang === 'system') {
+    // Method on the instance, not the module export.
+    // eslint-disable-next-line import/no-named-as-default-member
     await i18n.changeLanguage(detectDeviceLang());
   } else {
+    // Method on the instance, not the module export.
+    // eslint-disable-next-line import/no-named-as-default-member
     await i18n.changeLanguage(lang);
   }
 }

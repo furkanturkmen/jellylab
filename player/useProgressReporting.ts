@@ -49,6 +49,8 @@ export function useProgressReporting({
 }): void {
   // Everything the timers need, read at call time rather than captured.
   const live = useRef({ positionAt, paused, onStop, playMethod });
+  // The timers read this at fire time rather than capturing it.
+  // eslint-disable-next-line react-hooks/refs
   live.current = { positionAt, paused, onStop, playMethod };
 
   // Start on mount, stop on unmount. Deliberately once per player: a new
