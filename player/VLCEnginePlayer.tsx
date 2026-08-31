@@ -21,6 +21,7 @@ import { matchesLanguage, pickSubtitle } from '@/player/lang';
 import { styles } from '@/player/styles';
 import { useProgressReporting } from '@/player/useProgressReporting';
 import { parseVtt, findActiveCue, type VttCue } from '@/player/vtt';
+import { useSmoothPosition } from '@/player/useSmoothPosition';
 import { localSubtitleSync, localUriSync, saveLocalPosition } from '@/store/downloads';
 import { openPlayerSheet } from '@/store/playerSheet';
 import { loadPrefs, savePrefs, type Prefs, withAudioChoice, withSubtitleChoice, withSubtitleDelay } from '@/store/prefs';
@@ -316,14 +317,23 @@ export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audi
    * no subtitle-delay control, so it works on jellylab's own overlay, which is
    * also the path Jellyfin serves embedded tracks through.
    */
+  /*
+   * Against the interpolated clock, not the last reported one.
+   *
+   * VLC reports progress about four times a second, so a cue drawn on those
+   * events alone could be a quarter-second late - and only ever late, because
+   * a sample says where the playhead was, never where it is.
+   */
+  const smoothPosition = useSmoothPosition(position, !paused, rate);
+
   useEffect(() => {
     if (externalCues.length === 0) {
       if (activeCue) setActiveCue(null);
       return;
     }
-    const cue = findActiveCue(externalCues, position - subDelayMs / 1000);
+    const cue = findActiveCue(externalCues, smoothPosition - subDelayMs / 1000);
     if (cue !== activeCue) setActiveCue(cue);
-  }, [position, externalCues, activeCue, subDelayMs]);
+  }, [smoothPosition, externalCues, activeCue, subDelayMs]);
 
   async function changeSubDelay(nextMs: number) {
     const clamped = Math.max(-30000, Math.min(30000, nextMs));

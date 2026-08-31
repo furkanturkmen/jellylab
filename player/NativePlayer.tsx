@@ -20,6 +20,7 @@ import { pickSubtitle } from '@/player/lang';
 import { styles } from '@/player/styles';
 import { useProgressReporting } from '@/player/useProgressReporting';
 import { parseVtt, findActiveCue, type VttCue } from '@/player/vtt';
+import { useSmoothPosition } from '@/player/useSmoothPosition';
 import { saveLocalPosition } from '@/store/downloads';
 import { openPlayerSheet } from '@/store/playerSheet';
 import { loadPrefs, savePrefs, withSubtitleChoice, withSubtitleDelay } from '@/store/prefs';
@@ -276,21 +277,33 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
     const id = setInterval(() => {
       if (scrubbing) return;
       try {
-        const t = player.currentTime ?? 0;
-        setPosition(t);
+        setPosition(player.currentTime ?? 0);
         setDuration(player.duration ?? 0);
-        if (externalCues.length > 0) {
-          // The same shift the VLC path applies. Subtracting moves the cue
-          // later, which is the direction a positive offset means to a viewer.
-          const cue = findActiveCue(externalCues, t - subDelayMs / 1000);
-          setActiveCue(cue);
-        } else if (activeCue) {
-          setActiveCue(null);
-        }
       } catch {}
     }, 250);
     return () => clearInterval(id);
-  }, [player, scrubbing, externalCues, activeCue, subDelayMs]);
+  }, [player, scrubbing]);
+
+  /*
+   * The overlay runs off an interpolated clock rather than the 250ms poll.
+   *
+   * Sampling four times a second put a cue up to a quarter-second behind the
+   * audio, and always behind - a sample can only say where the playhead was.
+   * The position advances at a known rate between samples, so it is arithmetic
+   * rather than another thing to ask the player for.
+   */
+  const smoothPosition = useSmoothPosition(position, playing && !scrubbing, speed);
+
+  useEffect(() => {
+    if (externalCues.length === 0) {
+      if (activeCue) setActiveCue(null);
+      return;
+    }
+    // Subtracting moves the cue later, which is the direction a positive
+    // offset means to a viewer. Same arithmetic as the VLC path.
+    const cue = findActiveCue(externalCues, smoothPosition - subDelayMs / 1000);
+    if (cue !== activeCue) setActiveCue(cue);
+  }, [smoothPosition, externalCues, activeCue, subDelayMs]);
 
   // A drag that never ended would freeze position for good, so anything that
   // takes the controls away mid-gesture - an error, a rotation - ends it.
