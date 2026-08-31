@@ -154,6 +154,24 @@ export type Airing = {
 };
 
 /**
+ * What Sonarr and Radarr have already imported.
+ *
+ * The gap this closes: a request stays "Processing" in Jellyseerr until its
+ * library scan notices the files, which runs on a five-minute cycle behind
+ * Jellyfin's own. In that window the app knew nothing and fell through to
+ * "Looking for it" - about a season sitting complete on disk.
+ *
+ * A film is on disk or it is not. A season is counted, because half a season
+ * is a real state and must not read as a finished one.
+ */
+export type OnDisk = {
+  /** films: present and true once Radarr has the file */
+  file?: boolean;
+  /** series: keyed by season number, monitored episodes only */
+  seasons?: Record<string, { files: number; episodes: number }>;
+};
+
+/**
  * What a real search said about a title that has not arrived, swept in the
  * background rather than run when a card renders.
  *
@@ -197,6 +215,13 @@ export type Downloads = {
    * and found nothing.
    */
   verdicts?: Record<string, SweptVerdict>;
+  /**
+   * Films and seasons already imported, keyed by TMDB id.
+   *
+   * Read only while Jellyseerr still says "Processing" - once it catches up,
+   * its own status is the better answer and this is redundant.
+   */
+  onDisk?: Record<string, OnDisk>;
   /** named failures, when one of the two services could not be read */
   errors?: Record<string, string>;
 };

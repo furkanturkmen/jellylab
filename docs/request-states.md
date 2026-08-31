@@ -23,12 +23,40 @@ settled.
 | `declined` `failed` | needs a person | Jellyseerr `status` |
 | `downloading` | moving | push queue, else Jellyseerr queue |
 | `stalled` | in the queue and not moving | Sonarr `errorMessage` |
-| `importing` | fetched, not in the library | Sonarr `trackedDownloadState` |
+| `importing` | fetched, not in the library | Sonarr `trackedDownloadState`, else push `onDisk` |
 | `unreleased` | Radarr is deliberately not searching | Radarr `isAvailable` |
 | `airing` `notAired` | the episode has not been broadcast | Sonarr `nextAiring` |
 | `partial` | some of it is there | Jellyseerr `mediaStatus` |
 | `searching` | approved, nothing found yet | fallback |
 | `available` | done | Jellyseerr `mediaStatus` |
+
+## "Processing" covers a download that already finished
+
+Jellyseerr marks a request available from its own library scan, which runs
+every five minutes and behind Jellyfin's. So there is a window — up to two
+cycles — where Sonarr has imported every episode, the files are on disk, and
+the request still says `Processing`.
+
+The app used to render that as **Looking for it**, which is not a small
+inaccuracy: it is the one state that means *nothing has been found*, shown
+about something fully downloaded.
+
+`push.onDisk` closes it. `airingSeries` already walks every series in Sonarr
+for `nextAiring`; the same pass now records `episodeFileCount` against
+`episodeCount` per season, and `unreleasedMovies` records Radarr's `hasFile`.
+`onDiskComplete()` answers whether every season the *request* covers is
+complete, and `requestState()` returns `importing` — "Finishing up" — instead
+of guessing.
+
+Deliberately all-or-nothing: a half-finished season is not finishing up, and
+Jellyseerr calls that case `Partial`, which is handled earlier anyway.
+
+**The case that proved it.** No Game No Life: Sonarr imported 12/12 at
+`00:09:07Z`, the Jellyseerr sweep passed the Anime library at `00:10:00Z`, and
+Jellyfin wrote the series item at `00:10:07Z` — seven seconds late. Jellyseerr
+matches at series level, so it saw nothing, and the next sweep at `00:15Z`
+picked it up. Six minutes of the card claiming to be looking for a season it
+already had.
 
 ## Never report a percentage from Jellyseerr
 

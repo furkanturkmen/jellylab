@@ -1,4 +1,4 @@
-import type { DownloadProgress, Downloads } from '@/api/push';
+import type { DownloadProgress, Downloads, OnDisk } from '@/api/push';
 import { sweptOutcome } from './candidates';
 import type { JellyseerrRequest } from '@/types';
 
@@ -11,6 +11,44 @@ export const REQUEST_FAILED = 4;
 export const MEDIA_PROCESSING = 3;
 export const MEDIA_PARTIAL = 4;
 export const MEDIA_AVAILABLE = 5;
+
+/**
+ * Is everything this request asked for already imported?
+ *
+ * Asked only of requests Jellyseerr still calls "Processing", to tell the two
+ * halves of that word apart: still looking, or found and waiting on a library
+ * scan. Sonarr had No Game No Life complete at 00:09 and Jellyseerr said
+ * Processing until 00:15, during which the card claimed to be looking for it.
+ *
+ * All or nothing on purpose. A part-finished season is not "finishing up", and
+ * Jellyseerr reports that case as Partial anyway - handled well before this.
+ */
+export function onDiskComplete(
+  disk: OnDisk | undefined,
+  seasons?: { seasonNumber: number }[],
+): boolean {
+  if (!disk) return false;
+  // A film has no seasons to count: Radarr either holds the file or does not.
+  if (disk.file) return true;
+  const present = disk.seasons;
+  if (!present) return false;
+
+  /*
+   * The seasons this request covers, not the ones the series has. A request
+   * for series two says nothing about series three, and Sonarr will report a
+   * season nobody asked for as having no files at all.
+   */
+  const wanted = (seasons ?? []).map(x => String(x.seasonNumber));
+  const keys = wanted.length > 0 ? wanted : Object.keys(present);
+  if (keys.length === 0) return false;
+
+  return keys.every(k => {
+    const season = present[k];
+    // A requested season Sonarr has never heard of is not on disk.
+    if (!season || season.episodes <= 0) return false;
+    return season.files >= season.episodes;
+  });
+}
 
 /**
  * After this long with nothing downloading, "waiting for a match" stops being
@@ -251,6 +289,21 @@ export function requestState(
   if (media.status === MEDIA_PARTIAL) return { kind: 'partial' };
 
   if (media.status === MEDIA_PROCESSING) {
+    /*
+     * Already downloaded, just not noticed yet.
+     *
+     * Checked before the search story, because it settles the question that
+     * story is guessing at. Jellyseerr trails Sonarr by up to two scan cycles
+     * and says "Processing" throughout; the app used to render that as
+     * "Looking for it" and be plainly wrong for minutes at a time.
+     *
+     * "Finishing up" is the existing importing pill and is exactly what this
+     * is: the file is there, the library has yet to catch up.
+     */
+    if (onDiskComplete(push?.onDisk?.[String(media.tmdbId)], request.seasons)) {
+      return { kind: 'importing' };
+    }
+
     const started = Date.parse(request.createdAt);
     const days = Number.isNaN(started) ? 0 : Math.floor((now - started) / 86_400_000);
 

@@ -1,4 +1,6 @@
-import { attention, requestProgress, requestState, statePercent, STALLED_AFTER_DAYS } from '../requests';
+import {
+  attention, onDiskComplete, requestProgress, requestState, statePercent, STALLED_AFTER_DAYS,
+} from '../requests';
 
 const DAY = 86_400_000;
 const NOW = Date.parse('2026-08-26T12:00:00.000Z');
@@ -140,6 +142,37 @@ describe('requestState', () => {
     expect(requestState(request({ status: 1, media: { status: 3 } })).kind).toBe('pending');
     expect(requestState(request({ status: 3 })).kind).toBe('declined');
     expect(requestState(request({ status: 4 })).kind).toBe('failed');
+  });
+
+  it('says finishing up when the files are there and Jellyseerr is behind', () => {
+    // The six minutes No Game No Life spent claiming to be looking for twelve
+    // episodes it already had.
+    const state = requestState(
+      request({ media: { tmdbId: 60808, mediaType: 'tv', status: 3 }, seasons: [{ seasonNumber: 1 }] }),
+      undefined,
+      push({ onDisk: { 60808: { seasons: { 1: { files: 12, episodes: 12 } } } } }));
+    expect(state.kind).toBe('importing');
+  });
+
+  it('still says looking for it when the disk is short', () => {
+    const state = requestState(
+      request({ media: { tmdbId: 60808, mediaType: 'tv', status: 3 }, seasons: [{ seasonNumber: 1 }] }),
+      undefined,
+      push({ onDisk: { 60808: { seasons: { 1: { files: 3, episodes: 12 } } } } }));
+    expect(state.kind).toBe('searching');
+  });
+
+  it('does not let on-disk override a live download', () => {
+    // Sonarr can hold season one while season two is still coming down. What
+    // is moving now is the more useful thing to show.
+    const state = requestState(
+      request({ media: { tmdbId: 60808, mediaType: 'tv', status: 3 }, seasons: [{ seasonNumber: 1 }] }),
+      undefined,
+      push({
+        tv: { 60808: dl() },
+        onDisk: { 60808: { seasons: { 1: { files: 12, episodes: 12 } } } },
+      }));
+    expect(state.kind).toBe('downloading');
   });
 
   it('says available and stops there', () => {
@@ -410,3 +443,63 @@ describe('attention', () => {
       .toBeLessThan(attention({ kind: 'available' }));
   });
 });
+
+/*
+ * Downloaded, but not yet noticed.
+ *
+ * Jellyseerr finds new files on a five-minute cycle running behind Jellyfin's
+ * own, so a finished import stays "Processing" for a few minutes afterwards.
+ * No Game No Life missed a sweep by thirty-nine seconds - Sonarr had all
+ * twelve episodes at 00:09:07, Jellyfin wrote the series item at 00:10:07,
+ * seven seconds after the sweep had already passed the Anime library - and the
+ * card said "Looking for it" about a season sitting complete on disk.
+ */
+describe('onDiskComplete', () => {
+  const season = (files: number, episodes: number) => ({ files, episodes });
+
+  it('is true for a film Radarr holds', () => {
+    expect(onDiskComplete({ file: true })).toBe(true);
+  });
+
+  it('is false when there is nothing to go on', () => {
+    // Absent is not the same as empty: a title the sweep has not reached yet
+    // must not read as downloaded.
+    expect(onDiskComplete(undefined)).toBe(false);
+    expect(onDiskComplete({})).toBe(false);
+    expect(onDiskComplete({ seasons: {} })).toBe(false);
+  });
+
+  it('is true when every requested season is complete', () => {
+    expect(onDiskComplete({ seasons: { 1: season(12, 12) } }, [{ seasonNumber: 1 }])).toBe(true);
+  });
+
+  it('is false while a requested season is still short', () => {
+    // Attack on Titan sat at 24 of 25 for weeks. That is not "finishing up".
+    expect(onDiskComplete({ seasons: { 1: season(24, 25) } }, [{ seasonNumber: 1 }])).toBe(false);
+  });
+
+  it('judges only the seasons the request covers', () => {
+    // Series two complete, series three barely started. A request for two is
+    // finished; a request for both is not.
+    const disk = { seasons: { 2: season(12, 12), 3: season(1, 12) } };
+    expect(onDiskComplete(disk, [{ seasonNumber: 2 }])).toBe(true);
+    expect(onDiskComplete(disk, [{ seasonNumber: 2 }, { seasonNumber: 3 }])).toBe(false);
+  });
+
+  it('is false for a requested season Sonarr has nothing for', () => {
+    expect(onDiskComplete({ seasons: { 1: season(12, 12) } }, [{ seasonNumber: 2 }])).toBe(false);
+  });
+
+  it('falls back to every season it knows when the request names none', () => {
+    // Jellyseerr requests carry seasons, but the field is optional in the type
+    // and a movie-shaped request has none at all.
+    expect(onDiskComplete({ seasons: { 1: season(12, 12) } })).toBe(true);
+    expect(onDiskComplete({ seasons: { 1: season(12, 12), 2: season(0, 10) } })).toBe(false);
+  });
+
+  it('does not count a season with no monitored episodes as complete', () => {
+    // 0 >= 0 is true and would have made an unmonitored season read as done.
+    expect(onDiskComplete({ seasons: { 1: season(0, 0) } }, [{ seasonNumber: 1 }])).toBe(false);
+  });
+});
+
