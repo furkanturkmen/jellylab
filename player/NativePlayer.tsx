@@ -22,7 +22,7 @@ import { useProgressReporting } from '@/player/useProgressReporting';
 import { parseVtt, findActiveCue, type VttCue } from '@/player/vtt';
 import { saveLocalPosition } from '@/store/downloads';
 import { openPlayerSheet } from '@/store/playerSheet';
-import { loadPrefs, savePrefs, withSubtitleChoice } from '@/store/prefs';
+import { loadPrefs, savePrefs, withSubtitleChoice, withSubtitleDelay } from '@/store/prefs';
 import { colors } from '@/theme';
 
 /**
@@ -134,6 +134,15 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
   const [activeSubIndex, setActiveSubIndex] = useState<number | null>(null);
   const [externalCues, setExternalCues] = useState<VttCue[]>([]);
   const [activeCue, setActiveCue] = useState<VttCue | null>(null);
+  /**
+   * How far to shift the subtitle overlay, in milliseconds.
+   *
+   * This engine drew the overlay itself and then ignored the offset: the
+   * control was hidden, and the saved value was read only to be printed in the
+   * log as "(ignored)". A correction made while watching an mkv silently did
+   * nothing the moment the next title happened to be an mp4.
+   */
+  const [subDelayMs, setSubDelayMs] = useState(0);
   const [subFontSize, setSubFontSize] = useState(18);
 
   useEffect(() => {
@@ -166,6 +175,8 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
   useEffect(() => {
     (async () => {
       const prefs = await loadPrefs();
+      // Remembered per title, like the track choice beside it.
+      setSubDelayMs(prefs.subtitleDelays?.[delayKey] ?? 0);
       const sizeMap = { sm: 14, md: 18, lg: 24 } as const;
       setSubFontSize(sizeMap[prefs.subtitleSize] ?? 18);
 
@@ -173,11 +184,7 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
       console.log(
         `[jellylab] player:subPrefs language=${prefs.subtitleLanguage || 'unset'}` +
         ` chosen=${prefs.subtitleChoices?.[delayKey] || 'none'}` +
-        // Stored, and deliberately not applied: this engine draws its overlay
-        // straight off the player clock and offers no timing control, so a
-        // correction made on the VLC path does nothing here. Said out loud
-        // rather than left to look like it worked.
-        ` offset=${prefs.subtitleDelays?.[delayKey] ?? 0}ms(ignored) available=${externalSubs.length}` +
+        ` offset=${prefs.subtitleDelays?.[delayKey] ?? 0}ms available=${externalSubs.length}` +
         /*
          * The labels, not just how many.
          *
@@ -273,7 +280,9 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
         setPosition(t);
         setDuration(player.duration ?? 0);
         if (externalCues.length > 0) {
-          const cue = findActiveCue(externalCues, t);
+          // The same shift the VLC path applies. Subtracting moves the cue
+          // later, which is the direction a positive offset means to a viewer.
+          const cue = findActiveCue(externalCues, t - subDelayMs / 1000);
           setActiveCue(cue);
         } else if (activeCue) {
           setActiveCue(null);
@@ -281,7 +290,7 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
       } catch {}
     }, 250);
     return () => clearInterval(id);
-  }, [player, scrubbing, externalCues, activeCue]);
+  }, [player, scrubbing, externalCues, activeCue, subDelayMs]);
 
   // A drag that never ended would freeze position for good, so anything that
   // takes the controls away mid-gesture - an error, a rotation - ends it.
@@ -365,6 +374,16 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
     setPickerOpen(true);
     // The controls go away with it - see the VLC engine.
     setControlsVisible(false);
+  }
+
+  /** Clamped to the same half minute either way as the VLC path. */
+  async function changeSubDelay(nextMs: number) {
+    const clamped = Math.max(-30000, Math.min(30000, nextMs));
+    setSubDelayMs(clamped);
+    try {
+      const prefs = await loadPrefs();
+      await savePrefs(withSubtitleDelay(prefs, delayKey, clamped));
+    } catch {}
   }
 
   function closeTrackPicker() {
@@ -640,9 +659,20 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
             audio={nativeAudioRows}
             audioNote={nativeAudioRows.length === 0 ? t('player.noAlternateAudio') : null}
             subtitles={nativeSubtitleRows}
-            // The overlay this engine draws is the only subtitle it can shift;
-            // an embedded AVPlayer track has no timing control to offer.
-            timing={null}
+            /*
+             * Offered exactly when there is something to shift.
+             *
+             * An embedded AVPlayer track cannot be moved - that half of the
+             * old reasoning holds - but the overlay this engine draws for
+             * external cues can, and that is the case the control exists for.
+             * Hiding it whenever the file happened to be an mp4 made a
+             * correction that worked on one title do nothing on the next.
+             */
+            timing={{
+              delayMs: subDelayMs,
+              enabled: externalCues.length > 0,
+              onChange: changeSubDelay,
+            }}
           />
         ) : null}
       </View>
