@@ -438,6 +438,7 @@
     "waitingCinema": "Draait nog in de bioscoop. Er valt niets te downloaden tot de digitale release op {{date}} - je server pakt het dan automatisch op.",
     "waitingDays_one": "Wacht {{count}} dag - er wordt niets gedownload",
     "waitingDays_other": "Wacht {{count}} dagen - er wordt niets gedownload",
+    "waitingImport": "Al gedownload. Je server voegt de titel toe aan de bibliotheek, dat duurt meestal een paar minuten.",
     "waitingMatch": "Goedgekeurd en wachtend op een match. Je server blijft zoeken, dus dit kan even duren als er nog niets goeds beschikbaar is."
   },
   "badge": {

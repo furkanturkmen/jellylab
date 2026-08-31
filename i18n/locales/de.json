@@ -438,6 +438,7 @@
     "waitingCinema": "Läuft noch im Kino. Bis zur digitalen Veröffentlichung am {{date}} gibt es nichts zu laden - dein Server holt es dann automatisch.",
     "waitingDays_one": "Wartet seit {{count}} Tag - nichts lädt",
     "waitingDays_other": "Wartet seit {{count}} Tagen - nichts lädt",
+    "waitingImport": "Bereits heruntergeladen. Der Server fügt den Titel zur Bibliothek hinzu, das dauert meist ein paar Minuten.",
     "waitingMatch": "Genehmigt und wartet auf einen Treffer. Dein Server sucht weiter, das kann dauern, solange nichts Gutes gefunden wird."
   },
   "badge": {

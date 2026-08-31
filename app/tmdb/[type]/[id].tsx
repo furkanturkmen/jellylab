@@ -6,12 +6,15 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyseerr from '@/api/jellyseerr';
+import * as Push from '@/api/push';
 import { GlassButton, PrimaryButton } from '@/components/AppleButton';
 import { QualityPicker } from '@/components/QualityPicker';
+import { getJellyfinUrl } from '@/config';
 import { formatDate } from '@/lib/date';
 import { kindKey, tmdbKind } from '@/lib/kind';
-import { deleteCancelsDownload } from '@/lib/requests';
+import { deleteCancelsDownload, onDiskComplete } from '@/lib/requests';
 import { plainText } from '@/lib/text';
+import { loadPrefs } from '@/store/prefs';
 import { openSeasonSheet } from '@/store/sheet';
 import { colors, radius, spacing, type } from '@/theme';
 import { MEDIA_STATUS } from '@/types';
@@ -118,6 +121,31 @@ export default function TmdbDetailScreen() {
    * backgrounded — a progress bar nobody is looking at is not worth the radio.
    */
   const isProcessing = details?.mediaInfo?.status === Jellyseerr.SEERR_STATUS.PROCESSING;
+
+  /*
+   * What Radarr and Sonarr already hold. Jellyseerr does not know it yet during
+   * the few minutes between an import finishing and its next library scan, and
+   * without this the screen falls through to "waiting for a match" - the list
+   * card meanwhile says "Finishing up", because it has this and the screen did
+   * not. Best-effort on purpose: the homelab service being unreachable must not
+   * stop the page rendering.
+   */
+  const [onDisk, setOnDisk] = useState<Push.OnDisk | undefined>(undefined);
+  useEffect(() => {
+    if (!isProcessing || !tmdbId) return;
+    let alive = true;
+    (async () => {
+      try {
+        const url = Push.resolveUrl((await loadPrefs()).pushUrl, getJellyfinUrl());
+        if (!url) return;
+        const d = await Push.downloads(url);
+        if (alive) setOnDisk(d.onDisk?.[String(tmdbId)]);
+      } catch (e) {
+        console.log(`[jellylab] onDisk failed - ${e instanceof Error ? e.message : String(e)}`);
+      }
+    })();
+    return () => { alive = false; };
+  }, [isProcessing, tmdbId]);
   useEffect(() => {
     if (!isProcessing) return;
     const id = setInterval(() => {
@@ -293,13 +321,24 @@ export default function TmdbDetailScreen() {
    * digitally, so a cinema-only release sits approved and idle for months —
    * which reads as a failure unless it says otherwise.
    */
-  const waitingReason = (() => {
+  const waiting = (() => {
     if (!processing || activeDownloads.length > 0) return null;
+    /*
+     * Already fetched and imported, with only Jellyseerr behind. The seasons a
+     * request covers are not on mediaInfo, so this asks about the whole title -
+     * which is what the fallback in onDiskComplete is for.
+     */
+    if (onDiskComplete(onDisk)) {
+      return { label: t('requests.state.importing'), text: t('request.waitingImport') };
+    }
     const digital = type === 'movie' ? Jellyseerr.digitalReleaseDate(details) : null;
     if (digital && digital.getTime() > Date.now()) {
-      return t('request.waitingCinema', { date: formatDate(digital) });
+      return {
+        label: t('request.notDownloading'),
+        text: t('request.waitingCinema', { date: formatDate(digital) }),
+      };
     }
-    return t('request.waitingMatch');
+    return { label: t('request.notDownloading'), text: t('request.waitingMatch') };
   })();
 
   return (
@@ -402,12 +441,12 @@ export default function TmdbDetailScreen() {
                 <DownloadRow key={`${d.downloadId ?? 'dl'}-${i}`} d={d} />
               ))}
             </View>
-          ) : waitingReason ? (
+          ) : waiting ? (
             /* Approved with nothing downloading looks identical to broken.
                Say why rather than showing an empty card. */
             <View style={styles.card}>
-              <Text style={styles.sectionLabel}>{t('request.notDownloading')}</Text>
-              <Text style={styles.waitingText}>{waitingReason}</Text>
+              <Text style={styles.sectionLabel}>{waiting.label}</Text>
+              <Text style={styles.waitingText}>{waiting.text}</Text>
             </View>
           ) : null}
 

@@ -438,6 +438,7 @@
     "waitingCinema": "Hâlâ sinemalarda. {{date}} tarihindeki dijital çıkışa kadar indirilecek bir şey yok - sunucun o zaman otomatik olarak alacak.",
     "waitingDays_one": "{{count}} gündür bekliyor - hiçbir şey inmiyor",
     "waitingDays_other": "{{count}} gündür bekliyor - hiçbir şey inmiyor",
+    "waitingImport": "İndirme tamamlandı. Sunucu başlığı kitaplığa ekliyor, bu genelde birkaç dakika sürer.",
     "waitingMatch": "Onaylandı ve eşleşme bekleniyor. Sunucun aramayı sürdürüyor, uygun bir şey yoksa bu biraz zaman alabilir."
   },
   "badge": {

@@ -438,6 +438,7 @@
     "waitingCinema": "Still in cinemas. Nothing to download until the digital release on {{date}} - your server will pick it up automatically then.",
     "waitingDays_one": "Waiting {{count}} day - nothing downloading",
     "waitingDays_other": "Waiting {{count}} days - nothing downloading",
+    "waitingImport": "Already downloaded. Your server is adding it to the library, which usually takes a few minutes.",
     "waitingMatch": "Approved and waiting for a match. Your server keeps searching, so this can take a while if nothing good is available yet."
   },
   "badge": {
