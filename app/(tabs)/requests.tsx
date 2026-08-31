@@ -168,7 +168,7 @@ export default function RequestsScreen() {
       loadedAt.current = Date.now();
       if (!silent) setLoading(false);
     }
-  }, [tr]);
+  }, [tr, setReasons]);
 
   // Nothing to ask Jellyseerr for until there is a session to ask with.
   useEffect(() => {
