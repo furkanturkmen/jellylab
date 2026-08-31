@@ -10,6 +10,7 @@ import { GlassButton, PrimaryButton } from '@/components/AppleButton';
 import { QualityPicker } from '@/components/QualityPicker';
 import { formatDate } from '@/lib/date';
 import { kindKey, tmdbKind } from '@/lib/kind';
+import { deleteCancelsDownload } from '@/lib/requests';
 import { plainText } from '@/lib/text';
 import { openSeasonSheet } from '@/store/sheet';
 import { colors, radius, spacing, type } from '@/theme';
@@ -186,7 +187,15 @@ export default function TmdbDetailScreen() {
   async function onDeleteRequest() {
     if (!details?.mediaInfo?.requests?.length) return;
     const reqId = details.mediaInfo.requests[0].id;
-    Alert.alert(t('request.deleteTitle'), t('request.deleteBody'), [
+    const mediaId = details.mediaInfo.id;
+    /*
+     * Deleting the request on its own only makes the download invisible - the
+     * *arr keeps it and imports it anyway, which is how a film ends up in the
+     * library with no request explaining it. Cancel downstream first when
+     * nothing has arrived yet, which is what this button already promised.
+     */
+    const cancels = mediaId !== undefined && deleteCancelsDownload(details.mediaInfo.status);
+    Alert.alert(t('request.deleteTitle'), cancels ? t('request.deleteBodyCancels') : t('request.deleteBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('common.delete'),
@@ -194,6 +203,10 @@ export default function TmdbDetailScreen() {
         onPress: async () => {
           setActing(true);
           try {
+            // Downstream first: if it fails the request stays, because a
+            // deleted request over a live download is the exact state this
+            // exists to prevent.
+            if (cancels) await Jellyseerr.removeMediaFile(mediaId);
             await Jellyseerr.deleteRequest(reqId);
             await refresh();
           } catch (e: any) {

@@ -404,7 +404,8 @@
   "request": {
     "cancel": "Cancel",
     "countries": "Countries",
-    "deleteBody": "The request will be cancelled but any downloaded files stay on Jellyfin.",
+    "deleteBody": "The request record is removed. Downloaded files stay on Jellyfin.",
+    "deleteBodyCancels": "Nothing has downloaded yet, so this also removes it from Radarr/Sonarr and stops the download.",
     "deleteFailed": "Delete failed",
     "deleteRequest": "Delete request",
     "deleteTitle": "Delete request?",

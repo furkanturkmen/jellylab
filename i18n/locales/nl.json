@@ -404,7 +404,8 @@
   "request": {
     "cancel": "Annuleer",
     "countries": "Landen",
-    "deleteBody": "De aanvraag wordt geannuleerd, maar gedownloade bestanden blijven op Jellyfin staan.",
+    "deleteBody": "De aanvraag wordt verwijderd. Gedownloade bestanden blijven op Jellyfin staan.",
+    "deleteBodyCancels": "Er is nog niets gedownload, dus dit verwijdert de titel ook uit Radarr/Sonarr en stopt de download.",
     "deleteFailed": "Verwijderen mislukt",
     "deleteRequest": "Aanvraag verwijderen",
     "deleteTitle": "Aanvraag verwijderen?",

@@ -55,6 +55,23 @@ export function onDiskComplete(
  * a description and starts being a euphemism. Three days is long enough that a
  * popular title has certainly been grabbed, and short enough to be useful.
  */
+/**
+ * Whether deleting a request also has to pull the title out of Radarr/Sonarr.
+ *
+ * Jellyseerr's DELETE /request only forgets the request. The *arr never hears
+ * about it, finishes the download and imports it - so the title lands in the
+ * library with nothing anywhere explaining why it was fetched. Deleting a
+ * request that has not arrived yet therefore has to remove it downstream too,
+ * or it cancels nothing at all.
+ *
+ * Not once something is available. A series can carry a pending season request
+ * next to seasons already on disk, and removing downstream there deletes those
+ * files. Forgetting the request is then the whole of what was asked for.
+ */
+export function deleteCancelsDownload(status?: number): boolean {
+  return status !== MEDIA_AVAILABLE && status !== MEDIA_PARTIAL;
+}
+
 export const STALLED_AFTER_DAYS = 3;
 
 export type RequestProgress =

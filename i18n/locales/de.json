@@ -404,7 +404,8 @@
   "request": {
     "cancel": "Abbrechen",
     "countries": "Länder",
-    "deleteBody": "Die Anfrage wird storniert, heruntergeladene Dateien bleiben auf Jellyfin.",
+    "deleteBody": "Der Anfragedatensatz wird entfernt. Heruntergeladene Dateien bleiben auf Jellyfin.",
+    "deleteBodyCancels": "Es wurde noch nichts heruntergeladen, daher wird der Titel auch aus Radarr/Sonarr entfernt und der Download gestoppt.",
     "deleteFailed": "Löschen fehlgeschlagen",
     "deleteRequest": "Anfrage löschen",
     "deleteTitle": "Anfrage löschen?",

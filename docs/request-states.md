@@ -192,6 +192,44 @@ wants the server default keeps working if that default is ever changed.
 The five it offers are described in `docs/release-rules.md` in the homelab
 repo; the app reads them live from Jellyseerr rather than hardcoding a list.
 
+## Deleting a request has to cancel it too
+
+Jellyseerr's `DELETE /request/:id` removes the request row and nothing else.
+Radarr and Sonarr are never told, so they finish the download and import it —
+and the title arrives in the library with no request anywhere explaining why it
+was fetched.
+
+Seen on 2026-08-31. Dragon Ball Z: Bio-Broly was requested from the phone at
+`00:30:39`, auto-approved and handed to Radarr in the same second, and the
+request was deleted two seconds later at `00:30:41`. Radarr grabbed it anyway
+at `00:31:03` and imported 0.8G at `00:35:01`. Nine requests have been deleted
+over this library's life, so Bio-Broly is unlikely to be the only one.
+
+So `onDeleteRequest` removes the title downstream first, via Seerr's
+`DELETE /media/:id/file`, which calls `removeMovie`/`removeSeries` on the *arr.
+`deleteCancelsDownload()` decides when, and the rule is about what is on disk
+rather than about the request:
+
+| media status | what delete does |
+| --- | --- |
+| pending, processing, unknown | removes from Radarr/Sonarr, then deletes the request |
+| available, partially available | deletes the request only |
+
+Available is excluded because removing downstream passes `deleteFiles: true`.
+A series can hold a pending season request beside seasons already downloaded,
+and cancelling there would delete those files — so once anything has arrived,
+forgetting the request is the whole of what "delete request" can safely mean.
+
+The downstream call goes first on purpose. If it fails, the request stays and
+the error is shown, because a deleted request over a live download is the exact
+state this exists to prevent.
+
+**What this still does not do.** Removing the movie from Radarr does not remove
+the torrent from qBittorrent — Radarr drops its queue entry with the movie and
+leaves the download client alone. So a cancelled title stops reaching the
+library but can keep occupying disk. Cancelling properly needs a queue delete
+with `removeFromClient=true`, which only `jellylab-push` can make. Deferred.
+
 ## The phone holds no credential
 
 Everything above comes from `jellylab-push`, which keeps the Sonarr and Radarr

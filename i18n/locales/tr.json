@@ -404,7 +404,8 @@
   "request": {
     "cancel": "İptal",
     "countries": "Ülkeler",
-    "deleteBody": "İstek iptal edilir, ancak indirilen dosyalar Jellyfin’de kalır.",
+    "deleteBody": "İstek kaydı silinir. İndirilen dosyalar Jellyfin’de kalır.",
+    "deleteBodyCancels": "Henüz hiçbir şey indirilmedi, bu yüzden başlık Radarr/Sonarr’dan da kaldırılır ve indirme durdurulur.",
     "deleteFailed": "Silme başarısız",
     "deleteRequest": "İsteği sil",
     "deleteTitle": "İstek silinsin mi?",

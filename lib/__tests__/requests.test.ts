@@ -1,5 +1,6 @@
 import {
-  attention, onDiskComplete, requestProgress, requestState, statePercent, STALLED_AFTER_DAYS,
+  attention, deleteCancelsDownload, onDiskComplete, requestProgress, requestState, statePercent,
+  STALLED_AFTER_DAYS,
 } from '../requests';
 
 const DAY = 86_400_000;
@@ -13,6 +14,37 @@ const request = (over: any = {}) => ({
   ...over,
   media: { id: 1, tmdbId: 1, mediaType: 'movie', status: 3, downloadStatus: [], ...(over.media ?? {}) },
 }) as any;
+
+describe('deleteCancelsDownload', () => {
+  it('cancels downstream while the title is still being fetched', () => {
+    // Processing is the state Bio-Broly was in: Radarr had accepted it and was
+    // 24 seconds from grabbing when the request was deleted.
+    expect(deleteCancelsDownload(3)).toBe(true);
+  });
+
+  it('cancels downstream for a request nobody has approved yet', () => {
+    expect(deleteCancelsDownload(2)).toBe(true);
+  });
+
+  it('leaves an available title alone', () => {
+    // Removing downstream deletes the library file, which is not what deleting
+    // a request means once the file has arrived.
+    expect(deleteCancelsDownload(5)).toBe(false);
+  });
+
+  it('leaves a partly available series alone', () => {
+    // Seasons already on disk sit under the same media entry as the pending
+    // one, so removing downstream would take them with it.
+    expect(deleteCancelsDownload(4)).toBe(false);
+  });
+
+  it('cancels downstream when the status is unknown', () => {
+    // Nothing says a file exists, and the failure that matters is the silent
+    // download, not a removal that finds nothing to remove.
+    expect(deleteCancelsDownload(undefined)).toBe(true);
+    expect(deleteCancelsDownload(1)).toBe(true);
+  });
+});
 
 describe('requestProgress', () => {
   it('reports how far a download has got', () => {
