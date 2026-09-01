@@ -239,7 +239,14 @@ export function contentExclusions() {
   return exclusions;
 }
 
-/** The discover parameters TMDB understands, omitted entirely when empty. */
+/**
+ * The discover parameters TMDB understands, omitted entirely when empty.
+ *
+ * Sent through `queryString`, never through axios's `params`: excludeKeywords
+ * is a comma-separated list, axios leaves a comma unescaped, and Jellyseerr
+ * answers 400 "must be url encoded" - the same trap lib/url.ts was written for
+ * when search hit it.
+ */
 function excludeParams(): Record<string, string> {
   const out: Record<string, string> = {};
   if (exclusions.keywordIds.length > 0) out.excludeKeywords = exclusions.keywordIds.join(',');
@@ -280,13 +287,15 @@ export async function discoverTrending(page = 1): Promise<JellyseerrSearchResult
 
 export async function discoverMovies(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/discover/movies', { params: { page, ...DISCOVER_PARAMS, ...excludeParams() } });
+  const res = await client.get(
+    `/discover/movies?${queryString({ page, ...DISCOVER_PARAMS, ...excludeParams() })}`);
   return res.data.results ?? [];
 }
 
 export async function discoverTv(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/discover/tv', { params: { page, ...DISCOVER_PARAMS, ...excludeParams() } });
+  const res = await client.get(
+    `/discover/tv?${queryString({ page, ...DISCOVER_PARAMS, ...excludeParams() })}`);
   return res.data.results ?? [];
 }
 
@@ -307,14 +316,18 @@ export async function discoverTv(page = 1): Promise<JellyseerrSearchResult[]> {
  */
 export async function discoverAnime(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/discover/tv', { params: { page, keywords: 210024, ...excludeParams() } });
+  const res = await client.get(
+    `/discover/tv?${queryString({ page, keywords: 210024, ...excludeParams() })}`);
   return res.data.results ?? [];
 }
 
 export async function discoverUpcomingMovies(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/discover/movies/upcoming', { params: { page, ...DISCOVER_PARAMS, ...excludeParams() } });
-  return res.data.results ?? [];
+  // Upcoming takes no discover filters - it answers 400 "Unknown query
+  // parameter" for excludeKeywords - so it is narrowed after the fact, by
+  // genre, like trending.
+  const res = await client.get('/discover/movies/upcoming', { params: { page, ...DISCOVER_PARAMS } });
+  return withoutExcludedGenres(res.data.results ?? []);
 }
 
 /** One of the quality profiles configured on the Radarr or Sonarr behind Seerr. */
