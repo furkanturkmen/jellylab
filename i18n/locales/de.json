@@ -274,6 +274,7 @@
       "playback": "Wiedergabe",
       "content": "Inhalte",
       "contentFilters": "Inhaltsfilter",
+      "switchUser": "Benutzer wechseln",
       "language": "Sprache",
       "servers": "Server",
       "about": "Über",
@@ -456,6 +457,16 @@
     "appliedNobody": "Niemand, auf den es angewendet werden könnte.",
     "loadFailed": "Filter konnten nicht geladen werden",
     "saveFailed": "Filter konnten nicht gespeichert werden"
+  },
+  "switchUser": {
+    "title": "Benutzer wechseln",
+    "signedIn": "Angemeldet",
+    "add": "Weiteres Konto hinzufügen",
+    "current": "{{name}}, angemeldet",
+    "forget": "Vergessen",
+    "forgetTitle": "Dieses Konto vergessen?",
+    "forgetBody": "Entfernt {{name}} aus dieser Liste. Auf dem Server ändert sich nichts.",
+    "note": "Die Anmeldung als jemand anderes fragt nach dem Passwort: Jellyseerr kann sich nicht anders authentifizieren, und ohne das blieben Anfragen und Suche leer. Zum Vergessen den Namen gedrückt halten."
   },
   "request": {
     "cancel": "Abbrechen",

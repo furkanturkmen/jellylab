@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { getSeerrError } from '@/store/seerrStatus';
 import { useCurrentServer } from '@/hooks/useServer';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors, radius, spacing, type } from '@/theme';
 
 export default function LoginScreen() {
@@ -14,7 +14,10 @@ export default function LoginScreen() {
   const { signIn } = useAuth();
   const { server } = useCurrentServer();
   const router = useRouter();
-  const [username, setUsername] = useState('');
+  // Filled in when the switcher sent us here, so signing in as somebody the
+  // device already knows is one field rather than two and a spelling.
+  const { username: prefill } = useLocalSearchParams<{ username?: string }>();
+  const [username, setUsername] = useState(prefill ?? '');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
 

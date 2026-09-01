@@ -274,6 +274,7 @@
       "playback": "Playback",
       "content": "Content",
       "contentFilters": "Content filters",
+      "switchUser": "Switch user",
       "language": "Language",
       "servers": "Servers",
       "about": "About",
@@ -456,6 +457,16 @@
     "appliedNobody": "Nobody to apply to.",
     "loadFailed": "Could not load filters",
     "saveFailed": "Could not save filters"
+  },
+  "switchUser": {
+    "title": "Switch user",
+    "signedIn": "Signed in",
+    "add": "Add another account",
+    "current": "{{name}}, signed in",
+    "forget": "Forget",
+    "forgetTitle": "Forget this account?",
+    "forgetBody": "Removes {{name}} from this list. Nothing on the server changes.",
+    "note": "Signing in as someone else asks for their password: Jellyseerr has no other way to authenticate, and without it their Requests and Search would be empty. Press and hold a name to forget it."
   },
   "request": {
     "cancel": "Cancel",

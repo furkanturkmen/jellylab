@@ -238,6 +238,11 @@ export default function ProfileScreen() {
             />
             <NavRow title={t('profile.changePassword')} systemImage="key" onPress={() => router.push('/settings/password')} />
             <NavRow title={t('profile.menu.history')} systemImage="clock.arrow.circlepath" onPress={() => router.push('/history')} />
+            <NavRow
+              title={t('profile.menu.switchUser')}
+              systemImage="person.2.arrow.trianglehead.swap"
+              onPress={() => router.push('/switch-user')}
+            />
           </UISection>
 
           <UISection title={t('profile.preferences')}>

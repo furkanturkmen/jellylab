@@ -274,6 +274,7 @@
       "playback": "Oynatma",
       "content": "İçerik",
       "contentFilters": "İçerik filtreleri",
+      "switchUser": "Kullanıcı değiştir",
       "language": "Dil",
       "servers": "Sunucular",
       "about": "Hakkında",
@@ -456,6 +457,16 @@
     "appliedNobody": "Uygulanacak kimse yok.",
     "loadFailed": "Filtreler yüklenemedi",
     "saveFailed": "Filtreler kaydedilemedi"
+  },
+  "switchUser": {
+    "title": "Kullanıcı değiştir",
+    "signedIn": "Oturum açık",
+    "add": "Başka hesap ekle",
+    "current": "{{name}}, oturum açık",
+    "forget": "Unut",
+    "forgetTitle": "Bu hesap unutulsun mu?",
+    "forgetBody": "{{name}} bu listeden kaldırılır. Sunucuda hiçbir şey değişmez.",
+    "note": "Başkası olarak oturum açmak parolasını ister: Jellyseerr başka türlü doğrulama yapamaz ve o olmadan İstekler ile Arama boş kalır. Unutmak için ada basılı tut."
   },
   "request": {
     "cancel": "İptal",

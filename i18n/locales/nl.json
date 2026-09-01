@@ -274,6 +274,7 @@
       "playback": "Afspelen",
       "content": "Inhoud",
       "contentFilters": "Inhoudsfilters",
+      "switchUser": "Gebruiker wisselen",
       "language": "Taal",
       "servers": "Servers",
       "about": "Over",
@@ -456,6 +457,16 @@
     "appliedNobody": "Niemand om op toe te passen.",
     "loadFailed": "Filters konden niet worden geladen",
     "saveFailed": "Filters konden niet worden opgeslagen"
+  },
+  "switchUser": {
+    "title": "Gebruiker wisselen",
+    "signedIn": "Aangemeld",
+    "add": "Ander account toevoegen",
+    "current": "{{name}}, aangemeld",
+    "forget": "Vergeten",
+    "forgetTitle": "Dit account vergeten?",
+    "forgetBody": "Verwijdert {{name}} uit deze lijst. Er verandert niets op de server.",
+    "note": "Aanmelden als iemand anders vraagt om hun wachtwoord: Jellyseerr kan niet anders authenticeren, en zonder dat blijven hun Aanvragen en Zoeken leeg. Houd een naam ingedrukt om die te vergeten."
   },
   "request": {
     "cancel": "Annuleer",

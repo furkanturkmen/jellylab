@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as Jellyfin from '@/api/jellyfin';
 import * as Jellyseerr from '@/api/jellyseerr';
+import { rememberAccount } from '@/store/accounts';
 import { loadJellyfinAuth, subscribeJellyfinAuth } from '@/store/auth';
 import { describeSeerrError, setSeerrError } from '@/store/seerrStatus';
 import { getJellyseerrUrl } from '@/config';
@@ -38,6 +39,14 @@ export function useAuth() {
       // dropped, so the screens that go empty because of it can say why.
       setSeerrError(describeSeerrError(e, getJellyseerrUrl()));
     }
+    // Remembered so the switcher can offer this person by name next time.
+    // Nothing secret: a name, a server and an avatar tag.
+    await rememberAccount({
+      userId: auth.userId,
+      userName: auth.userName,
+      serverId: auth.serverId,
+      primaryImageTag: auth.primaryImageTag,
+    }).catch(() => {});
     setState({ status: 'signed-in', auth });
     return auth;
   }, []);
