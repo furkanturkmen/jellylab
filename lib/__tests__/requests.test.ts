@@ -278,13 +278,30 @@ describe('requestState, not out yet', () => {
 
   it('says it is not out rather than that it is looking', () => {
     expect(requestState(awarapan(), NOW, withUnreleased())).toEqual({
-      kind: 'unreleased', status: 'inCinemas', date: '2026-08-14T00:00:00Z',
+      kind: 'unreleased', status: 'inCinemas', date: null,
     });
+  });
+
+  /*
+   * The cinema date is not a fallback for the digital one. It answers a
+   * different question and has usually passed by the time anyone is waiting,
+   * so offering it as the date produced "Expected - 26-08-2026" on a card
+   * read six days later. The status carries the reason instead.
+   */
+  it('gives no date when only the cinema date is known', () => {
+    const p = requestState(awarapan(), NOW, withUnreleased());
+    expect(p).toMatchObject({ status: 'inCinemas' });
+    expect((p as any).date).toBeNull();
   });
 
   it('prefers the digital date, which is the one that matters', () => {
     const p = requestState(awarapan(), NOW, withUnreleased({ digitalRelease: '2026-11-01T00:00:00Z' }));
     expect(p).toMatchObject({ date: '2026-11-01T00:00:00Z' });
+  });
+
+  it('falls back to the physical date when there is no digital one', () => {
+    const p = requestState(awarapan(), NOW, withUnreleased({ physicalRelease: '2026-12-05T00:00:00Z' }));
+    expect(p).toMatchObject({ date: '2026-12-05T00:00:00Z' });
   });
 
   it('lets a download outrank it', () => {

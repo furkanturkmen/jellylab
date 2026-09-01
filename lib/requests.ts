@@ -299,7 +299,16 @@ export function requestState(
     return {
       kind: 'unreleased',
       status: pending.status,
-      date: pending.digitalRelease ?? pending.physicalRelease ?? pending.inCinemas,
+      /*
+       * Only a digital or physical date says anything about when a film can
+       * arrive. The cinema date is not a third-best guess at that - it is a
+       * different fact, and by the time anyone is waiting it has usually
+       * passed. The Dog Stars reached cinemas on 26-08 with no digital date
+       * announced, and the card read "Expected - 26-08-2026" six days later:
+       * a promise the film had already broken. `status` carries the reason
+       * instead, so the pill can say it is in cinemas and name no date.
+       */
+      date: pending.digitalRelease ?? pending.physicalRelease,
     };
   }
 

@@ -184,6 +184,7 @@
       "expectedOn": "Bekleniyor · {{date}}",
       "failed": "Başarısız",
       "importing": "Tamamlanıyor",
+      "inCinemas": "Sinemalarda",
       "nothingFound": "Bulunamadi",
       "partial": "Kısmen mevcut",
       "pending": "Onay bekliyor",

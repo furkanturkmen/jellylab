@@ -445,7 +445,11 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
       : state.kind === 'unreleased'
         ? state.date
           ? t('requests.state.expectedOn', { date: formatDate(state.date) })
-          : t('requests.state.expected')
+          // No date to give, so say why rather than an empty promise. A film
+          // in cinemas is waiting on a digital release nobody has announced.
+          : state.status === 'inCinemas'
+            ? t('requests.state.inCinemas')
+            : t('requests.state.expected')
         : state.kind === 'airing'
           // Nothing aired yet is not part-way through: "Airing 0/18" reads as
           // a season underway that has somehow produced nothing.
