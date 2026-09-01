@@ -142,6 +142,26 @@
       "untracked": "Er wordt niet naar gezocht",
       "untrackedWhy": "Hiervoor is nooit iets aan Sonarr of Radarr toegevoegd."
     },
+    "emptyFiltered": "Niets voldoet aan deze filters.",
+    "filter": {
+      "status": {
+        "all": "Alles",
+        "attention": "Vraagt aandacht",
+        "downloading": "Downloaden",
+        "waiting": "Onderweg",
+        "available": "Beschikbaar",
+        "rejected": "Afgewezen"
+      },
+      "date": {
+        "all": "Altijd",
+        "today": "Vandaag",
+        "week": "Laatste 7 dagen",
+        "month": "Laatste 30 dagen"
+      },
+      "user": {
+        "all": "Iedereen"
+      }
+    },
     "empty": "Nog geen aanvragen",
     "mediaStatus": {
       "1": "Onbekend",
@@ -404,6 +424,11 @@
   "request": {
     "cancel": "Annuleer",
     "countries": "Landen",
+    "alreadyTitle": "Al aangevraagd",
+    "alreadyBody": "{{name}} heeft dit aangevraagd op {{date}}. Opnieuw vragen voegt geen tweede kopie toe.",
+    "alreadyBodyYou": "Je hebt dit aangevraagd op {{date}}. Opnieuw vragen voegt geen tweede kopie toe.",
+    "requestedBy": "Aangevraagd door {{name}} · {{date}}",
+    "someone": "iemand anders",
     "deleteBody": "De aanvraag wordt verwijderd. Gedownloade bestanden blijven op Jellyfin staan.",
     "deleteBodyCancels": "Er is nog niets gedownload, dus dit verwijdert de titel ook uit Radarr/Sonarr en stopt de download.",
     "deleteFailed": "Verwijderen mislukt",

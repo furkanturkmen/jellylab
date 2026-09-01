@@ -142,6 +142,26 @@
       "untracked": "Aranmıyor",
       "untrackedWhy": "Bunun için Sonarr veya Radarr’a hiçbir şey eklenmemiş."
     },
+    "emptyFiltered": "Bu filtrelere uyan bir şey yok.",
+    "filter": {
+      "status": {
+        "all": "Tümü",
+        "attention": "İlgi bekliyor",
+        "downloading": "İndiriliyor",
+        "waiting": "Yolda",
+        "available": "Hazır",
+        "rejected": "Reddedildi"
+      },
+      "date": {
+        "all": "Her zaman",
+        "today": "Bugün",
+        "week": "Son 7 gün",
+        "month": "Son 30 gün"
+      },
+      "user": {
+        "all": "Herkes"
+      }
+    },
     "empty": "Henüz istek yok",
     "mediaStatus": {
       "1": "Bilinmiyor",
@@ -404,6 +424,11 @@
   "request": {
     "cancel": "İptal",
     "countries": "Ülkeler",
+    "alreadyTitle": "Zaten istendi",
+    "alreadyBody": "{{name}} bunu {{date}} tarihinde istedi. Tekrar istemek ikinci bir kopya eklemez.",
+    "alreadyBodyYou": "Bunu {{date}} tarihinde sen istedin. Tekrar istemek ikinci bir kopya eklemez.",
+    "requestedBy": "{{name}} tarafından istendi · {{date}}",
+    "someone": "başka biri",
     "deleteBody": "İstek kaydı silinir. İndirilen dosyalar Jellyfin’de kalır.",
     "deleteBodyCancels": "Henüz hiçbir şey indirilmedi, bu yüzden başlık Radarr/Sonarr’dan da kaldırılır ve indirme durdurulur.",
     "deleteFailed": "Silme başarısız",

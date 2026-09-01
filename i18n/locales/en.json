@@ -142,6 +142,26 @@
       "untracked": "Not being looked for",
       "untrackedWhy": "Nothing was ever added to Sonarr or Radarr for this."
     },
+    "emptyFiltered": "Nothing matches these filters.",
+    "filter": {
+      "status": {
+        "all": "All",
+        "attention": "Needs attention",
+        "downloading": "Downloading",
+        "waiting": "On the way",
+        "available": "Available",
+        "rejected": "Rejected"
+      },
+      "date": {
+        "all": "Any time",
+        "today": "Today",
+        "week": "Last 7 days",
+        "month": "Last 30 days"
+      },
+      "user": {
+        "all": "Everyone"
+      }
+    },
     "empty": "No requests yet",
     "mediaStatus": {
       "1": "Unknown",
@@ -404,6 +424,11 @@
   "request": {
     "cancel": "Cancel",
     "countries": "Countries",
+    "alreadyTitle": "Already requested",
+    "alreadyBody": "{{name}} requested this on {{date}}. Asking again would not add a second copy.",
+    "alreadyBodyYou": "You requested this on {{date}}. Asking again would not add a second copy.",
+    "requestedBy": "Requested by {{name}} · {{date}}",
+    "someone": "someone else",
     "deleteBody": "The request record is removed. Downloaded files stay on Jellyfin.",
     "deleteBodyCancels": "Nothing has downloaded yet, so this also removes it from Radarr/Sonarr and stops the download.",
     "deleteFailed": "Delete failed",

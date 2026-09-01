@@ -10,6 +10,7 @@ import * as Push from '@/api/push';
 import { GlassButton, PrimaryButton } from '@/components/AppleButton';
 import { QualityPicker } from '@/components/QualityPicker';
 import { getJellyfinUrl } from '@/config';
+import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/lib/date';
 import { kindKey, tmdbKind } from '@/lib/kind';
 import { deleteCancelsDownload, onDiskComplete } from '@/lib/requests';
@@ -27,6 +28,7 @@ const HERO_SHADE = 0.3;
 export default function TmdbDetailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { state: authState } = useAuth();
   // Lazy useState, not useRef().current: one instance for the life of the
   // screen either way, but this one is not a ref read during render.
   const [scrollY] = useState(() => new Animated.Value(0));
@@ -317,6 +319,33 @@ export default function TmdbDetailScreen() {
   const partiallyAvailable = mediaStatus === 4;
   const processing = mediaStatus === 3;
   const requested = (details.mediaInfo?.requests?.length ?? 0) > 0;
+  const firstRequest = details.mediaInfo?.requests?.[0];
+  const requester = firstRequest?.requestedBy;
+  const requesterName = requester?.displayName || requester?.jellyfinUsername || '';
+  const requestedAt = firstRequest?.createdAt ? formatDate(new Date(firstRequest.createdAt)) : '';
+  /*
+   * Matched on the Jellyfin id rather than the Jellyseerr one: this app signs
+   * in to Jellyfin and hands those credentials over, so it knows the first
+   * without asking anyone.
+   */
+  const requestedByMe = !!requester?.jellyfinUserId
+    && authState.status === 'signed-in'
+    && requester.jellyfinUserId === authState.auth.userId;
+
+  /*
+   * Asking again cannot produce a second copy - Radarr and Sonarr hold one
+   * object per title - but a disabled button never said so, so it read as the
+   * app refusing rather than as the job being done. Tapping now explains.
+   */
+  function explainAlreadyRequested() {
+    Alert.alert(
+      t('request.alreadyTitle'),
+      requestedByMe
+        ? t('request.alreadyBodyYou', { date: requestedAt })
+        : t('request.alreadyBody', { name: requesterName || t('request.someone'), date: requestedAt }),
+      [{ text: t('common.ok', { defaultValue: 'OK' }) }],
+    );
+  }
   const jellyfinId = details.mediaInfo?.jellyfinMediaId;
   const activeDownloads = details.mediaInfo?.downloadStatus ?? [];
 
@@ -422,7 +451,13 @@ export default function TmdbDetailScreen() {
             hasJellyfinId={!!jellyfinId}
             onPlay={onPlayInJellyfin}
             onRequest={onRequest}
+            onExplainRequested={explainAlreadyRequested}
           />
+          {requested && !available && !partiallyAvailable && requesterName ? (
+            <Text style={styles.requestedBy}>
+              {t('request.requestedBy', { name: requesterName, date: requestedAt })}
+            </Text>
+          ) : null}
 
           {/* A series can always gain seasons — one already downloading, one
               partly there, even one Seerr calls complete until the next season
@@ -533,6 +568,7 @@ export default function TmdbDetailScreen() {
 
 function PrimaryAction({
   available, partiallyAvailable, processing, requested, acting, hasJellyfinId, onPlay, onRequest,
+  onExplainRequested,
 }: {
   available: boolean;
   partiallyAvailable: boolean;
@@ -542,6 +578,7 @@ function PrimaryAction({
   hasJellyfinId: boolean;
   onPlay: () => void;
   onRequest: () => void;
+  onExplainRequested: () => void;
 }) {
   const { t } = useTranslation();
   // Every branch renders the same button, so only the label, the glyph and
@@ -562,13 +599,26 @@ function PrimaryAction({
   );
 
   if (available) return hasJellyfinId ? play(t('action.playOnJellyfin')) : state(t('action.availableOnJellyfin'));
-  if (processing) return state(t('action.processing'));
+  if (processing) return (
+    <PrimaryButton
+      label={t('action.processing')}
+      onPress={onExplainRequested}
+      style={styles.primaryAction}
+    />
+  );
   // Partially available means some seasons are there and some are not, which
   // is exactly when you want to ask for the rest. It used to render a disabled
   // "Partially Available" label, so a series like this could never be topped
   // up. Play what exists; the Request seasons button below covers the gap.
   if (partiallyAvailable) return hasJellyfinId ? play(t('action.playAvailable')) : state(t('action.partiallyAvailable'));
-  if (requested) return state(t('action.requested'));
+  if (requested) return (
+    <PrimaryButton
+      label={t('action.requested')}
+      icon={{ ios: 'checkmark', android: 'check', web: 'check' }}
+      onPress={onExplainRequested}
+      style={styles.primaryAction}
+    />
+  );
   return (
     <PrimaryButton
       label={acting ? t('action.requesting') : t('action.request')}
@@ -632,6 +682,9 @@ const styles = StyleSheet.create({
   heroShade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: `rgba(0,0,0,${HERO_SHADE})` },
   secondaryAction: { marginTop: spacing.md },
   waitingText: { ...type.body, color: colors.textMuted, lineHeight: 20 },
+  // Under the button rather than inside it: the button says what the state
+  // is, this says who put it there.
+  requestedBy: { ...type.caption, color: colors.textDim, textAlign: 'center', marginTop: spacing.sm },
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg },
   errorText: { ...type.body, color: colors.textDim },

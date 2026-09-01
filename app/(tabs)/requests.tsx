@@ -10,12 +10,17 @@ import * as Jellyseerr from '@/api/jellyseerr';
 import * as Push from '@/api/push';
 import { getJellyfinUrl } from '@/config';
 import { ReleaseCheck } from '@/components/ReleaseCheck';
+import { RequestFilters } from '@/components/RequestFilters';
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/lib/date';
 import { formatPercent } from '@/lib/percent';
 import { qualityFromLabel } from '@/lib/quality';
 import { attention, requestState, statePercent } from '@/lib/requests';
+import {
+  isFiltered, matchesDate, matchesStatus, matchesUser,
+  type DateFilter, type StatusFilter,
+} from '@/lib/requestFilters';
 import { averageSpeed, formatEta } from '@/lib/download';
 import { formatBytes } from '@/lib/bytes';
 import { loadPrefs } from '@/store/prefs';
@@ -84,6 +89,26 @@ export default function RequestsScreen() {
 
   /** Why rejected titles were rejected, keyed by TMDB id. See store/prefs. */
   const [reasons, setReasons] = useState<Record<string, string>>({});
+
+  const [status, setStatus] = useState<StatusFilter>('all');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [userFilter, setUserFilter] = useState<number | 'all'>('all');
+  /*
+   * The clock the date filter measures against, taken when the list is fetched
+   * rather than during render. The windows are days wide and the tab reloads on
+   * focus and while anything is downloading, so this never drifts far - and it
+   * keeps the filtering a pure function of state.
+   */
+  const [now, setNow] = useState(() => Date.now());
+  /*
+   * Who is signed in, and whether they may see other people's requests.
+   *
+   * Jellyseerr already answers that server-side - without MANAGE_REQUESTS or
+   * REQUEST_VIEW the list query is narrowed to `requestedBy.id = you` - so this
+   * is not what enforces the rule. It decides whether to offer a filter that
+   * would have exactly one name in it.
+   */
+  const [me, setMe] = useState<Jellyseerr.SeerrUser | null>(null);
   const [items, setItems] = useState<EnrichedRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +143,7 @@ export default function RequestsScreen() {
         })
       );
       setItems(enriched);
+      setNow(Date.now());
       setError(null);
       console.log(
         `[jellylab] requests: ${enriched.map(r => `${r.media.mediaType}:${r.media.tmdbId}`).join(' ')}`,
@@ -131,6 +157,10 @@ export default function RequestsScreen() {
       try {
         const prefs = await loadPrefs();
         setReasons(prefs.rejectionReasons ?? {});
+        // Returns null on any failure, and a null user simply gets no people
+        // filter - a screen that cannot determine permissions should offer
+        // fewer controls, not fail.
+        setMe(await Jellyseerr.currentUser());
         const url = Push.resolveUrl(prefs.pushUrl, getJellyfinUrl());
         setPushUrl(url);
         if (!url) {
@@ -213,10 +243,31 @@ export default function RequestsScreen() {
    * ones lead.
    */
   const ordered = useMemo(() => {
-    const scored = items.map((r, i) => ({ r, i, a: attention(requestState(r, undefined, downloads)) }));
+    const kept = items.filter(r => {
+      const state = requestState(r, undefined, downloads);
+      return matchesStatus(state, status)
+        && matchesDate(r.createdAt, dateFilter, now)
+        && matchesUser(r.requestedBy?.id, userFilter);
+    });
+    const scored = kept.map((r, i) => ({ r, i, a: attention(requestState(r, undefined, downloads)) }));
     scored.sort((x, y) => x.a - y.a || x.i - y.i);
     return scored.map(x => x.r);
-  }, [items, downloads]);
+  }, [items, downloads, status, dateFilter, userFilter, now]);
+
+  /*
+   * The people to offer, read off the list rather than from Jellyseerr's user
+   * directory: an account that cannot see other people's requests gets a list
+   * containing only itself, so the menu hides instead of showing one name.
+   */
+  const people = useMemo(() => {
+    if (!Jellyseerr.canManageRequests(me)) return [];
+    const seen = new Map<number, string>();
+    for (const r of items) {
+      if (r.requestedBy?.id != null) seen.set(r.requestedBy.id, r.requestedBy.displayName || String(r.requestedBy.id));
+    }
+    return [...seen].map(([id, displayName]) => ({ id, displayName }))
+      .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  }, [items, me]);
 
   const anyDownloading =
     items.some(r => (r.media.downloadStatus ?? []).length > 0) ||
@@ -249,7 +300,19 @@ export default function RequestsScreen() {
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => load()} tintColor={colors.text} progressViewOffset={headerHeight} />}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
-        ListHeaderComponent={<View style={{ height: headerHeight }} />}
+        ListHeaderComponent={
+          <View style={{ paddingTop: headerHeight }}>
+            <RequestFilters
+              status={status}
+              onStatus={setStatus}
+              date={dateFilter}
+              onDate={setDateFilter}
+              user={userFilter}
+              onUser={setUserFilter}
+              users={people}
+            />
+          </View>
+        }
         renderItem={({ item }: { item: EnrichedRequest }) => (
           <RequestCard
             r={item}
@@ -263,7 +326,12 @@ export default function RequestsScreen() {
         contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 150 }}
         ListEmptyComponent={
           <View style={styles.center}>
-            <Text style={styles.empty}>{error ?? tr('requests.empty')}</Text>
+            <Text style={styles.empty}>
+              {error
+                ?? (isFiltered(status, dateFilter, userFilter)
+                  ? tr('requests.emptyFiltered')
+                  : tr('requests.empty'))}
+            </Text>
           </View>
         }
       />

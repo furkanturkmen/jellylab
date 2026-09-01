@@ -672,7 +672,21 @@ export type TmdbFullDetails = {
     status?: number;
     jellyfinMediaId?: string;
     jellyfinMediaId4k?: string;
-    requests?: { id: number; status: number }[];
+    requests?: {
+      id: number;
+      status: number;
+      createdAt?: string;
+      /**
+       * Who asked. `jellyfinUserId` is the same id this app signs in with, so
+       * "was this me" is answerable without a second call to Jellyseerr.
+       */
+      requestedBy?: {
+        id: number;
+        displayName?: string;
+        jellyfinUsername?: string;
+        jellyfinUserId?: string;
+      };
+    }[];
     downloadStatus?: DownloadStatus[];
     downloadStatus4k?: DownloadStatus[];
   };
