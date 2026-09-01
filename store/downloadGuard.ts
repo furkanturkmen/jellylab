@@ -4,7 +4,7 @@ import i18n from '@/i18n';
 import { formatBytes } from '@/lib/bytes';
 import { checkCap, GB, toEvict } from '@/lib/downloadSpace';
 
-import { removeDownload, storedForCapSync } from './downloads';
+import { pendingBytesSync, removeDownload, storedForCapSync } from './downloads';
 import { loadPrefs } from './prefs';
 
 /**
@@ -36,7 +36,7 @@ export async function confirmSpace(neededBytes: number): Promise<boolean> {
   // Zero or less is the way to turn the cap off entirely.
   if (!(capGb > 0)) return true;
 
-  const verdict = checkCap(storedForCapSync(), neededBytes, capGb);
+  const verdict = checkCap(storedForCapSync(), neededBytes, capGb, pendingBytesSync());
   if (verdict.fits) return true;
 
   const usage = t('downloads.capUsage', {

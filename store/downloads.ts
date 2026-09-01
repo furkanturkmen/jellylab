@@ -494,6 +494,25 @@ export function storedForCapSync(): Stored[] {
     }));
 }
 
+/**
+ * Bytes that downloads still in flight will take once they land.
+ *
+ * The cap has to count these or a queue walks straight past it: six films
+ * asked for in a row all check against a phone that is still empty, because
+ * none of them has finished. `totalBytes` is -1 until the server sends a
+ * Content-Length, and an unknown size contributes nothing rather than
+ * poisoning the sum with a negative.
+ *
+ * The whole size, not the part still to come: `storedForCapSync` counts only
+ * finished downloads, so the bytes an in-flight one has already written are
+ * in neither figure otherwise.
+ */
+export function pendingBytesSync(): number {
+  return Object.values(cache)
+    .filter(e => e.status === 'downloading' || e.status === 'queued')
+    .reduce((sum, e) => sum + (e.totalBytes > 0 ? e.totalBytes : 0), 0);
+}
+
 /** Bytes held by finished downloads, for the tab's header. */
 export function storedBytesSync(): number {
   return Object.values(cache)

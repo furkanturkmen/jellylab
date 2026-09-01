@@ -74,10 +74,21 @@ export type CapVerdict = {
  * gives 0 or a negative, which is treated as "unknown" and allowed through:
  * refusing a download because its size could not be read would block the
  * feature on a missing Content-Length.
+ *
+ * `committed` is what downloads already in flight will take when they finish.
+ * Counting only what has landed lets a queue walk straight past the limit: ask
+ * for six one-gigabyte films in a row against a five gigabyte cap and every
+ * check sees an empty phone, because none of them has finished yet.
  */
-export function checkCap(stored: Stored[], needed: number, capGb: number): CapVerdict {
+export function checkCap(
+  stored: Stored[],
+  needed: number,
+  capGb: number,
+  committed = 0,
+): CapVerdict {
   const cap = Math.max(0, capGb) * GB;
-  const used = stored.reduce((sum, s) => sum + Math.max(0, s.bytes), 0);
+  const used = stored.reduce((sum, s) => sum + Math.max(0, s.bytes), 0)
+    + Math.max(0, committed);
   const want = needed > 0 ? needed : 0;
 
   const reclaimable = stored

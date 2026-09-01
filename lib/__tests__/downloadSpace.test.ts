@@ -66,6 +66,22 @@ describe('checkCap', () => {
     expect(v.reclaimableBytes).toBe(3 * GB);
   });
 
+  /*
+   * Counting only what has landed lets a queue walk past the cap: six films
+   * asked for in a row each check against a phone that is still empty. What
+   * is in flight is already spoken for.
+   */
+  it('counts downloads still in flight', () => {
+    expect(checkCap([], 2 * GB, 5).fits).toBe(true);
+    expect(checkCap([], 2 * GB, 5, 4 * GB).fits).toBe(false);
+  });
+
+  it('ignores an in-flight download whose size is unknown', () => {
+    // -1 is what the store holds until a Content-Length arrives; it must not
+    // subtract from the total.
+    expect(checkCap([stored({ bytes: GB })], GB, 20, -1).used).toBe(GB);
+  });
+
   it('calls it hopeless when clearing everything watched still would not do', () => {
     const v = checkCap([
       stored({ itemId: 'w', bytes: 2 * GB, watched: true }),

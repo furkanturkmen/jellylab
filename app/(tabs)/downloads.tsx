@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import {
@@ -48,18 +48,24 @@ export default function DownloadsScreen() {
   /**
    * The storage limit, for the readout beside the total.
    *
-   * Read once on mount rather than watched: it changes on a settings screen
-   * this tab does not own, and a stale number in a footer is worth less than
-   * the subscription it would take to keep fresh. 0 means no limit.
+   * Re-read every time the tab is focused, not once on mount. The limit is
+   * changed on a settings screen, and the way anyone changes it is: open
+   * settings, set it, come back here to look. Reading once meant the footer
+   * kept quoting the old number for the whole life of the screen - it said
+   * "6 GB of 20 GB" immediately after the limit was set to 5.
+   *
+   * 0 means no limit.
    */
   const [capGb, setCapGb] = useState(0);
-  useEffect(() => {
-    let alive = true;
-    loadPrefs()
-      .then(p => { if (alive) setCapGb(p.downloadCapGb); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      loadPrefs()
+        .then(p => { if (alive) setCapGb(p.downloadCapGb); })
+        .catch(() => {});
+      return () => { alive = false; };
+    }, []),
+  );
 
   const active = entries.filter(e => e.status === 'downloading' || e.status === 'queued');
   const stored = entries.filter(e => e.status === 'done');
