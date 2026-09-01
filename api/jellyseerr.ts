@@ -154,26 +154,86 @@ export async function loginJellyfin(username: string, password: string): Promise
   // the native jar first. An empty string here is therefore normal, not a
   // failure - but it does mean this app cannot pin the session itself, and has
   // to trust the jar to send the right one.
-  const setCookie = res.headers['set-cookie'];
-  const cookie = Array.isArray(setCookie)
-    ? setCookie.map(c => c.split(';')[0]).join('; ')
-    : typeof setCookie === 'string'
-      ? (setCookie as string).split(';')[0]
-      : '';
+  const cookie = readCookie(res.headers['set-cookie']);
   const auth: JellyseerrAuth = {
     cookie,
     userId: res.data.id,
     email: res.data.email,
   };
   await saveJellyseerrAuth(auth);
+
+  /*
+   * Check who the session actually belongs to.
+   *
+   * On iOS the session is a cookie in CFNetwork's shared jar, which this app
+   * can neither read nor clear - `cookie` above is usually empty. Signing out
+   * and in as somebody else therefore has a failure this cannot otherwise
+   * detect: the login succeeds, the jar keeps carrying the previous session,
+   * and every call after it is answered as the wrong person or as nobody at
+   * all. That reached the app as a 403 on /request from an account that had
+   * just signed in successfully.
+   *
+   * So the session is asked who it is. If it disagrees with the account that
+   * just authenticated, the old one is torn down and the login repeated once -
+   * which is enough, because the logout invalidates the session the jar was
+   * holding on to.
+   */
+  const settled = await whoAmI(cookie);
+  if (settled != null && settled !== auth.userId) {
+    await destroySession(cookie);
+    const again = await post({ username, password });
+    const retryCookie = readCookie(again.headers['set-cookie']);
+    const retried: JellyseerrAuth = {
+      cookie: retryCookie,
+      userId: again.data.id,
+      email: again.data.email,
+    };
+    await saveJellyseerrAuth(retried);
+    return retried;
+  }
   return auth;
 }
 
-export async function logout(): Promise<void> {
+/** The set-cookie header, when iOS lets us see it at all. */
+function readCookie(setCookie: unknown): string {
+  if (Array.isArray(setCookie)) return setCookie.map(c => String(c).split(';')[0]).join('; ');
+  if (typeof setCookie === 'string') return setCookie.split(';')[0];
+  return '';
+}
+
+/**
+ * Which Jellyseerr user the current session belongs to, or null if the
+ * question could not be answered.
+ *
+ * Null on failure rather than throwing: a Seerr that cannot answer must not
+ * turn a working Jellyfin sign-in into a failed one.
+ */
+async function whoAmI(cookie: string): Promise<number | null> {
   try {
-    const client = await authClient();
+    const client = await makeClient(cookie);
+    return (await client.get('/auth/me')).data?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Tear down whatever session the jar is holding, stored record or not. */
+async function destroySession(cookie: string): Promise<void> {
+  try {
+    const client = await makeClient(cookie);
     await client.post('/auth/logout');
   } catch {}
+}
+
+export async function logout(): Promise<void> {
+  /*
+   * Deliberately not through authClient(): that throws when there is no stored
+   * record, which used to mean the server session was left alive and the
+   * cookie jar went on carrying it into the next person's sign-in. The jar is
+   * the thing being torn down here, and it needs no record of ours to exist.
+   */
+  const auth = await loadJellyseerrAuth();
+  await destroySession(auth?.cookie ?? '');
   await clearJellyseerrAuth();
 }
 
