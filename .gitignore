@@ -51,3 +51,6 @@ app.config.js
 web-shims/
 patch.tmp.js
 *.tmp.js
+
+# stray Electron/Chromium crash log, not project output
+debug.log
