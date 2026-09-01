@@ -13,7 +13,13 @@ export function currentLanguage(): string {
   return metadataLanguage(i18n.language);
 }
 
-async function makeClient(cookie?: string): Promise<AxiosInstance> {
+/**
+ * @param quiet - skip the failure log. For probes whose failure is an answer
+ *   rather than a fault: asking an absent session who it belongs to is
+ *   expected to fail, and logging it as "jellyseerr failed" made a working
+ *   check look like a broken app.
+ */
+async function makeClient(cookie?: string, quiet = false): Promise<AxiosInstance> {
   // Same as jellyfin.ts: axios.create on the default export is the API.
   // eslint-disable-next-line import/no-named-as-default-member
   const client = axios.create({
@@ -43,7 +49,7 @@ async function makeClient(cookie?: string): Promise<AxiosInstance> {
   client.interceptors.response.use(
     r => r,
     (e: any) => {
-      logRequestFailure('jellyseerr', e);
+      if (!quiet) logRequestFailure('jellyseerr', e);
       throw e;
     }
   );
@@ -210,7 +216,7 @@ function readCookie(setCookie: unknown): string {
  */
 async function whoAmI(cookie: string): Promise<number | null> {
   try {
-    const client = await makeClient(cookie);
+    const client = await makeClient(cookie, /* quiet */ true);
     return (await client.get('/auth/me')).data?.id ?? null;
   } catch {
     return null;
@@ -220,7 +226,9 @@ async function whoAmI(cookie: string): Promise<number | null> {
 /** Tear down whatever session the jar is holding, stored record or not. */
 async function destroySession(cookie: string): Promise<void> {
   try {
-    const client = await makeClient(cookie);
+    // Quiet for the same reason: tearing down a session that is already gone
+    // is a success, not something to report.
+    const client = await makeClient(cookie, /* quiet */ true);
     await client.post('/auth/logout');
   } catch {}
 }
