@@ -86,7 +86,17 @@
     "seasonNone": "Jede Folge dieser Staffel ist bereits auf diesem Gerät.",
     "stopTitle": "Download stoppen?",
     "stopBody": "Was von {{title}} da ist, wird gelöscht.",
-    "stop": "Stoppen"
+    "stop": "Stoppen",
+    "capUsage": "{{used}} von {{cap}} belegt.",
+    "capTitle": "Nicht genug Platz",
+    "capBody": "{{count}} gesehenes Element entfernen, um {{size}} freizugeben?\n\n{{titles}}",
+    "capBody_plural": "{{count}} gesehene Elemente entfernen, um {{size}} freizugeben?\n\n{{titles}}",
+    "capFree": "Gesehene entfernen",
+    "capFullTitle": "Speicher voll",
+    "capFullBody": "Es wurde nichts gesehen, also gibt es nichts zu entfernen. Dieser Download braucht {{size}}. Lösche selbst etwas oder erhöhe das Limit in den Einstellungen.",
+    "capLimit": "Download-Limit",
+    "capLimitBody": "Wie viel Platz Downloads auf diesem Telefon belegen dürfen. Es wird nie automatisch etwas gelöscht - beim Überschreiten wird gefragt.",
+    "capOff": "Kein Limit"
   },
   "library": {
     "welcomeBack": "Willkommen zurück",

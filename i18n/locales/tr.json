@@ -86,7 +86,17 @@
     "seasonNone": "Bu sezonun her bölümü zaten bu cihazda.",
     "stopTitle": "İndirme durdurulsun mu?",
     "stopBody": "{{title}} için inen kısım silinir.",
-    "stop": "Durdur"
+    "stop": "Durdur",
+    "capUsage": "{{cap}} alanın {{used}} kadarı kullanılıyor.",
+    "capTitle": "Yeterli alan yok",
+    "capBody": "{{size}} açmak için izlenmiş {{count}} öğe kaldırılsın mı?\n\n{{titles}}",
+    "capBody_plural": "{{size}} açmak için izlenmiş {{count}} öğe kaldırılsın mı?\n\n{{titles}}",
+    "capFree": "İzlenenleri kaldır",
+    "capFullTitle": "Depolama dolu",
+    "capFullBody": "Hiçbir şey izlenmedi, bu yüzden kaldırılacak bir şey yok. Bu indirme {{size}} alan istiyor. Kendin bir şey sil ya da Ayarlar’dan sınırı yükselt.",
+    "capLimit": "İndirme sınırı",
+    "capLimitBody": "İndirmelerin bu telefonda ne kadar yer kaplayabileceği. Hiçbir şey otomatik silinmez - sınır aşılınca önce sorulur.",
+    "capOff": "Sınır yok"
   },
   "library": {
     "welcomeBack": "Tekrar hoş geldin",

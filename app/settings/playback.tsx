@@ -46,6 +46,16 @@ const BITRATES: { mbps: number; labelKey: string }[] = [
   { mbps: 1, labelKey: 'settings.labels.quality1' },
 ];
 
+/**
+ * How much room downloads may take, in gigabytes.
+ *
+ * The spread is chosen against what this library actually holds: a film runs
+ * to a median of 2.25GB and a twelve-episode season to about 3.9GB, so 20GB
+ * is roughly eight films or five seasons and 5GB is a single season with room
+ * to spare. Zero turns the cap off, for a phone with space to burn.
+ */
+const CAPS = [0, 5, 10, 20, 50, 100];
+
 const AUDIO = ['original', 'eng', 'nld', 'tur', 'ger', 'jpn'];
 
 const ENGINES: Prefs['preferredEngine'][] = ['auto', 'native', 'vlc'];
@@ -128,6 +138,20 @@ export default function PlaybackSettings() {
               isOn={prefs.autoplayNext}
               onIsOnChange={value => update('autoplayNext', value)}
             />
+          </Section>
+
+          <Section title={t('downloads.capLimit')} footer={<Text>{t('downloads.capLimitBody')}</Text>}>
+            <Picker
+              label={t('downloads.capLimit')}
+              selection={prefs.downloadCapGb}
+              onSelectionChange={gb => { if (gb != null) update('downloadCapGb', Number(gb)); }}
+            >
+              {CAPS.map(gb => (
+                <Text key={gb} modifiers={[tag(gb)]}>
+                  {gb === 0 ? t('downloads.capOff') : `${gb} GB`}
+                </Text>
+              ))}
+            </Picker>
           </Section>
         </Form>
       </Host>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -20,6 +20,7 @@ import { buttonStyle, scrollContentBackground, tint } from '@expo/ui/swift-ui/mo
 import { TabHeader, useTabHeaderMetrics } from '@/components/TabHeader';
 import { useDownloads } from '@/hooks/useDownloads';
 import { formatBytes } from '@/lib/bytes';
+import { loadPrefs } from '@/store/prefs';
 import { formatPercent } from '@/lib/percent';
 import { cancelDownload, removeDownload, type DownloadEntry } from '@/store/downloads';
 import { colors, spacing } from '@/theme';
@@ -44,6 +45,21 @@ export default function DownloadsScreen() {
   // screen either way, but this one is not a ref read during render.
   const [scrollY] = useState(() => new Animated.Value(0));
   const { entries, bytes, ready } = useDownloads();
+  /**
+   * The storage limit, for the readout beside the total.
+   *
+   * Read once on mount rather than watched: it changes on a settings screen
+   * this tab does not own, and a stale number in a footer is worth less than
+   * the subscription it would take to keep fresh. 0 means no limit.
+   */
+  const [capGb, setCapGb] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    loadPrefs()
+      .then(p => { if (alive) setCapGb(p.downloadCapGb); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   const active = entries.filter(e => e.status === 'downloading' || e.status === 'queued');
   const stored = entries.filter(e => e.status === 'done');
@@ -115,7 +131,17 @@ export default function DownloadsScreen() {
           {stored.length > 0 ? (
             <Section
               title={t('downloads.onThisDevice')}
-              footer={<Text>{`${t('downloads.storedCount', { count: stored.length })} · ${formatBytes(bytes)}`}</Text>}
+              // The limit is shown beside the total rather than only when it
+              // is reached: "4.2 GB" answers nothing on its own, and the first
+              // anyone hears of a cap should not be a dialog refusing them.
+              footer={(
+                <Text>
+                  {`${t('downloads.storedCount', { count: stored.length })} · `
+                    + (capGb > 0
+                      ? t('downloads.capUsage', { used: formatBytes(bytes), cap: `${capGb} GB` })
+                      : formatBytes(bytes))}
+                </Text>
+              )}
             >
               {stored.map(entry => (
                 <DownloadRow

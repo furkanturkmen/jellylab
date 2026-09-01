@@ -28,6 +28,7 @@ import {
   removeDownload,
 } from '@/store/downloads';
 import { drainProgressOutbox } from '@/store/outbox';
+import { confirmSpace } from '@/store/downloadGuard';
 import { IS_TABLET } from '@/lib/device';
 import { logRequestFailure } from '@/lib/errorLog';
 import { jellyfinKind, kindKey } from '@/lib/kind';
@@ -361,7 +362,14 @@ export default function ItemScreen() {
         { text: t('common.cancel'), style: 'cancel' },
         {
           text: t('downloads.start'),
-          onPress: () => enqueueDownload(item, container, { mediaSourceId: source?.Id, subs }),
+          // The cap is checked after the size is confirmed rather than before,
+          // so the two dialogs cannot both be waiting - and so somebody who
+          // was going to cancel anyway is never asked to free space first.
+          onPress: async () => {
+            if (await confirmSpace(bytes)) {
+              enqueueDownload(item, container, { mediaSourceId: source?.Id, subs });
+            }
+          },
         },
       ],
     );

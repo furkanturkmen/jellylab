@@ -1,5 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 
+import { DEFAULT_CAP_GB } from '@/lib/downloadSpace';
+
 import { parseStored } from './json';
 
 const KEY = 'user_prefs';
@@ -64,6 +66,15 @@ export type Prefs = {
    * a service that is deliberately read-only.
    */
   rejectionReasons: Record<string, string>;
+  /**
+   * How many gigabytes downloads may hold on this phone.
+   *
+   * A preference rather than a constant because the right number belongs to
+   * the device. The default is measured rather than guessed - see
+   * `lib/downloadSpace.ts`. Nothing is ever deleted to honour it: crossing it
+   * asks, and offers the watched files back.
+   */
+  downloadCapGb: number;
 };
 
 export const DEFAULT_PREFS: Prefs = {
@@ -79,6 +90,7 @@ export const DEFAULT_PREFS: Prefs = {
   maxBitrateMbps: 0,
   pushUrl: '',
   rejectionReasons: {},
+  downloadCapGb: DEFAULT_CAP_GB,
 };
 
 export async function loadPrefs(): Promise<Prefs> {

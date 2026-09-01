@@ -86,7 +86,17 @@
     "seasonNone": "Elke aflevering van dit seizoen staat al op dit apparaat.",
     "stopTitle": "Downloaden stoppen?",
     "stopBody": "Wat er van {{title}} binnen is wordt verwijderd.",
-    "stop": "Stoppen"
+    "stop": "Stoppen",
+    "capUsage": "{{used}} van {{cap}} in gebruik.",
+    "capTitle": "Niet genoeg ruimte",
+    "capBody": "{{count}} bekeken item verwijderen om {{size}} vrij te maken?\n\n{{titles}}",
+    "capBody_plural": "{{count}} bekeken items verwijderen om {{size}} vrij te maken?\n\n{{titles}}",
+    "capFree": "Bekeken verwijderen",
+    "capFullTitle": "Opslag vol",
+    "capFullBody": "Er is niets bekeken, dus er is niets te verwijderen. Deze download heeft {{size}} nodig. Verwijder zelf iets of verhoog de limiet in Instellingen.",
+    "capLimit": "Downloadlimiet",
+    "capLimitBody": "Hoeveel ruimte downloads op deze telefoon mogen gebruiken. Er wordt nooit automatisch iets verwijderd - bij overschrijding wordt eerst gevraagd.",
+    "capOff": "Geen limiet"
   },
   "library": {
     "welcomeBack": "Welkom terug",

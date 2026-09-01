@@ -119,11 +119,35 @@ Built:
 7. The resume point is written beside the media, and what the server missed
    waits in `store/outbox.ts` until a request to it succeeds.
 
+8. A storage limit, and an offer rather than a policy. `lib/downloadSpace.ts`
+   holds the arithmetic and `store/downloadGuard.ts` the dialog; the limit is
+   `prefs.downloadCapGb`, default **20 GB**, and 0 turns it off.
+
+   The number is measured rather than guessed. On this server films run to a
+   median of 2.25GB and a p90 of 6.05GB, episodes to 0.32GB and 2.51GB, so a
+   twelve-episode season is about 3.9GB. Twenty gigabytes is therefore roughly
+   eight films or five seasons, and still three films at the p90 end.
+
+   **Nothing is ever deleted automatically**, which is the whole design. At the
+   cap a download asks, names the watched files it could remove and what that
+   would free, and does nothing without a tap. The obvious automatic rule -
+   evict least-recently-used - would take the season downloaded the night
+   before a flight and not yet opened, which is the one file the feature
+   exists to protect. Only *watched* items are ever offered, oldest first, and
+   only as many as the new download actually needs. When nothing has been
+   watched there is no button that would work, so it says so instead of
+   offering one.
+
+   A season is checked as one total rather than per episode, and an unknown
+   size passes: refusing a download because the server sent no Content-Length
+   would break the feature on a server quirk.
+
+A whole season in one go is built too - `downloadSeason()` in
+`components/SeriesEpisodes.tsx` queues every episode not already stored, and
+asks once with the total rather than once per file.
+
 What is left:
 
-- Eviction, §6. Still needs a number, and the number should come from watching
-  real use.
-- A whole season in one go. Per-item is what exists.
 - Playing straight from the Downloads tab rather than through the item screen.
   The tab links to the item screen, which now works offline, so this is
   convenience rather than capability.
@@ -136,22 +160,20 @@ What is left:
 3. The tab: list, progress, delete.
 4. Subtitles and poster alongside the media file.
 5. The outbox for offline progress.
-6. Eviction rules — a cap, or delete-after-watching, decided once the rest works.
+6. A storage limit — done: a cap that asks, never a policy that deletes.
 
 ## Open questions
 
-- **Series or episodes?** Downloading a whole season is the obvious want and the
-  obvious way to fill a phone. Probably per-episode first, with a "download next
-  N" later.
+- ~~**Series or episodes?**~~ Answered: both. Per-episode from the item screen,
+  and a whole season from the season list, asked for as one total.
 - **What happens when the file is deleted server-side?** The local copy is still
   playable but the item may no longer resolve. The tab should survive that
   rather than error.
 - **Does a download need to survive the app being killed?** Backgrounding, yes -
   `createDownloadResumable` handles it. A force-quit mid-download probably just
   restarts that file.
-- **Storage cap.** No cap at all is a phone full of anime. A cap needs a number,
-  and the number should come from watching real use rather than being guessed
-  now.
+- ~~**Storage cap.**~~ Answered: 20 GB by default, measured against this
+  library, adjustable, and it asks rather than deletes.
 
 ## What this is not
 

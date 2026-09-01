@@ -1,6 +1,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 
 import * as Jellyfin from '@/api/jellyfin';
+import { isWatched, type Stored } from '@/lib/downloadSpace';
 import { logRequestFailure } from '@/lib/errorLog';
 import { parseStored } from './json';
 import type { JellyfinItem } from '@/types';
@@ -471,6 +472,26 @@ export async function removeDownload(itemId: string): Promise<void> {
   const { [itemId]: _dropped, ...rest } = cache;
   cache = rest;
   notify();
+}
+
+/**
+ * Finished downloads, reduced to what the storage cap needs to reason about.
+ *
+ * Only `done` entries: one still arriving has not taken its full space yet,
+ * and removing it to make room for another download is a circle.
+ */
+export function storedForCapSync(): Stored[] {
+  return Object.values(cache)
+    .filter(e => e.status === 'done')
+    .map(e => ({
+      itemId: e.meta.itemId,
+      title: e.meta.seriesName
+        ? `${e.meta.seriesName} · ${e.meta.subtitle || e.meta.title}`
+        : e.meta.title,
+      bytes: e.totalBytes > 0 ? e.totalBytes : 0,
+      watched: isWatched(e.meta.positionTicks, e.meta.runtimeTicks),
+      completedAt: e.meta.completedAt,
+    }));
 }
 
 /** Bytes held by finished downloads, for the tab's header. */

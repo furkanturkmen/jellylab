@@ -86,7 +86,17 @@
     "seasonNone": "Every episode in this season is already on this device.",
     "stopTitle": "Stop downloading?",
     "stopBody": "What has arrived of {{title}} is deleted.",
-    "stop": "Stop"
+    "stop": "Stop",
+    "capUsage": "Using {{used}} of {{cap}}.",
+    "capTitle": "Not enough room",
+    "capBody": "Remove {{count}} watched item to free {{size}}?\n\n{{titles}}",
+    "capBody_plural": "Remove {{count}} watched items to free {{size}}?\n\n{{titles}}",
+    "capFree": "Remove watched",
+    "capFullTitle": "Storage full",
+    "capFullBody": "Nothing has been watched, so there is nothing to remove. This download needs {{size}}. Delete something yourself, or raise the limit in Settings.",
+    "capLimit": "Download limit",
+    "capLimitBody": "How much room downloads may use on this phone. Nothing is ever deleted automatically - crossing the limit asks first.",
+    "capOff": "No limit"
   },
   "library": {
     "welcomeBack": "Welcome back",

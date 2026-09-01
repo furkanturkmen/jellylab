@@ -9,6 +9,7 @@ import * as Jellyfin from '@/api/jellyfin';
 import * as Jellyseerr from '@/api/jellyseerr';
 import { useDownloads } from '@/hooks/useDownloads';
 import { enqueueDownload } from '@/store/downloads';
+import { confirmSpace } from '@/store/downloadGuard';
 import { formatBytes } from '@/lib/bytes';
 import { formatDate } from '@/lib/date';
 import { metadataLanguage, oneLine } from '@/lib/text';
@@ -88,7 +89,11 @@ export function SeriesEpisodes({ seriesId, userId, tmdbId, seasons }: {
         { text: t('common.cancel'), style: 'cancel' },
         {
           text: t('downloads.start'),
-          onPress: () => {
+          // Checked against the whole season rather than per episode: asking
+          // twelve times, once per file, is a worse answer than asking once
+          // for the total that is actually being requested.
+          onPress: async () => {
+            if (!(await confirmSpace(total))) return;
             for (const ep of pending) {
               const { container, mediaSourceId, subs } = episodeDownload(ep);
               enqueueDownload(ep, container, { mediaSourceId, subs });
