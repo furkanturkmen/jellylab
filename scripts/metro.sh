@@ -32,7 +32,12 @@ REPO="$(cd "$HERE/.." && pwd)"
 PORTS=(8081 8082 8088 19000 19001 19002)
 
 RAW="${METRO_RAW:-$HOME/.metro-raw.log}"
-HOMELAB="${METRO_HOMELAB:-furkan@192.168.68.59}"
+# Where the log is shipped. The homelab answers on the LAN at home and on the
+# NetBird mesh from anywhere else, and this laptop runs in both places - so the
+# address is found rather than remembered. Tried in order, first one that
+# answers wins; METRO_HOMELAB still overrides with a single host.
+HOMELAB_HOSTS=(${METRO_HOMELAB:-furkan@192.168.68.59 furkan@100.71.232.136})
+HOMELAB=""  # resolved by start_shipper
 REMOTE_LOG="${METRO_REMOTE_LOG:-~/jellylab-metro.log}"
 SHIP_PID=""
 
@@ -65,8 +70,14 @@ status() {
 # running Metro: a laptop away from home should still start, just quietly.
 start_shipper() {
   [ "${METRO_NO_SHIP:-0}" = "1" ] && { echo "  log: local only ($RAW)"; return 0; }
-  if ! ssh -o ConnectTimeout=4 -o BatchMode=yes "$HOMELAB" true 2>/dev/null; then
-    echo "  log: local only ($RAW) - $HOMELAB unreachable"
+  for host in "${HOMELAB_HOSTS[@]}"; do
+    if ssh -o ConnectTimeout=4 -o BatchMode=yes "$host" true 2>/dev/null; then
+      HOMELAB="$host"
+      break
+    fi
+  done
+  if [ -z "$HOMELAB" ]; then
+    echo "  log: local only ($RAW) - none of ${HOMELAB_HOSTS[*]} answered"
     return 0
   fi
   ( tail -n +1 -F "$RAW" 2>/dev/null | ssh -o ServerAliveInterval=30 "$HOMELAB" "cat > $REMOTE_LOG" ) &
