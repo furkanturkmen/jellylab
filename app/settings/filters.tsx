@@ -196,31 +196,69 @@ export default function FiltersSettings() {
             {(doc?.filters.length ?? 0) === 0 ? <UIText>{t('filters.none')}</UIText> : null}
           </Section>
 
-          {/* ------------------------------------------------- add / keywords */}
-          <Section title={current ? t('filters.editing', { name: current.name }) : t('filters.add')}>
-            <TextField
-              placeholder={current ? t('filters.keywordPlaceholder') : t('filters.namePlaceholder')}
-              onTextChange={current ? lookup : setDraft}
-            />
-            {!current ? (
-              <Button label={t('filters.addButton')} onPress={addFilter} />
-            ) : null}
-            {current ? matches.map(k => (
-              <Button
-                key={k.id}
-                label={k.name}
-                systemImage={current.keywords?.some(x => x.id === k.id) ? 'checkmark' : 'plus'}
-                onPress={() => {
-                  const have = current.keywords ?? [];
-                  updateFilter(current.id, {
-                    keywords: have.some(x => x.id === k.id)
-                      ? have.filter(x => x.id !== k.id)
-                      : [...have, k],
-                  });
-                }}
+          {/* ------------------------------------------------------ new filter */}
+          {!current ? (
+            <Section title={t('filters.add')}>
+              {/* Its own element with its own key, so it keeps its own native
+                  text. One field that changed role between naming and
+                  searching kept the name in it and never ran a search. */}
+              <TextField
+                key="new-filter-name"
+                placeholder={t('filters.namePlaceholder')}
+                onTextChange={setDraft}
               />
-            )) : null}
-          </Section>
+              <Button label={t('filters.addButton')} systemImage="plus" onPress={addFilter} />
+            </Section>
+          ) : null}
+
+          {/* -------------------------------------------------------- keywords */}
+          {current ? (
+            <Section
+              title={t('filters.editing', { name: current.name })}
+              footer={<UIText>{t('filters.keywordNote')}</UIText>}
+            >
+              <TextField
+                key={`kw-${current.id}`}
+                placeholder={t('filters.keywordPlaceholder')}
+                onTextChange={lookup}
+              />
+              {matches.map(k => (
+                <Button
+                  key={k.id}
+                  label={k.name}
+                  systemImage={current.keywords?.some(x => x.id === k.id) ? 'checkmark' : 'plus'}
+                  onPress={() => {
+                    const have = current.keywords ?? [];
+                    updateFilter(current.id, {
+                      keywords: have.some(x => x.id === k.id)
+                        ? have.filter(x => x.id !== k.id)
+                        : [...have, k],
+                    });
+                  }}
+                />
+              ))}
+            </Section>
+          ) : null}
+
+          {/* What is actually in the filter. Without this the only sign a
+              keyword had been added was a checkmark in a search result, which
+              disappears as soon as the query is cleared. */}
+          {current ? (
+            <Section title={t('filters.chosen')}>
+              {(current.keywords ?? []).map(k => (
+                <Button
+                  key={k.id}
+                  role="destructive"
+                  label={k.name}
+                  systemImage="minus.circle"
+                  onPress={() => updateFilter(current.id, {
+                    keywords: (current.keywords ?? []).filter(x => x.id !== k.id),
+                  })}
+                />
+              ))}
+              {(current.keywords?.length ?? 0) === 0 ? <UIText>{t('filters.noKeywords')}</UIText> : null}
+            </Section>
+          ) : null}
 
           {/* ----------------------------------------------------- age + flags */}
           {current ? (
