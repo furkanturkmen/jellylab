@@ -829,6 +829,13 @@ export type TmdbFullDetails = {
       status: number;
       createdAt?: string;
       /**
+       * The seasons this request covers. A request is filed per season, so
+       * cancelling one must stop those seasons and leave the rest alone -
+       * unmonitoring a whole series would stop searches nobody cancelled.
+       * Absent on a film.
+       */
+      seasons?: { seasonNumber: number }[];
+      /**
        * Who asked. `jellyfinUserId` is the same id this app signs in with, so
        * "was this me" is answerable without a second call to Jellyseerr.
        */

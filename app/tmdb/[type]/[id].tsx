@@ -219,9 +219,42 @@ export default function TmdbDetailScreen() {
     }
   }
 
+  /**
+   * Stop whatever is downloading for this title, before anything else in the
+   * delete flow touches it.
+   *
+   * The order is the point. Jellyseerr's own removal takes the title out of
+   * Radarr or Sonarr, and the *arr forgets the queue row along with it - so
+   * the torrent carries on with nothing tracking it and no way to find it
+   * short of opening qBittorrent. One orphaned download held 21 of 23 MB/s of
+   * the line that way. Cancelling first means the torrent is gone before the
+   * record naming it is.
+   *
+   * Best-effort on purpose: the homelab service being unreachable must not
+   * block a delete the user asked for. Skipping it leaves the behaviour that
+   * shipped before, not a worse one.
+   */
+  async function stopDownload(seasons?: { seasonNumber: number }[]) {
+    try {
+      const url = Push.resolveUrl((await loadPrefs()).pushUrl, getJellyfinUrl());
+      if (!url) return;
+      // A request is filed per season, so cancel the seasons this one covers
+      // rather than the series - the rest were not cancelled by anybody.
+      const numbers = type === 'tv' ? (seasons ?? []).map(s => s.seasonNumber) : [];
+      if (numbers.length) {
+        for (const n of numbers) await Push.cancel(url, tmdbId, 'tv', n);
+      } else {
+        await Push.cancel(url, tmdbId, type);
+      }
+    } catch (e) {
+      console.log(`[jellylab] cancel failed - ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
   async function onDeleteRequest() {
     if (!details?.mediaInfo?.requests?.length) return;
-    const reqId = details.mediaInfo.requests[0].id;
+    const request = details.mediaInfo.requests[0];
+    const reqId = request.id;
     const mediaId = details.mediaInfo.id;
     /*
      * Deleting the request on its own only makes the download invisible - the
@@ -240,8 +273,12 @@ export default function TmdbDetailScreen() {
           try {
             // Downstream first: if it fails the request stays, because a
             // deleted request over a live download is the exact state this
-            // exists to prevent.
-            if (cancels) await Jellyseerr.removeMediaFile(mediaId);
+            // exists to prevent. The torrent goes before the record naming
+            // it, or nothing can find it afterwards.
+            if (cancels) {
+              await stopDownload(request.seasons);
+              await Jellyseerr.removeMediaFile(mediaId);
+            }
             await Jellyseerr.deleteRequest(reqId);
             await refresh();
           } catch (e: any) {

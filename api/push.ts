@@ -337,6 +337,50 @@ export async function setMonitored(
   if (!res.ok) throw new Error(`Server returned ${res.status}`);
 }
 
+/** What a cancel actually stopped. */
+export type Cancelled = {
+  /** false when the *arr never had it - nothing to stop, which is a success */
+  tracked: boolean;
+  title?: string | null;
+  /** queue rows removed; a season pack is one torrent and many rows */
+  removed: number;
+  /** the releases those rows described, named once each */
+  releases: string[];
+  /** whether this call is what stopped the searching */
+  unmonitored: boolean;
+};
+
+/**
+ * Stop a download, and stop it coming back.
+ *
+ * Deleting a request in Jellyseerr does neither, which is the whole defect:
+ * the torrent runs on, the *arr imports it, and a film appears in the library
+ * with nothing explaining it. Removing it from Radarr instead orphans the
+ * torrent - Radarr forgets the queue row, and nothing is tracking a download
+ * that is still eating the line.
+ *
+ * The server does both halves: deletes the queue rows with removeFromClient
+ * so the torrent stops, and unmonitors so RSS sync does not grab it again
+ * within the hour. It cannot blocklist, and cannot touch an imported file.
+ *
+ * Television takes the season, because a request is filed per season and
+ * cancelling one must not stop the searches for the others.
+ */
+export async function cancel(
+  url: string,
+  tmdbId: number,
+  mediaType: 'movie' | 'tv',
+  season?: number,
+): Promise<Cancelled> {
+  const res = await fetch(`${base(url)}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tmdbId, type: mediaType, season }),
+  });
+  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+  return res.json();
+}
+
 /* ------------------------------------------------------------ content filters */
 
 /** One keyword, carried by id and by name because two systems consume it. */
