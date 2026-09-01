@@ -128,7 +128,15 @@ export default function SearchScreen() {
         Jellyseerr.search(query).catch(() => null),
         userId ? Jellyfin.searchLibrary(userId, query).catch(() => null) : Promise.resolve([]),
       ]);
-      setResults(seerr ? seerr.filter(x => x.mediaType !== 'person') : []);
+      /*
+       * TMDB's multi-search takes no keyword or certification parameter, so
+       * this row can only drop what came back - by genre, the one thing a
+       * search result carries. A filtered search is therefore shorter rather
+       * than backfilled, and keyword-only filters do not narrow it at all.
+       */
+      setResults(seerr
+        ? Jellyseerr.withoutExcludedGenres(seerr.filter(x => x.mediaType !== 'person'))
+        : []);
       setLibrary(mine ?? []);
       setBusy(false);
       if (seerr === null && mine === null) {

@@ -208,21 +208,85 @@ export async function search(query: string, page = 1): Promise<JellyseerrSearchR
  */
 const DISCOVER_PARAMS = { language: 'en' };
 
+/**
+ * What the signed-in person is not shown.
+ *
+ * Module-level, like `currentLanguage()` above it, because every browse row
+ * has to obey it and threading the same two values through a dozen call sites
+ * would mean a row that forgets is a row that leaks. Set once after sign-in,
+ * from what jellylab-push resolves for this account.
+ *
+ * TMDB does the work: `excludeKeywords` and `certificationLte` are its own
+ * parameters, so a filtered row comes back full rather than with holes in it.
+ * Two limits worth knowing. Free-text search is TMDB's multi-search, which
+ * takes neither, so only genres can be dropped there and the row is shorter
+ * for it. And TMDB's certification data outside the US is patchy, which is why
+ * the cap is asked for in US terms - see lib/ratings.
+ */
+let exclusions: { keywordIds: number[]; certificationLte: string | null; genreIds: number[] } = {
+  keywordIds: [], certificationLte: null, genreIds: [],
+};
+
+export function setContentExclusions(next: {
+  keywordIds: number[];
+  certificationLte: string | null;
+  genreIds: number[];
+}): void {
+  exclusions = next;
+}
+
+export function contentExclusions() {
+  return exclusions;
+}
+
+/** The discover parameters TMDB understands, omitted entirely when empty. */
+function excludeParams(): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (exclusions.keywordIds.length > 0) out.excludeKeywords = exclusions.keywordIds.join(',');
+  if (exclusions.certificationLte) {
+    out.certificationCountry = 'US';
+    out.certificationLte = exclusions.certificationLte;
+  }
+  return out;
+}
+
+/** Drop what came back anyway, which is all that can be done for a search. */
+export function withoutExcludedGenres(rows: JellyseerrSearchResult[]): JellyseerrSearchResult[] {
+  if (exclusions.genreIds.length === 0) return rows;
+  const blocked = new Set(exclusions.genreIds);
+  return rows.filter(r => !(r.genreIds ?? []).some(g => blocked.has(g)));
+}
+
+/**
+ * TMDB keywords matching a word, for building a filter.
+ *
+ * The id is what discover excludes; the name is what Jellyfin blocks as a tag.
+ * Both are kept, because the two systems speak different halves of it.
+ */
+export async function searchKeywords(query: string): Promise<{ id: number; name: string }[]> {
+  const client = await authClient();
+  const res = await client.get('/search/keyword', { params: { query, page: 1 } });
+  return (res.data.results ?? []).map((k: any) => ({ id: k.id, name: k.name }));
+}
+
 export async function discoverTrending(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
   const res = await client.get('/discover/trending', { params: { page, ...DISCOVER_PARAMS } });
-  return (res.data.results ?? []).filter((r: any) => r.mediaType !== 'person');
+  // Trending is TMDB's own endpoint and takes no discover parameters, so this
+  // row can only be filtered after the fact - by genre, the one thing a result
+  // carries.
+  return withoutExcludedGenres((res.data.results ?? []).filter((r: any) => r.mediaType !== 'person'));
 }
 
 export async function discoverMovies(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/discover/movies', { params: { page, ...DISCOVER_PARAMS } });
+  const res = await client.get('/discover/movies', { params: { page, ...DISCOVER_PARAMS, ...excludeParams() } });
   return res.data.results ?? [];
 }
 
 export async function discoverTv(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/discover/tv', { params: { page, ...DISCOVER_PARAMS } });
+  const res = await client.get('/discover/tv', { params: { page, ...DISCOVER_PARAMS, ...excludeParams() } });
   return res.data.results ?? [];
 }
 
@@ -243,13 +307,13 @@ export async function discoverTv(page = 1): Promise<JellyseerrSearchResult[]> {
  */
 export async function discoverAnime(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/discover/tv', { params: { page, keywords: 210024 } });
+  const res = await client.get('/discover/tv', { params: { page, keywords: 210024, ...excludeParams() } });
   return res.data.results ?? [];
 }
 
 export async function discoverUpcomingMovies(page = 1): Promise<JellyseerrSearchResult[]> {
   const client = await authClient();
-  const res = await client.get('/discover/movies/upcoming', { params: { page, ...DISCOVER_PARAMS } });
+  const res = await client.get('/discover/movies/upcoming', { params: { page, ...DISCOVER_PARAMS, ...excludeParams() } });
   return res.data.results ?? [];
 }
 

@@ -336,3 +336,100 @@ export async function setMonitored(
   });
   if (!res.ok) throw new Error(`Server returned ${res.status}`);
 }
+
+/* ------------------------------------------------------------ content filters */
+
+/** One keyword, carried by id and by name because two systems consume it. */
+export type FilterKeyword = { id: number; name: string };
+
+/**
+ * A named bundle of things to keep away from someone.
+ *
+ * `maxAge` is an age in years, not a label. Jellyfin's parental scale is
+ * already ages - PG is 9, TV-14 is 14, R and TV-MA are both 17 - so one number
+ * covers US film ratings, US TV ratings and Kijkwijzer, and `lib/ratings`
+ * turns it into whichever wording is being spoken.
+ */
+export type ContentFilter = {
+  id: string;
+  name: string;
+  keywords?: FilterKeyword[];
+  genres?: number[];
+  maxAge?: number | null;
+  blockUnrated?: boolean;
+};
+
+/** The key in `assignments` meaning everyone who is not an administrator. */
+export const EVERYONE = '*';
+
+export type FilterDoc = {
+  version: number;
+  filters: ContentFilter[];
+  /** Jellyfin user id, or EVERYONE, to the filter ids that apply. */
+  assignments: Record<string, string[]>;
+};
+
+/** One person's filters, already merged. The strictest age among them wins. */
+export type ResolvedFilters = {
+  filters: string[];
+  keywordIds: number[];
+  keywordNames: string[];
+  genreIds: number[];
+  maxAge: number | null;
+  blockUnrated: boolean;
+};
+
+export async function filters(url: string): Promise<FilterDoc> {
+  const res = await fetch(`${base(url)}/filters`);
+  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+  return res.json();
+}
+
+/**
+ * What applies to one person.
+ *
+ * Asked for by Jellyfin user id, which the app already holds for whoever is
+ * signed in. A wrong id costs the caller their own filters and tells them
+ * nothing about anybody else.
+ */
+export async function filtersFor(url: string, jellyfinUserId: string): Promise<ResolvedFilters> {
+  const res = await fetch(`${base(url)}/filters/for?user=${encodeURIComponent(jellyfinUserId)}`);
+  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Replace the whole document. Administrators only.
+ *
+ * The Jellyfin token goes with it and the service asks Jellyfin whether it
+ * belongs to an administrator - the app's own opinion is not what decides,
+ * because this changes what other people in the house can see.
+ */
+export async function saveFilters(url: string, token: string, doc: FilterDoc): Promise<FilterDoc> {
+  const res = await fetch(`${base(url)}/filters`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Emby-Token': token },
+    body: JSON.stringify(doc),
+  });
+  if (!res.ok) throw new Error((await res.text()) || `Server returned ${res.status}`);
+  return res.json();
+}
+
+/**
+ * Write the assignments into Jellyfin's per-user policy.
+ *
+ * The only part of this feature that is enforced rather than tidy: blocked
+ * tags and the age cap are applied by the Jellyfin server to every client.
+ * Deliberately a separate call from saving, so the difference stays visible.
+ */
+export async function applyFilters(
+  url: string,
+  token: string,
+): Promise<{ applied: { user: string; blockedTags: string[]; maxAge: number | null }[] }> {
+  const res = await fetch(`${base(url)}/filters/apply`, {
+    method: 'POST',
+    headers: { 'X-Emby-Token': token },
+  });
+  if (!res.ok) throw new Error((await res.text()) || `Server returned ${res.status}`);
+  return res.json();
+}

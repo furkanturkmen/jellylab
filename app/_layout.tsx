@@ -9,7 +9,12 @@ import 'react-native-reanimated';
 import '@/i18n';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import * as Jellyseerr from '@/api/jellyseerr';
+import * as Push from '@/api/push';
+import { getJellyfinUrl } from '@/config';
 import { useAuth } from '@/hooks/useAuth';
+import { usCertificationFor } from '@/lib/ratings';
+import { loadPrefs } from '@/store/prefs';
 import { useCurrentServer } from '@/hooks/useServer';
 import { clearJellyfinAuth, clearJellyseerrAuth } from '@/store/auth';
 import { installErrorLogging } from '@/lib/errorLog';
@@ -94,6 +99,42 @@ function RootLayoutNav() {
       clearJellyseerrAuth();
     }
   }, [serverReady, server, state.status]);
+
+  /*
+   * What this account is not shown, fetched once per sign-in and handed to the
+   * Jellyseerr client for every browse row to obey.
+   *
+   * Here rather than in a screen because a row that forgets to ask is a row
+   * that leaks. Best-effort: the homelab service being unreachable must leave
+   * the app working, and it leaves it unfiltered - which is the same as it was
+   * before this existed, and is why the library half is enforced by Jellyfin
+   * rather than by this.
+   */
+  const userId = state.status === 'signed-in' ? state.auth.userId : null;
+  useEffect(() => {
+    if (!userId) return;
+    let alive = true;
+    (async () => {
+      try {
+        const url = Push.resolveUrl((await loadPrefs()).pushUrl, getJellyfinUrl());
+        if (!url) return;
+        const f = await Push.filtersFor(url, userId);
+        if (!alive) return;
+        Jellyseerr.setContentExclusions({
+          keywordIds: f.keywordIds ?? [],
+          genreIds: f.genreIds ?? [],
+          certificationLte: usCertificationFor(f.maxAge),
+        });
+        console.log(
+          `[jellylab] filters: ${(f.filters ?? []).join(', ') || 'none'}`
+          + ` keywords=${(f.keywordIds ?? []).length} maxAge=${f.maxAge ?? '-'}`,
+        );
+      } catch (e) {
+        console.log(`[jellylab] filters failed - ${e instanceof Error ? e.message : String(e)}`);
+      }
+    })();
+    return () => { alive = false; };
+  }, [userId]);
 
   useEffect(() => {
     if (!serverReady) return;

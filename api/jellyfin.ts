@@ -666,3 +666,23 @@ export function transcodeUrl(
   const params = transcodeParams(mediaSourceId, token, deviceId, maxBitrate, audioStreamIndex);
   return `${getJellyfinUrl()}/Videos/${itemId}/master.m3u8?${params.toString()}`;
 }
+
+/** One Jellyfin account, as far as assigning content filters cares. */
+export type JellyfinUser = {
+  Id: string;
+  Name: string;
+  Policy?: { IsAdministrator?: boolean };
+};
+
+/**
+ * Everyone on the server.
+ *
+ * Administrator-only on Jellyfin's side, which is the point: the screen that
+ * uses it is for deciding what other people see, and a non-admin token gets a
+ * 403 rather than a list.
+ */
+export async function getUsers(): Promise<JellyfinUser[]> {
+  const client = await authClient();
+  const res = await client.get('/Users');
+  return res.data ?? [];
+}
