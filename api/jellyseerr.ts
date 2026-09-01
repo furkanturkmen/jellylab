@@ -834,6 +834,7 @@ export async function getTmdbDetails(
       releaseDate: d.releaseDate ?? d.firstAirDate,
       runtime: d.runtime ?? (Array.isArray(d.episodeRunTime) ? d.episodeRunTime[0] : undefined),
       genres: d.genres,
+      keywords: d.keywords,
       voteAverage: d.voteAverage,
       status: d.status,
       originalLanguage: d.originalLanguage,
