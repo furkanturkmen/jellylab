@@ -730,6 +730,13 @@ export type TmdbFullDetails = {
   releaseDate?: string;
   runtime?: number;
   genres?: { id: number; name: string }[];
+  /**
+   * TMDB keywords. The same ids a content filter excludes, so this is where
+   * you find out what a title would have to be filtered on. Often empty -
+   * TMDB's keyword coverage is thin outside popular titles, which is a real
+   * limit on what a keyword filter can catch.
+   */
+  keywords?: { id: number; name: string }[];
   voteAverage?: number;
   status?: string;
   originalLanguage?: string;

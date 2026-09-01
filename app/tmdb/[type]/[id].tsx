@@ -513,6 +513,20 @@ export default function TmdbDetailScreen() {
             </View>
           ) : null}
 
+          {/* The keywords a content filter matches on. Shown so the thing a
+              filter would have to name is visible on the title itself, rather
+              than guessed at from the filter screen. */}
+          {details.keywords && details.keywords.length > 0 ? (
+            <View style={styles.card}>
+              <Text style={styles.sectionLabel}>{t('detail.keywords')}</Text>
+              <View style={styles.genreRow}>
+                {details.keywords.map(k => (
+                  <Pill key={k.id}>{k.name}</Pill>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
           {details.overview ? (
             <View style={styles.card}>
               <Text style={styles.sectionLabel}>{t('detail.overview')}</Text>
