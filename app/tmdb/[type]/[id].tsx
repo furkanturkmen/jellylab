@@ -513,20 +513,6 @@ export default function TmdbDetailScreen() {
             </View>
           ) : null}
 
-          {/* The keywords a content filter matches on. Shown so the thing a
-              filter would have to name is visible on the title itself, rather
-              than guessed at from the filter screen. */}
-          {details.keywords && details.keywords.length > 0 ? (
-            <View style={styles.card}>
-              <Text style={styles.sectionLabel}>{t('detail.keywords')}</Text>
-              <View style={styles.genreRow}>
-                {details.keywords.map(k => (
-                  <Pill key={k.id}>{k.name}</Pill>
-                ))}
-              </View>
-            </View>
-          ) : null}
-
           {details.overview ? (
             <View style={styles.card}>
               <Text style={styles.sectionLabel}>{t('detail.overview')}</Text>
@@ -569,6 +555,25 @@ export default function TmdbDetailScreen() {
                     <Text style={styles.castName} numberOfLines={2}>{person.name}</Text>
                     <Text style={styles.castRole} numberOfLines={2}>{person.character}</Text>
                   </View>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
+
+          {/* Below the cast, and scrolling sideways: a popular title carries a
+              dozen or more of these, and wrapped they pushed everything else
+              off the screen. The row is the thing a content filter matches on,
+              so it is worth showing in full rather than truncating. */}
+          {details.keywords && details.keywords.length > 0 ? (
+            <View style={styles.card}>
+              <Text style={styles.sectionLabel}>{t('detail.keywords')}</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.keywordRow}
+              >
+                {details.keywords.map(k => (
+                  <Pill key={k.id}>{k.name}</Pill>
                 ))}
               </ScrollView>
             </View>
@@ -749,6 +754,7 @@ const styles = StyleSheet.create({
   adminBtnText: { color: 'rgba(255, 99, 99, 1)', ...type.small, fontWeight: '600' },
 
   genreRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.lg },
+  keywordRow: { flexDirection: 'row', gap: spacing.sm, paddingRight: spacing.md },
 
   card: {
     marginTop: spacing.xl,
