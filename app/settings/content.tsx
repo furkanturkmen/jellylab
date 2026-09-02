@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useTranslation } from 'react-i18next';
 import { Button, Form, HStack, Host, Image as UIImage, Label, Section, Spacer, Text } from '@expo/ui/swift-ui';
@@ -18,7 +18,6 @@ import { colors } from '@/theme';
  */
 export default function ContentSettings() {
   const { t } = useTranslation();
-  const router = useRouter();
   const { state } = useAuth();
   const isAdmin = state.status === 'signed-in' && state.auth.isAdmin;
 
@@ -35,18 +34,6 @@ export default function ContentSettings() {
 
           {isAdmin ? (
             <Section title={t('settings.content.adminHeading')}>
-              {/* Stays in the app, so it gets a chevron rather than the
-                  leaving-the-app arrow below. */}
-              <Button
-                modifiers={[buttonStyle('plain')]}
-                onPress={() => router.push('/settings/filters')}
-              >
-                <HStack spacing={12}>
-                  <Label title={t('profile.menu.contentFilters')} systemImage="line.3.horizontal.decrease.circle" />
-                  <Spacer />
-                  <UIImage systemName="chevron.right" size={13} modifiers={[foregroundColor(colors.textDim)]} />
-                </HStack>
-              </Button>
               <Button
                 modifiers={[buttonStyle('plain')]}
                 onPress={() => WebBrowser.openBrowserAsync(`${getJellyseerrUrl()}/users`)}

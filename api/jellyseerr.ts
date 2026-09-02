@@ -345,6 +345,32 @@ export function withoutExcludedGenres(rows: JellyseerrSearchResult[]): Jellyseer
 }
 
 /**
+ * The TMDB keywords hidden from whoever is signed in.
+ *
+ * Read from Jellyseerr, because Jellyseerr is where that is decided - a user's
+ * `blockedTags`. The server already refuses to show or request those titles;
+ * this is only so discover can ask TMDB to leave them out and the page arrives
+ * full rather than with the holes the server's own filtering leaves behind.
+ *
+ * Their own settings, which every account may read. Empty on any failure: a
+ * shorter page is a far better outcome than a screen that will not load.
+ */
+export async function myHiddenKeywords(): Promise<number[]> {
+  try {
+    const client = await authClient();
+    const me = (await client.get('/auth/me')).data?.id;
+    if (!me) return [];
+    const res = await client.get(`/user/${me}/settings/main`);
+    return String(res.data?.blockedTags ?? '')
+      .split(',')
+      .map(s => Number(s.trim()))
+      .filter(n => Number.isInteger(n) && n > 0);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * TMDB keywords matching a word, for building a filter.
  *
  * The id is what discover excludes; the name is what Jellyfin blocks as a tag.

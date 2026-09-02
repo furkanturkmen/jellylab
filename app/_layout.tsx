@@ -10,11 +10,7 @@ import '@/i18n';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import * as Jellyseerr from '@/api/jellyseerr';
-import * as Push from '@/api/push';
-import { getJellyfinUrl } from '@/config';
 import { useAuth } from '@/hooks/useAuth';
-import { usCertificationFor } from '@/lib/ratings';
-import { loadPrefs } from '@/store/prefs';
 import { useCurrentServer } from '@/hooks/useServer';
 import { clearJellyfinAuth, clearJellyseerrAuth } from '@/store/auth';
 import { installErrorLogging } from '@/lib/errorLog';
@@ -115,23 +111,16 @@ function RootLayoutNav() {
     if (!userId) return;
     let alive = true;
     (async () => {
-      try {
-        const url = Push.resolveUrl((await loadPrefs()).pushUrl, getJellyfinUrl());
-        if (!url) return;
-        const f = await Push.filtersFor(url, userId);
-        if (!alive) return;
-        Jellyseerr.setContentExclusions({
-          keywordIds: f.keywordIds ?? [],
-          genreIds: f.genreIds ?? [],
-          certificationLte: usCertificationFor(f.maxAge),
-        });
-        console.log(
-          `[jellylab] filters: ${(f.filters ?? []).join(', ') || 'none'}`
-          + ` keywords=${(f.keywordIds ?? []).length} maxAge=${f.maxAge ?? '-'}`,
-        );
-      } catch (e) {
-        console.log(`[jellylab] filters failed - ${e instanceof Error ? e.message : String(e)}`);
-      }
+      const keywordIds = await Jellyseerr.myHiddenKeywords();
+      if (!alive) return;
+      /*
+       * Genres and an age cap are no longer asked for. Jellyseerr holds
+       * keywords and nothing else, and inventing a second place to keep the
+       * other two is what this app stopped doing - an age cap belongs in
+       * Jellyfin's own parental controls, which already has one.
+       */
+      Jellyseerr.setContentExclusions({ keywordIds, genreIds: [], certificationLte: null });
+      console.log(`[jellylab] hidden keywords: ${keywordIds.length}`);
     })();
     return () => { alive = false; };
   }, [userId]);
