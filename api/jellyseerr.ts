@@ -290,6 +290,18 @@ const DISCOVER_PARAMS = { language: 'en' };
  * takes neither, so only genres can be dropped there and the row is shorter
  * for it. And TMDB's certification data outside the US is patchy, which is why
  * the cap is asked for in US terms - see lib/ratings.
+ *
+ * **None of this is redundant now that the server filters too.** Jellyseerr
+ * hides a blocked title per user in its own API, which is the enforcement -
+ * this cannot be relied on for that, and a determined person could always
+ * have gone round it. What it does is ask TMDB not to send those titles in
+ * the first place, so a page arrives with twenty items rather than twenty
+ * minus however many the server then removed. Delete it and discover pages
+ * develop holes for exactly the people who are filtered.
+ *
+ * And the server's filter is keyword-only. The age cap and the genre list
+ * have no home in Jellyseerr at all, so for those two this is the only thing
+ * doing the work.
  */
 let exclusions: { keywordIds: number[]; certificationLte: string | null; genreIds: number[] } = {
   keywordIds: [], certificationLte: null, genreIds: [],
