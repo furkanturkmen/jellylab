@@ -183,6 +183,7 @@
       "7": "Removed"
     },
     "seeds": "{{seeds}} seeds",
+    "parts": "{{count}} files",
     "seedsOf": "{{seeders}} of {{total}} seeds",
     "signedOut": "Sign in to Jellyseerr to see your requests",
     "state": {

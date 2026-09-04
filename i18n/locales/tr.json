@@ -183,6 +183,7 @@
       "7": "Kaldırıldı"
     },
     "seeds": "{{seeds}} seeder",
+    "parts": "{{count}} dosya",
     "seedsOf": "{{total}} seeder’dan {{seeders}} tanesi",
     "signedOut": "İsteklerini görmek için Jellyseerr’e giriş yap",
     "state": {

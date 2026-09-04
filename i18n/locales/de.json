@@ -183,6 +183,7 @@
       "7": "Entfernt"
     },
     "seeds": "{{seeds}} Seeder",
+    "parts": "{{count}} Dateien",
     "seedsOf": "{{seeders}} von {{total}} Seedern",
     "signedOut": "Melde dich bei Jellyseerr an, um deine Anfragen zu sehen",
     "state": {

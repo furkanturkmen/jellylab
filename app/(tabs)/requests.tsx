@@ -565,6 +565,10 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
     : live
       ? [
           live.size ? formatBytes(live.size) : null,
+          // Only when there is more than one, because "1 file" is noise. The
+          // bar above is the total across them, and without this the total
+          // looks like a single download running oddly slowly.
+          (live.parts ?? 1) > 1 ? t('requests.parts', { count: live.parts }) : null,
           speed != null ? `${formatBytes(speed)}/s` : null,
           seeds != null ? t('requests.seeds', { seeds }) : null,
           // How long it has been going is history; how long is left is the

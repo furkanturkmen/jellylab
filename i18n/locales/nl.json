@@ -183,6 +183,7 @@
       "7": "Verwijderd"
     },
     "seeds": "{{seeds}} seeds",
+    "parts": "{{count}} bestanden",
     "seedsOf": "{{seeders}} van {{total}} seeds",
     "signedOut": "Log in bij Jellyseerr om je verzoeken te zien",
     "state": {

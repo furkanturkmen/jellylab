@@ -86,6 +86,15 @@ export type DownloadProgress = {
   status: string | null;
   /** Sonarr knows this; a percentage cannot say it */
   stalled: boolean;
+  /**
+   * How many separate downloads this title is arriving as.
+   *
+   * One for a season pack or a single file. More when the episodes were
+   * grabbed individually, in which case the percentage above is the total
+   * across all of them rather than any one - which is the point: it used to
+   * report whichever was largest and call that the series' progress.
+   */
+  parts?: number;
   title: string | null;
   /** when it was added to the queue, ISO */
   added?: string | null;
