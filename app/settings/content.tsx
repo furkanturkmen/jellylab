@@ -7,8 +7,10 @@ import { Button, Form, HStack, Host, Image as UIImage, Label, Section, Spacer, T
 import { buttonStyle, foregroundColor, scrollContentBackground, tint } from '@expo/ui/swift-ui/modifiers';
 
 import * as Jellyseerr from '@/api/jellyseerr';
-import { getJellyseerrUrl } from '@/config';
+import * as Push from '@/api/push';
+import { getJellyfinUrl, getJellyseerrUrl } from '@/config';
 import { useAuth } from '@/hooks/useAuth';
+import { loadPrefs } from '@/store/prefs';
 import { colors } from '@/theme';
 
 /**
@@ -50,6 +52,40 @@ export default function ContentSettings() {
     return () => { alive = false; };
   }, []);
 
+  /*
+   * Ask the homelab to carry the change into Jellyfin straight away.
+   *
+   * Jellyseerr obeys the switch the moment it is saved, but the library is
+   * Jellyfin's and hides nothing until the per-user policies are rewritten -
+   * which a service on the homelab does on a ten minute timer. Waiting for
+   * that tick reads as the switch not having worked, so this asks for the run
+   * now and leaves the timer as the safety net rather than the mechanism.
+   *
+   * Administrators only, and that costs nothing in practice: an administrator
+   * is the one account this switch changes anything for, because everybody
+   * else already has these keywords hidden for them by an administrator. The
+   * service refuses a non-admin token, so one is not even sent.
+   *
+   * Never allowed to fail the toggle. The setting is saved either way, and a
+   * homelab that cannot be reached is a library that catches up on the timer.
+   */
+  const syncLibrary = useCallback(async () => {
+    if (state.status !== 'signed-in' || !state.auth.isAdmin) return;
+    try {
+      const prefs = await loadPrefs();
+      const url = Push.resolveUrl(prefs.pushUrl, getJellyfinUrl());
+      if (!url) return;
+      const out = await Push.applyFilters(url, state.auth.accessToken);
+      console.log(
+        out.queued
+          ? '[jellylab] library sync queued behind a run already going'
+          : `[jellylab] library sync: ${out.applied?.length ?? 0} policy change(s)`,
+      );
+    } catch (e) {
+      console.log(`[jellylab] library sync skipped: ${String(e)}`);
+    }
+  }, [state]);
+
   const onChange = useCallback(async (next: boolean) => {
     if (saving.current) return;
     saving.current = true;
@@ -66,6 +102,9 @@ export default function ContentSettings() {
        */
       Jellyseerr.setContentExclusions({ keywordIds, genreIds: [], certificationLte: null });
       console.log(`[jellylab] hideAdult=${next}, hidden keywords: ${keywordIds.length}`);
+      // Not awaited: the switch has already done its job, and the library
+      // catching up is worth no spinner.
+      void syncLibrary();
     } catch (e) {
       setHideAdult(!next);
       console.log(`[jellylab] could not save hideAdult: ${String(e)}`);
@@ -73,7 +112,7 @@ export default function ContentSettings() {
     } finally {
       saving.current = false;
     }
-  }, [t]);
+  }, [t, syncLibrary]);
 
   return (
     <View style={styles.root}>

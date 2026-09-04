@@ -459,17 +459,37 @@ export async function saveFilters(url: string, token: string, doc: FilterDoc): P
   return res.json();
 }
 
+export type FilterSync = {
+  /** Set, and alone, when a run was already in flight and this one follows it. */
+  queued?: boolean;
+  people?: { user: string; keywords: number[] }[];
+  tags?: number[];
+  stamped?: { item: string; tags: string[] }[];
+  cleared?: { item: string; tags: string[] }[];
+  applied?: { user: string; markers: string[] }[];
+  crawlStarted?: boolean;
+  crawlBusy?: boolean;
+};
+
 /**
- * Write the assignments into Jellyfin's per-user policy.
+ * Carry what Jellyseerr decides into Jellyfin's per-user policies, now.
  *
- * The only part of this feature that is enforced rather than tidy: blocked
- * tags and the age cap are applied by the Jellyfin server to every client.
- * Deliberately a separate call from saving, so the difference stays visible.
+ * This is the enforced half. Jellyseerr can decline to show or request a
+ * title, but the library is Jellyfin's, and it hides nothing until the per-
+ * user policies say so.
+ *
+ * The service does this on a timer regardless, so calling it is only about
+ * latency - without it a settings change trails the library by up to ten
+ * minutes, which reads as the change not having worked.
+ *
+ * Administrators only: the service asks Jellyfin whether the token belongs to
+ * one, and refuses otherwise. It is the caller's own token, never anything
+ * this app stores.
  */
 export async function applyFilters(
   url: string,
   token: string,
-): Promise<{ applied: { user: string; blockedTags: string[]; maxAge: number | null }[] }> {
+): Promise<FilterSync> {
   const res = await fetch(`${base(url)}/filters/apply`, {
     method: 'POST',
     headers: { 'X-Emby-Token': token },
