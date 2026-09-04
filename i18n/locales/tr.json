@@ -341,13 +341,12 @@
     },
     "content": {
       "title": "İçerik",
-      "showAdult": "Yetişkin içeriği göster",
-      "showAdultDesc": "18+ film ve dizileri Arama ve Keşif'e dahil et. Yalnızca bu cihazda geçerli. Jellyseerr sunucusunun da yetişkin içeriğe küresel olarak izin vermesi gerekir.",
+      "note": "Ne göreceğine Jellyseerr hesabın karar verir; burada, Jellyseerr sitesinde ve kütüphanede aynıdır. Bir yöneticinin senden gizlediği içerik gizli kalır ve burada listelenmez.",
+      "hideAdult": "Yetişkin içeriği gizle",
+      "hideAdultFailedTitle": "Kaydedilmedi",
+      "hideAdultFailed": "Jellyseerr değişikliği kabul etmedi. Bağlantıyı kontrol edip yeniden dene.",
       "adminHeading": "Yönetici — Jellyseerr sunucusu",
-      "adminIntro": "Yukarıdaki anahtar sadece bu telefondaki sonuçları gizler. Sunucu geneli veya kullanıcı bazında ayarlamak için Jellyseerr'i aç:",
-      "globalSettings": "Genel ayarlar",
-      "perUserPermissions": "Kullanıcı izinleri",
-      "nonAdminNote": "Yönetici olmayan hesaplar yalnızca cihaz anahtarını görür. Sunucu geneli kontrol Jellyseerr yönetim panelinde."
+      "perUserPermissions": "Kullanıcı izinleri"
     },
     "language": {
       "title": "Dil",

@@ -341,13 +341,12 @@
     },
     "content": {
       "title": "Inhalte",
-      "showAdult": "Erwachsenen-Inhalte anzeigen",
-      "showAdultDesc": "18+ Filme und Serien in Suche und Discover einbeziehen. Gilt nur auf diesem Gerät. Dein Jellyseerr-Server muss Erwachsenen-Inhalte serverseitig ebenfalls erlauben.",
+      "note": "Was dir angezeigt wird, entscheidet dein Jellyseerr-Konto – hier, auf der Jellyseerr-Website und in der Bibliothek gleichermaßen. Was ein Administrator für dich ausgeblendet hat, bleibt ausgeblendet und steht nicht hier.",
+      "hideAdult": "Nicht jugendfreie Inhalte ausblenden",
+      "hideAdultFailedTitle": "Nicht gespeichert",
+      "hideAdultFailed": "Jellyseerr hat die Änderung nicht übernommen. Prüfe die Verbindung und versuche es erneut.",
       "adminHeading": "Admin — Jellyseerr-Server",
-      "adminIntro": "Der Schalter oben blendet nur Ergebnisse auf diesem Telefon aus. Für die serverweite oder benutzerbezogene Steuerung öffne Jellyseerr:",
-      "globalSettings": "Globale Einstellungen",
-      "perUserPermissions": "Benutzer-Berechtigungen",
-      "nonAdminNote": "Für Nicht-Admin-Konten steht nur der Geräteschalter zur Verfügung. Server-weite Kontrolle liegt im Jellyseerr-Admin."
+      "perUserPermissions": "Benutzer-Berechtigungen"
     },
     "language": {
       "title": "Sprache",

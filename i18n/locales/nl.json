@@ -341,13 +341,12 @@
     },
     "content": {
       "title": "Inhoud",
-      "showAdult": "Toon volwassen inhoud",
-      "showAdultDesc": "Toon 18+ films en series in Zoeken en Ontdekken. Alleen op dit apparaat. Je Jellyseerr-server moet volwassen inhoud globaal toestaan.",
+      "note": "Wat je te zien krijgt, bepaalt je Jellyseerr-account – hier, op de Jellyseerr-website en in de bibliotheek. Wat een beheerder voor je verborgen heeft, blijft verborgen en staat hier niet tussen.",
+      "hideAdult": "Adult content verbergen",
+      "hideAdultFailedTitle": "Niet opgeslagen",
+      "hideAdultFailed": "Jellyseerr heeft de wijziging niet geaccepteerd. Controleer de verbinding en probeer het opnieuw.",
       "adminHeading": "Beheer — Jellyseerr-server",
-      "adminIntro": "De schakelaar hierboven verbergt alleen resultaten op dit toestel. Open Jellyseerr om het serverbreed of per gebruiker in te stellen:",
-      "globalSettings": "Algemene instellingen",
-      "perUserPermissions": "Rechten per gebruiker",
-      "nonAdminNote": "Voor niet-beheerders is alleen de schakelaar op dit toestel beschikbaar. Serverbrede instellingen staan in het beheer van Jellyseerr."
+      "perUserPermissions": "Rechten per gebruiker"
     },
     "language": {
       "title": "Taal",

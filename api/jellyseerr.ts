@@ -344,30 +344,103 @@ export function withoutExcludedGenres(rows: JellyseerrSearchResult[]): Jellyseer
   return rows.filter(r => !(r.genreIds ?? []).some(g => blocked.has(g)));
 }
 
+/** `12,34` as Jellyseerr writes keyword ids, parsed defensively. */
+function parseIds(raw: unknown): number[] {
+  return String(raw ?? '')
+    .split(',')
+    .map(s => Number(s.trim()))
+    // Number('') is 0 and passes Number.isInteger, so the lower bound is the
+    // part that matters - without it an empty list parses as keyword zero.
+    .filter(n => Number.isInteger(n) && n > 0);
+}
+
+export type MyContentSettings = {
+  /** Jellyseerr's own user id, needed to write the settings back. */
+  userId: number;
+  /** Imposed by an administrator; this account cannot change them. */
+  blockedTags: number[];
+  /** This account's own switch. */
+  hideAdult: boolean;
+  /** Which keyword ids that switch stands for, as the server defines them. */
+  adultTags: number[];
+  /** Everything the settings endpoint returned, for writing it back intact. */
+  raw: Record<string, unknown>;
+};
+
+/**
+ * This account's content settings, straight from Jellyseerr.
+ *
+ * Jellyseerr is where all of this is decided, so nothing here is stored on the
+ * device - what you are shown is the same in the app, on the website and in
+ * the library, and there is no second copy to fall out of step.
+ */
+export async function myContentSettings(): Promise<MyContentSettings | null> {
+  const client = await authClient();
+  const me = Number((await client.get('/auth/me')).data?.id);
+  if (!Number.isInteger(me) || me <= 0) return null;
+  const data = (await client.get(`/user/${me}/settings/main`)).data ?? {};
+  return {
+    userId: me,
+    blockedTags: parseIds(data.blockedTags),
+    hideAdult: !!data.hideAdult,
+    adultTags: parseIds(data.adultTags),
+    raw: data,
+  };
+}
+
+/** The two lists as one, which is what the server hides and so what we exclude. */
+export function effectiveHiddenKeywords(s: MyContentSettings): number[] {
+  return s.hideAdult
+    ? [...new Set([...s.blockedTags, ...s.adultTags])]
+    : s.blockedTags;
+}
+
 /**
  * The TMDB keywords hidden from whoever is signed in.
  *
- * Read from Jellyseerr, because Jellyseerr is where that is decided - a user's
- * `blockedTags`. The server already refuses to show or request those titles;
- * this is only so discover can ask TMDB to leave them out and the page arrives
- * full rather than with the holes the server's own filtering leaves behind.
+ * The server already refuses to show or request those titles; this is only so
+ * discover can ask TMDB to leave them out and the page arrives full rather
+ * than with the holes the server's own filtering leaves behind.
  *
  * Their own settings, which every account may read. Empty on any failure: a
  * shorter page is a far better outcome than a screen that will not load.
  */
 export async function myHiddenKeywords(): Promise<number[]> {
   try {
-    const client = await authClient();
-    const me = (await client.get('/auth/me')).data?.id;
-    if (!me) return [];
-    const res = await client.get(`/user/${me}/settings/main`);
-    return String(res.data?.blockedTags ?? '')
-      .split(',')
-      .map(s => Number(s.trim()))
-      .filter(n => Number.isInteger(n) && n > 0);
+    const s = await myContentSettings();
+    return s ? effectiveHiddenKeywords(s) : [];
   } catch {
     return [];
   }
+}
+
+/**
+ * Turn this account's adult filter on or off, and report what is now hidden.
+ *
+ * Written as a read then a write of the whole settings object, because the
+ * endpoint is a replace rather than a patch - it assigns username and email
+ * from the body unconditionally, so posting `{ hideAdult }` on its own would
+ * blank both. `blockedTags` rides along untouched and the server ignores it
+ * from anyone without permission to set it, so this cannot lift a filter an
+ * administrator imposed.
+ *
+ * Throws rather than swallowing: a switch that slides back is honest, and a
+ * switch that stays where you put it while the server disagrees is not.
+ */
+export async function setHideAdult(hideAdult: boolean): Promise<number[]> {
+  const client = await authClient();
+  const current = await myContentSettings();
+  if (!current) throw new Error('not signed in to Jellyseerr');
+  const res = await client.post(`/user/${current.userId}/settings/main`, {
+    ...current.raw,
+    hideAdult,
+  });
+  return effectiveHiddenKeywords({
+    ...current,
+    hideAdult: !!res.data?.hideAdult,
+    blockedTags: parseIds(res.data?.blockedTags),
+    adultTags: parseIds(res.data?.adultTags),
+  });
 }
 
 /**

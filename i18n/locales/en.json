@@ -341,13 +341,12 @@
     },
     "content": {
       "title": "Content",
-      "showAdult": "Show adult content",
-      "showAdultDesc": "Include 18+ movies and TV in Search and Discover. Applies on this device only. Your Jellyseerr server must also allow adult content globally for it to appear.",
+      "note": "What you are shown is decided by your Jellyseerr account, so it is the same here, on the Jellyseerr website and in the library. Anything an administrator has hidden from you stays hidden and is not listed here.",
+      "hideAdult": "Hide adult content",
+      "hideAdultFailedTitle": "Not saved",
+      "hideAdultFailed": "Jellyseerr did not accept the change. Check the connection and try again.",
       "adminHeading": "Admin — Jellyseerr server",
-      "adminIntro": "The device toggle above only hides adult results on this phone. To control it for the whole server (and per user), open Jellyseerr:",
-      "globalSettings": "Global settings",
-      "perUserPermissions": "Per-user permissions",
-      "nonAdminNote": "Only the device toggle is available for non-admin accounts. Server-wide adult content control lives in Jellyseerr's admin."
+      "perUserPermissions": "Per-user permissions"
     },
     "language": {
       "title": "Language",
