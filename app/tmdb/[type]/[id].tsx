@@ -251,74 +251,54 @@ export default function TmdbDetailScreen() {
     }
   }
 
-  async function onDeleteRequest() {
-    if (!details?.mediaInfo?.requests?.length) return;
-    const request = details.mediaInfo.requests[0];
-    const reqId = request.id;
-    const mediaId = details.mediaInfo.id;
-    /*
-     * Deleting the request on its own only makes the download invisible - the
-     * *arr keeps it and imports it anyway, which is how a film ends up in the
-     * library with no request explaining it. Cancel downstream first when
-     * nothing has arrived yet, which is what this button already promised.
-     */
-    const cancels = mediaId !== undefined && deleteCancelsDownload(details.mediaInfo.status);
-    Alert.alert(t('request.deleteTitle'), cancels ? t('request.deleteBodyCancels') : t('request.deleteBody'), [
+  /**
+   * One action for "get rid of this".
+   *
+   * There were two buttons - delete the request, and remove it from Jellyfin -
+   * and between them every half-state was reachable: a request with no media,
+   * media with no request explaining it, and a torrent still running behind
+   * either. Nobody wanted one without the other, so they are one button that
+   * does the whole job in the order that survives a failure part way through.
+   *
+   * Downstream first, always. A record deleted over a live download leaves a
+   * torrent that nothing afterwards can find, which is the state this exists
+   * to prevent rather than create.
+   */
+  async function onRemoveEverything() {
+    const mediaId = details?.mediaInfo?.id;
+    if (mediaId === undefined) return;
+    const requests = details?.mediaInfo?.requests ?? [];
+    const cancels = deleteCancelsDownload(details?.mediaInfo?.status);
+
+    Alert.alert(t('request.removeAllTitle'), t('request.removeAllBody'), [
       { text: t('common.cancel'), style: 'cancel' },
       {
-        text: t('common.delete'),
+        text: t('common.remove'),
         style: 'destructive',
         onPress: async () => {
           setActing(true);
           try {
-            // Downstream first: if it fails the request stays, because a
-            // deleted request over a live download is the exact state this
-            // exists to prevent. The torrent goes before the record naming
-            // it, or nothing can find it afterwards.
-            if (cancels) {
-              await stopDownload(request.seasons);
-              await Jellyseerr.removeMediaFile(mediaId);
+            if (cancels) await stopDownload(requests[0]?.seasons);
+            // Nothing may have arrived yet, and that is not a failure.
+            try { await Jellyseerr.removeMediaFile(mediaId); } catch {}
+            for (const r of requests) {
+              // Deleting the media below takes its requests with it, so a
+              // failure here is usually the job already done.
+              try { await Jellyseerr.deleteRequest(r.id); } catch {}
             }
-            await Jellyseerr.deleteRequest(reqId);
+            await Jellyseerr.deleteMedia(mediaId);
             await refresh();
           } catch (e: any) {
-            Alert.alert(t('request.deleteFailed'), e?.response?.data?.message ?? e?.message ?? t('common.notPermitted'));
+            Alert.alert(
+              t('request.removeFailed'),
+              e?.response?.data?.message ?? e?.message ?? t('common.notPermitted'),
+            );
           } finally {
             setActing(false);
           }
         },
       },
     ]);
-  }
-
-  async function onRemoveFromJellyfin() {
-    if (!details?.mediaInfo?.id) return;
-    const mediaId = details.mediaInfo.id;
-    Alert.alert(
-      t('request.removeTitle'),
-      t('request.removeBody'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.remove'),
-          style: 'destructive',
-          onPress: async () => {
-            setActing(true);
-            try {
-              try {
-                await Jellyseerr.removeMediaFile(mediaId);
-              } catch {}
-              await Jellyseerr.deleteMedia(mediaId);
-              await refresh();
-            } catch (e: any) {
-              Alert.alert(t('request.removeFailed'), e?.response?.data?.message ?? e?.message ?? t('common.notPermitted'));
-            } finally {
-              setActing(false);
-            }
-          },
-        },
-      ],
-    );
   }
 
   function onPlayInJellyfin() {
@@ -527,18 +507,11 @@ export default function TmdbDetailScreen() {
             </View>
           ) : null}
 
-          {(requested || available || partiallyAvailable) ? (
+          {(requested || available || partiallyAvailable) && details.mediaInfo?.id ? (
             <View style={styles.adminRow}>
-              {requested ? (
-                <TouchableOpacity style={styles.adminBtn} onPress={onDeleteRequest} disabled={acting} activeOpacity={0.85}>
-                  <Text style={styles.adminBtnText}>{t('request.deleteRequest')}</Text>
-                </TouchableOpacity>
-              ) : null}
-              {(available || partiallyAvailable) && details.mediaInfo?.id ? (
-                <TouchableOpacity style={styles.adminBtn} onPress={onRemoveFromJellyfin} disabled={acting} activeOpacity={0.85}>
-                  <Text style={styles.adminBtnText}>{t('request.removeFromJellyfin')}</Text>
-                </TouchableOpacity>
-              ) : null}
+              <TouchableOpacity style={styles.adminBtn} onPress={onRemoveEverything} disabled={acting} activeOpacity={0.85}>
+                <Text style={styles.adminBtnText}>{t('request.removeAll')}</Text>
+              </TouchableOpacity>
             </View>
           ) : null}
 

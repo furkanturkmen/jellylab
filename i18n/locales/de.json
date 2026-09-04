@@ -227,26 +227,6 @@
       "episodes": "Episoden",
       "countries": "Länder"
     },
-    "actions": {
-      "play": "Abspielen",
-      "playOnJellyfin": "Auf Jellyfin abspielen",
-      "available": "Auf Jellyfin verfügbar",
-      "processing": "In Bearbeitung…",
-      "partiallyAvailable": "Teilweise verfügbar",
-      "requested": "Angefragt",
-      "request": "Anfragen",
-      "requesting": "Anfrage läuft…",
-      "deleteRequest": "Anfrage löschen",
-      "removeFromJellyfin": "Aus Jellyfin entfernen"
-    },
-    "confirmDeleteRequest": {
-      "title": "Anfrage löschen?",
-      "message": "Die Anfrage wird storniert; heruntergeladene Dateien bleiben auf Jellyfin."
-    },
-    "confirmRemove": {
-      "title": "Aus Jellyfin entfernen?",
-      "message": "Entfernt die Medien aus Jellyseerr und weist Radarr/Sonarr an, die Datei zu löschen. Nicht umkehrbar."
-    },
     "requestedToast": "{{title}} an Jellyseerr gesendet",
     "castHint": "Cast: {{state}} · AirPlay-Auswahl im Player",
     "kind": {
@@ -486,11 +466,6 @@
     "alreadyBodyYou": "Du hast das am {{date}} angefragt. Eine erneute Anfrage erzeugt keine zweite Kopie.",
     "requestedBy": "Angefragt von {{name}} · {{date}}",
     "someone": "jemand anderes",
-    "deleteBody": "Der Anfragedatensatz wird entfernt. Heruntergeladene Dateien bleiben auf Jellyfin.",
-    "deleteBodyCancels": "Es wurde noch nichts heruntergeladen, daher wird der Titel auch aus Radarr/Sonarr entfernt und der Download gestoppt.",
-    "deleteFailed": "Löschen fehlgeschlagen",
-    "deleteRequest": "Anfrage löschen",
-    "deleteTitle": "Anfrage löschen?",
     "downloading": "Wird geladen",
     "episodeCount": "Folgen",
     "failed": "Details konnten nicht geladen werden",
@@ -505,10 +480,7 @@
     "qualityDefault": "Standard",
     "qualityNote": "Legt fest, wonach dieser Titel sucht. Er bleibt ein Eintrag in der Bibliothek - eine bessere Version ersetzt die Datei und legt nie eine zweite an.",
     "released": "Veröffentlicht",
-    "removeBody": "Das entfernt die Medien aus Jellyseerr und bittet Radarr/Sonarr, die Datei zu löschen. Nicht umkehrbar.",
     "removeFailed": "Entfernen fehlgeschlagen",
-    "removeFromJellyfin": "Aus Jellyfin entfernen",
-    "removeTitle": "Von Jellyfin entfernen?",
     "seasonCount": "Staffeln",
     "seasonNumber": "Staffel {{number}}",
     "seasons": "Staffeln",
@@ -521,7 +493,10 @@
     "waitingDays_one": "Wartet seit {{count}} Tag - nichts lädt",
     "waitingDays_other": "Wartet seit {{count}} Tagen - nichts lädt",
     "waitingImport": "Bereits heruntergeladen. Der Server fügt den Titel zur Bibliothek hinzu, das dauert meist ein paar Minuten.",
-    "waitingMatch": "Genehmigt und wartet auf einen Treffer. Dein Server sucht weiter, das kann dauern, solange nichts Gutes gefunden wird."
+    "waitingMatch": "Genehmigt und wartet auf einen Treffer. Dein Server sucht weiter, das kann dauern, solange nichts Gutes gefunden wird.",
+    "removeAll": "Anfrage und Dateien entfernen",
+    "removeAllTitle": "Alles entfernen?",
+    "removeAllBody": "Löscht die Dateien, weist Radarr/Sonarr an, den Titel zu verwerfen und laufende Downloads zu stoppen, und entfernt die Anfrage. Das lässt sich nicht rückgängig machen."
   },
   "badge": {
     "available": "Verfügbar",

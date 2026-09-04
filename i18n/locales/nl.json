@@ -227,26 +227,6 @@
       "episodes": "Afleveringen",
       "countries": "Landen"
     },
-    "actions": {
-      "play": "Afspelen",
-      "playOnJellyfin": "Afspelen op Jellyfin",
-      "available": "Beschikbaar op Jellyfin",
-      "processing": "Bezig…",
-      "partiallyAvailable": "Deels beschikbaar",
-      "requested": "Aangevraagd",
-      "request": "Aanvragen",
-      "requesting": "Aanvragen…",
-      "deleteRequest": "Aanvraag verwijderen",
-      "removeFromJellyfin": "Verwijder uit Jellyfin"
-    },
-    "confirmDeleteRequest": {
-      "title": "Aanvraag verwijderen?",
-      "message": "De aanvraag wordt geannuleerd; gedownloade bestanden blijven op Jellyfin staan."
-    },
-    "confirmRemove": {
-      "title": "Verwijderen uit Jellyfin?",
-      "message": "Hiermee verwijder je de media uit Jellyseerr en vraag je Radarr/Sonarr om het bestand te wissen. Onomkeerbaar."
-    },
     "requestedToast": "{{title}} verstuurd naar Jellyseerr",
     "castHint": "Cast: {{state}} · AirPlay-kiezer zit in de speler",
     "kind": {
@@ -486,11 +466,6 @@
     "alreadyBodyYou": "Je hebt dit aangevraagd op {{date}}. Opnieuw vragen voegt geen tweede kopie toe.",
     "requestedBy": "Aangevraagd door {{name}} · {{date}}",
     "someone": "iemand anders",
-    "deleteBody": "De aanvraag wordt verwijderd. Gedownloade bestanden blijven op Jellyfin staan.",
-    "deleteBodyCancels": "Er is nog niets gedownload, dus dit verwijdert de titel ook uit Radarr/Sonarr en stopt de download.",
-    "deleteFailed": "Verwijderen mislukt",
-    "deleteRequest": "Aanvraag verwijderen",
-    "deleteTitle": "Aanvraag verwijderen?",
     "downloading": "Bezig met downloaden",
     "episodeCount": "Afleveringen",
     "failed": "Details konden niet worden geladen",
@@ -505,10 +480,7 @@
     "qualityDefault": "standaard",
     "qualityNote": "Bepaalt waar dit item naar zoekt. Het blijft één item in je bibliotheek - een betere release vervangt het bestand en voegt nooit een tweede kopie toe.",
     "released": "Uitgebracht",
-    "removeBody": "Dit verwijdert de media uit Jellyseerr en vraagt Radarr/Sonarr het bestand te verwijderen. Onomkeerbaar.",
     "removeFailed": "Verwijderen mislukt",
-    "removeFromJellyfin": "Verwijderen uit Jellyfin",
-    "removeTitle": "Verwijderen van Jellyfin?",
     "seasonCount": "Seizoenen",
     "seasonNumber": "Seizoen {{number}}",
     "seasons": "Seizoenen",
@@ -521,7 +493,10 @@
     "waitingDays_one": "Wacht {{count}} dag - er wordt niets gedownload",
     "waitingDays_other": "Wacht {{count}} dagen - er wordt niets gedownload",
     "waitingImport": "Al gedownload. Je server voegt de titel toe aan de bibliotheek, dat duurt meestal een paar minuten.",
-    "waitingMatch": "Goedgekeurd en wachtend op een match. Je server blijft zoeken, dus dit kan even duren als er nog niets goeds beschikbaar is."
+    "waitingMatch": "Goedgekeurd en wachtend op een match. Je server blijft zoeken, dus dit kan even duren als er nog niets goeds beschikbaar is.",
+    "removeAll": "Verzoek en bestanden verwijderen",
+    "removeAllTitle": "Alles verwijderen?",
+    "removeAllBody": "Verwijdert de bestanden, laat Radarr/Sonarr de titel loslaten en een lopende download stoppen, en verwijdert het verzoek. Dit kan niet ongedaan worden gemaakt."
   },
   "badge": {
     "available": "Beschikbaar",

@@ -227,26 +227,6 @@
       "episodes": "Episodes",
       "countries": "Countries"
     },
-    "actions": {
-      "play": "Play",
-      "playOnJellyfin": "Play on Jellyfin",
-      "available": "Available on Jellyfin",
-      "processing": "Processing…",
-      "partiallyAvailable": "Partially Available",
-      "requested": "Requested",
-      "request": "Request",
-      "requesting": "Requesting…",
-      "deleteRequest": "Delete Request",
-      "removeFromJellyfin": "Remove from Jellyfin"
-    },
-    "confirmDeleteRequest": {
-      "title": "Delete request?",
-      "message": "The request will be cancelled but any downloaded files stay on Jellyfin."
-    },
-    "confirmRemove": {
-      "title": "Remove from Jellyfin?",
-      "message": "This removes the media from Jellyseerr and asks Radarr/Sonarr to remove the file. Irreversible."
-    },
     "requestedToast": "{{title}} sent to Jellyseerr",
     "castHint": "Cast: {{state}} · AirPlay picker is inside the player",
     "kind": {
@@ -486,11 +466,6 @@
     "alreadyBodyYou": "You requested this on {{date}}. Asking again would not add a second copy.",
     "requestedBy": "Requested by {{name}} · {{date}}",
     "someone": "someone else",
-    "deleteBody": "The request record is removed. Downloaded files stay on Jellyfin.",
-    "deleteBodyCancels": "Nothing has downloaded yet, so this also removes it from Radarr/Sonarr and stops the download.",
-    "deleteFailed": "Delete failed",
-    "deleteRequest": "Delete request",
-    "deleteTitle": "Delete request?",
     "downloading": "Downloading",
     "episodeCount": "Episodes",
     "failed": "Failed to load details",
@@ -505,10 +480,7 @@
     "qualityDefault": "default",
     "qualityNote": "Sets what this title looks for. It stays one entry in your library - a better release replaces the file, it never adds a second copy.",
     "released": "Released",
-    "removeBody": "This removes the media from Jellyseerr and asks Radarr/Sonarr to remove the file. Irreversible.",
     "removeFailed": "Remove failed",
-    "removeFromJellyfin": "Remove from Jellyfin",
-    "removeTitle": "Remove from Jellyfin?",
     "seasonCount": "Seasons",
     "seasonNumber": "Season {{number}}",
     "seasons": "Seasons",
@@ -521,7 +493,10 @@
     "waitingDays_one": "Waiting {{count}} day - nothing downloading",
     "waitingDays_other": "Waiting {{count}} days - nothing downloading",
     "waitingImport": "Already downloaded. Your server is adding it to the library, which usually takes a few minutes.",
-    "waitingMatch": "Approved and waiting for a match. Your server keeps searching, so this can take a while if nothing good is available yet."
+    "waitingMatch": "Approved and waiting for a match. Your server keeps searching, so this can take a while if nothing good is available yet.",
+    "removeAll": "Remove request and files",
+    "removeAllTitle": "Remove everything?",
+    "removeAllBody": "Deletes the files, tells Radarr/Sonarr to drop the title and stop any download, and removes the request. This cannot be undone."
   },
   "badge": {
     "available": "Available",

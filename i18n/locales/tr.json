@@ -227,26 +227,6 @@
       "episodes": "Bölüm",
       "countries": "Ülkeler"
     },
-    "actions": {
-      "play": "Oynat",
-      "playOnJellyfin": "Jellyfin'de Oynat",
-      "available": "Jellyfin'de mevcut",
-      "processing": "İşleniyor…",
-      "partiallyAvailable": "Kısmen mevcut",
-      "requested": "İstendi",
-      "request": "İste",
-      "requesting": "Gönderiliyor…",
-      "deleteRequest": "İsteği Sil",
-      "removeFromJellyfin": "Jellyfin'den Kaldır"
-    },
-    "confirmDeleteRequest": {
-      "title": "İstek silinsin mi?",
-      "message": "İstek iptal edilir; indirilmiş dosyalar Jellyfin'de kalır."
-    },
-    "confirmRemove": {
-      "title": "Jellyfin'den kaldırılsın mı?",
-      "message": "Medya Jellyseerr'den silinir ve Radarr/Sonarr'a dosyayı silmesi söylenir. Geri alınamaz."
-    },
     "requestedToast": "{{title}} Jellyseerr'e gönderildi",
     "castHint": "Cast: {{state}} · AirPlay seçici oynatıcının içinde",
     "kind": {
@@ -486,11 +466,6 @@
     "alreadyBodyYou": "Bunu {{date}} tarihinde sen istedin. Tekrar istemek ikinci bir kopya eklemez.",
     "requestedBy": "{{name}} tarafından istendi · {{date}}",
     "someone": "başka biri",
-    "deleteBody": "İstek kaydı silinir. İndirilen dosyalar Jellyfin’de kalır.",
-    "deleteBodyCancels": "Henüz hiçbir şey indirilmedi, bu yüzden başlık Radarr/Sonarr’dan da kaldırılır ve indirme durdurulur.",
-    "deleteFailed": "Silme başarısız",
-    "deleteRequest": "İsteği sil",
-    "deleteTitle": "İstek silinsin mi?",
     "downloading": "İndiriliyor",
     "episodeCount": "Bölüm",
     "failed": "Ayrıntılar yüklenemedi",
@@ -505,10 +480,7 @@
     "qualityDefault": "varsayilan",
     "qualityNote": "Bu basligin ne aradigini belirler. Kitapliginizda tek kayit olarak kalir - daha iyi bir surum dosyayi degistirir, ikinci kopya eklemez.",
     "released": "Yayın tarihi",
-    "removeBody": "Bu, medyayı Jellyseerr’den kaldırır ve Radarr/Sonarr’dan dosyayı silmesini ister. Geri alınamaz.",
     "removeFailed": "Kaldırma başarısız",
-    "removeFromJellyfin": "Jellyfin'den kaldır",
-    "removeTitle": "Jellyfin’den kaldırılsın mı?",
     "seasonCount": "Sezon",
     "seasonNumber": "{{number}}. sezon",
     "seasons": "Sezonlar",
@@ -521,7 +493,10 @@
     "waitingDays_one": "{{count}} gündür bekliyor - hiçbir şey inmiyor",
     "waitingDays_other": "{{count}} gündür bekliyor - hiçbir şey inmiyor",
     "waitingImport": "İndirme tamamlandı. Sunucu başlığı kitaplığa ekliyor, bu genelde birkaç dakika sürer.",
-    "waitingMatch": "Onaylandı ve eşleşme bekleniyor. Sunucun aramayı sürdürüyor, uygun bir şey yoksa bu biraz zaman alabilir."
+    "waitingMatch": "Onaylandı ve eşleşme bekleniyor. Sunucun aramayı sürdürüyor, uygun bir şey yoksa bu biraz zaman alabilir.",
+    "removeAll": "İsteği ve dosyaları kaldır",
+    "removeAllTitle": "Her şey kaldırılsın mı?",
+    "removeAllBody": "Dosyaları siler, Radarr/Sonarr’a başlığı bırakmasını ve süren indirmeyi durdurmasını söyler, isteği kaldırır. Bu geri alınamaz."
   },
   "badge": {
     "available": "Mevcut",
