@@ -342,7 +342,14 @@
       "address": "Address",
       "source": "Source code",
       "changes": "What's changed",
-      "tmdbCredit": "Artwork and metadata from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB."
+      "tmdbCredit": "Artwork and metadata from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.",
+      "sendLogs": "Send logs to the homelab",
+      "sendLogsNote": "What the app has recorded since it started, sent to jellylab-push. A release build has no bundler, so this is the only way to read them. No credentials are included.",
+      "logsSentTitle": "Logs sent",
+      "logsSentBody": "{{count}} lines saved as {{file}}.",
+      "logsEmptyTitle": "Nothing to send",
+      "logsEmptyBody": "The app has recorded nothing since it started.",
+      "logsFailedTitle": "Could not send the logs"
     },
     "labels": {
       "preferredAudio": "Preferred audio language",

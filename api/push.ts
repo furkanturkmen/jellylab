@@ -468,6 +468,34 @@ export async function saveFilters(url: string, token: string, doc: FilterDoc): P
   return res.json();
 }
 
+/**
+ * Hand the app's own log to the homelab.
+ *
+ * A release build has no bundler, so every diagnostic line the app writes goes
+ * to a console nobody is attached to. lib/logStore keeps them; this is how
+ * they get somewhere they can be read - the same service that already holds
+ * the *arr keys, on the machine the logs are about.
+ *
+ * Sent as plain text rather than JSON because that is what it is, and because
+ * a log that has to survive JSON escaping to be read is a worse log. The
+ * caller's own Jellyfin token identifies who sent it; the service refuses a
+ * token Jellyfin does not recognise, so this cannot be used to write files by
+ * anyone who is not already signed in.
+ */
+export async function sendLogs(
+  url: string,
+  token: string,
+  text: string,
+): Promise<{ file: string; bytes: number }> {
+  const res = await fetch(`${base(url)}/logs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Emby-Token': token },
+    body: text,
+  });
+  if (!res.ok) throw new Error((await res.text()) || `Server returned ${res.status}`);
+  return res.json();
+}
+
 export type FilterSync = {
   /** Set, and alone, when a run was already in flight and this one follows it. */
   queued?: boolean;

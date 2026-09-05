@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Stack } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
+import * as Push from '@/api/push';
 import { APP_BUILD_LABEL, getJellyfinUrl } from '@/config';
+import { useAuth } from '@/hooks/useAuth';
+import { asText, lines } from '@/lib/logStore';
+import { loadPrefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
 
 const REPO = 'https://github.com/furkanturkmen/jellylab';
@@ -19,7 +23,50 @@ const REPO = 'https://github.com/furkanturkmen/jellylab';
  */
 export default function AboutSettings() {
   const { t } = useTranslation();
+  const { state } = useAuth();
   const [server, setServer] = useState<{ name?: string; version?: string } | null>(null);
+  const [sending, setSending] = useState(false);
+
+  /**
+   * Send what the app has said to the homelab.
+   *
+   * The whole point of the button: a release build loads no bundler, so its
+   * console goes nowhere, and "subtitles stopped working" had to be diagnosed
+   * by reading nginx logs and guessing. Now the lines themselves can be looked
+   * at. lib/logStore explains why they are only in memory.
+   *
+   * The header carries the build and the server, because the first question
+   * about any log is which of those produced it.
+   */
+  async function onSendLogs() {
+    if (sending) return;
+    const captured = lines().length;
+    if (captured === 0) {
+      Alert.alert(t('settings.about.logsEmptyTitle'), t('settings.about.logsEmptyBody'));
+      return;
+    }
+    setSending(true);
+    try {
+      const url = Push.resolveUrl((await loadPrefs()).pushUrl, getJellyfinUrl());
+      if (!url) throw new Error('the homelab service address is not known');
+      const token = state.status === 'signed-in' ? state.auth.accessToken : '';
+      const out = await Push.sendLogs(
+        url,
+        token,
+        asText({
+          app: APP_BUILD_LABEL,
+          platform: `${Platform.OS} ${Platform.Version}`,
+          server: `${server?.name ?? 'unknown'} ${server?.version ?? ''}`.trim(),
+          address: getJellyfinUrl(),
+        }),
+      );
+      Alert.alert(t('settings.about.logsSentTitle'), t('settings.about.logsSentBody', { count: captured, file: out.file }));
+    } catch (e: any) {
+      Alert.alert(t('settings.about.logsFailedTitle'), e?.message ?? t('common.unknownError'));
+    } finally {
+      setSending(false);
+    }
+  }
 
   useEffect(() => {
     // Public endpoint - it answers before sign-in and needs no token, so this
@@ -67,6 +114,19 @@ export default function AboutSettings() {
             <Text style={styles.arrow}>›</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Diagnostics. Last, because it is the row you only want when
+            something is wrong - and the note under it says where they go, so
+            pressing it is never a surprise. */}
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.linkRow} activeOpacity={0.75} onPress={onSendLogs} disabled={sending}>
+            <Text style={styles.linkLabel}>{t('settings.about.sendLogs')}</Text>
+            {sending
+              ? <ActivityIndicator color={colors.textMuted} />
+              : <Text style={styles.arrow}>›</Text>}
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.credit}>{t('settings.about.sendLogsNote')}</Text>
 
         {/* Required wording: TMDB ask that anything using their data says this,
             and this app draws its heroes and posters from it. */}

@@ -22,6 +22,8 @@
  */
 import { Platform } from 'react-native';
 
+import { installLogCapture } from './logStore';
+
 /** Cap on echoed response bodies. Seerr's error pages are otherwise pages long. */
 const MAX_BODY = 200;
 
@@ -92,6 +94,15 @@ let installed = false;
 export function installErrorLogging(): void {
   if (installed) return;
   installed = true;
+
+  /*
+   * First, so that everything below is captured too.
+   *
+   * Without it none of these lines survive a release build: they go to a
+   * console nothing is attached to. See lib/logStore - it wraps console
+   * rather than replacing it, so Metro is unaffected.
+   */
+  installLogCapture();
 
   const globals = globalThis as any;
   const previous = globals.ErrorUtils?.getGlobalHandler?.();

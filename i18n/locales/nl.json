@@ -342,7 +342,14 @@
       "address": "Adres",
       "source": "Broncode",
       "changes": "Wat is er veranderd",
-      "tmdbCredit": "Beeldmateriaal en metadata van TMDB. Deze app gebruikt de TMDB API maar is niet goedgekeurd of gecertificeerd door TMDB."
+      "tmdbCredit": "Beeldmateriaal en metadata van TMDB. Deze app gebruikt de TMDB API maar is niet goedgekeurd of gecertificeerd door TMDB.",
+      "sendLogs": "Logs naar de homelab sturen",
+      "sendLogsNote": "Wat de app sinds de start heeft vastgelegd, verstuurd naar jellylab-push. Een release-build heeft geen bundler, dus dit is de enige manier om ze te lezen. Er gaan geen inloggegevens mee.",
+      "logsSentTitle": "Logs verstuurd",
+      "logsSentBody": "{{count}} regels opgeslagen als {{file}}.",
+      "logsEmptyTitle": "Niets te versturen",
+      "logsEmptyBody": "De app heeft sinds de start niets vastgelegd.",
+      "logsFailedTitle": "Logs konden niet worden verstuurd"
     },
     "labels": {
       "preferredAudio": "Voorkeurstaal audio",

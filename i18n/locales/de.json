@@ -342,7 +342,14 @@
       "address": "Adresse",
       "source": "Quellcode",
       "changes": "Was sich geändert hat",
-      "tmdbCredit": "Bilder und Metadaten von TMDB. Diese App nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert."
+      "tmdbCredit": "Bilder und Metadaten von TMDB. Diese App nutzt die TMDB-API, ist aber nicht von TMDB unterstützt oder zertifiziert.",
+      "sendLogs": "Protokolle ans Homelab senden",
+      "sendLogsNote": "Was die App seit dem Start aufgezeichnet hat, gesendet an jellylab-push. Ein Release-Build hat keinen Bundler, also lassen sie sich nur so lesen. Zugangsdaten sind nicht enthalten.",
+      "logsSentTitle": "Protokolle gesendet",
+      "logsSentBody": "{{count}} Zeilen als {{file}} gespeichert.",
+      "logsEmptyTitle": "Nichts zu senden",
+      "logsEmptyBody": "Die App hat seit dem Start nichts aufgezeichnet.",
+      "logsFailedTitle": "Protokolle konnten nicht gesendet werden"
     },
     "labels": {
       "preferredAudio": "Bevorzugte Audiosprache",

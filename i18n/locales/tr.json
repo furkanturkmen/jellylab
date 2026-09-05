@@ -342,7 +342,14 @@
       "address": "Adres",
       "source": "Kaynak kodu",
       "changes": "Neler değişti",
-      "tmdbCredit": "Görseller ve meta veriler TMDB’den. Bu uygulama TMDB API’sini kullanır ancak TMDB tarafından onaylanmamıştır."
+      "tmdbCredit": "Görseller ve meta veriler TMDB’den. Bu uygulama TMDB API’sini kullanır ancak TMDB tarafından onaylanmamıştır.",
+      "sendLogs": "Günlükleri homelab'e gönder",
+      "sendLogsNote": "Uygulamanın açılıştan beri kaydettikleri, jellylab-push'a gönderilir. Release derlemesinde bundler yoktur; okumanın tek yolu budur. Kimlik bilgisi içermez.",
+      "logsSentTitle": "Günlükler gönderildi",
+      "logsSentBody": "{{count}} satır {{file}} olarak kaydedildi.",
+      "logsEmptyTitle": "Gönderilecek bir şey yok",
+      "logsEmptyBody": "Uygulama açılıştan beri hiçbir şey kaydetmedi.",
+      "logsFailedTitle": "Günlükler gönderilemedi"
     },
     "labels": {
       "preferredAudio": "Tercih edilen ses dili",
