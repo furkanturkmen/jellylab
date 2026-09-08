@@ -7,6 +7,17 @@ import { pickTrickplay, type TrickplayInfo } from '@/lib/trickplay';
 
 import type { JellyfinAuth, JellyfinItem, JellyfinView } from '@/types';
 
+/**
+ * The credentials Jellyfin wants, as the value of a standard `Authorization`
+ * header.
+ *
+ * It used to go in `X-Emby-Authorization`. Jellyfin 12 stopped reading that
+ * header, and because the client name arrives through it, login answered 400 -
+ * `Value cannot be null. (Parameter 'request.App')` - rather than anything that
+ * mentions a header. Every authenticated call broke with it. The standard
+ * header has been accepted for far longer than the legacy one, so this is not
+ * a compatibility trade.
+ */
 async function authHeader(token?: string): Promise<string> {
   const deviceId = await getDeviceId();
   const parts = [
@@ -29,7 +40,7 @@ async function makeClient(token?: string): Promise<AxiosInstance> {
     baseURL,
     timeout: 15000,
     headers: {
-      'X-Emby-Authorization': await authHeader(token),
+      Authorization: await authHeader(token),
       'Content-Type': 'application/json',
     },
   });
@@ -136,7 +147,7 @@ export async function uploadProfileImage(userId: string, base64: string, mimeTyp
     method: 'POST',
     headers: {
       'Content-Type': mimeType,
-      'X-Emby-Authorization': authHeader,
+      Authorization: authHeader,
     },
     body: base64,
   });

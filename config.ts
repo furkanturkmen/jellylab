@@ -19,8 +19,8 @@ export const APP_BUILD_LABEL = BUILD ? `${VERSION} (${BUILD})` : VERSION;
 
 export const CONFIG = {
   CLIENT_NAME: 'jellylab',
-  // Sent in X-Emby-Authorization, so this is the string Jellyfin lists under
-  // Devices. Worth being true.
+  // Sent in the Authorization header, so this is the string Jellyfin lists
+  // under Devices. Worth being true.
   CLIENT_VERSION: VERSION,
   DEVICE_NAME: 'iPhone',
 };
