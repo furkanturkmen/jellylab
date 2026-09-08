@@ -172,6 +172,7 @@
         "all": "Alle Personen"
       }
     },
+    "group": "{{count}} Anfragen",
     "empty": "Noch keine Anfragen",
     "mediaStatus": {
       "1": "Unbekannt",

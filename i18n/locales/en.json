@@ -172,6 +172,7 @@
         "all": "Everyone"
       }
     },
+    "group": "{{count}} requests",
     "empty": "No requests yet",
     "mediaStatus": {
       "1": "Unknown",

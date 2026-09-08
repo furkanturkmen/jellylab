@@ -172,6 +172,7 @@
         "all": "Herkes"
       }
     },
+    "group": "{{count}} istek",
     "empty": "Henüz istek yok",
     "mediaStatus": {
       "1": "Bilinmiyor",

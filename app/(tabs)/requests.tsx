@@ -34,6 +34,20 @@ type EnrichedRequest = JellyseerrRequest & {
   seasonArt: string | null;
 };
 
+/** One list entry: a series heading, or a request card under it. */
+type Row =
+  | {
+      kind: 'header';
+      key: string;
+      title: string;
+      year?: string;
+      poster: string | null;
+      count: number;
+      mediaType: string;
+      tmdbId: number;
+    }
+  | { kind: 'request'; key: string; r: EnrichedRequest; grouped: boolean };
+
 /** Requested seasons, specials dropped, lowest first. */
 function requestedSeasons(r: JellyseerrRequest): number[] {
   return (r.seasons ?? [])
@@ -255,6 +269,51 @@ export default function RequestsScreen() {
   }, [items, downloads, status, dateFilter, userFilter, now]);
 
   /*
+   * Seerr files one request per season selection, so a series people came back
+   * to appears several times - and the ordering above, which is by how much
+   * attention a request needs, scatters those copies down the list. Two rows
+   * for one title, far apart, read as a bug.
+   *
+   * Grouped rather than merged. Each request keeps its own state, its own
+   * requester and its own actions; a series with season 1 done and season 2
+   * failed has no single honest answer, and this screen exists to say which is
+   * which. So the title is shown once and the requests stay individually
+   * themselves underneath it.
+   *
+   * A group sits where its most urgent member would have sat, so grouping never
+   * buries something that needs looking at. Single requests get no header and
+   * render exactly as before.
+   */
+  const rows = useMemo(() => {
+    const groups = new Map<string, EnrichedRequest[]>();
+    for (const r of ordered) {
+      const key = `${r.media.mediaType}:${r.media.tmdbId}`;
+      const g = groups.get(key);
+      if (g) g.push(r); else groups.set(key, [r]);
+    }
+    const out: Row[] = [];
+    for (const [key, group] of groups) {
+      if (group.length === 1) {
+        out.push({ kind: 'request', key: `r${group[0].id}`, r: group[0], grouped: false });
+        continue;
+      }
+      const head = group[0];
+      out.push({
+        kind: 'header',
+        key: `h${key}`,
+        title: head.details?.title ?? `TMDB ${head.media.tmdbId}`,
+        year: head.details?.year,
+        poster: Jellyseerr.posterUrl(head.details?.posterPath, 'w300'),
+        count: group.length,
+        mediaType: head.media.mediaType,
+        tmdbId: head.media.tmdbId,
+      });
+      for (const r of group) out.push({ kind: 'request', key: `r${r.id}`, r, grouped: true });
+    }
+    return out;
+  }, [ordered]);
+
+  /*
    * The people to offer, read off the list rather than from Jellyseerr's user
    * directory: an account that cannot see other people's requests gets a list
    * containing only itself, so the menu hides instead of showing one name.
@@ -295,8 +354,8 @@ export default function RequestsScreen() {
     <View style={styles.root}>
       <StatusBar style="light" />
       <Animated.FlatList
-        data={ordered}
-        keyExtractor={(r: EnrichedRequest) => String(r.id)}
+        data={rows}
+        keyExtractor={(row: Row) => row.key}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={() => load()} tintColor={colors.text} progressViewOffset={headerHeight} />}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
@@ -313,16 +372,31 @@ export default function RequestsScreen() {
             />
           </View>
         }
-        renderItem={({ item }: { item: EnrichedRequest }) => (
-          <RequestCard
-            r={item}
-            downloads={downloads}
-            onOpen={() => router.push(`/tmdb/${item.media.mediaType}/${item.media.tmdbId}`)}
-            onCheck={pushUrl ? () => setChecking(item) : undefined}
-            rejectionReason={reasons[String(item.media.tmdbId)]}
-          />
+        renderItem={({ item }: { item: Row }) =>
+          item.kind === 'header' ? (
+            <SeriesHeader
+              title={item.title}
+              year={item.year}
+              poster={item.poster}
+              count={item.count}
+              onOpen={() => router.push(`/tmdb/${item.mediaType}/${item.tmdbId}`)}
+            />
+          ) : (
+            <RequestCard
+              r={item.r}
+              grouped={item.grouped}
+              downloads={downloads}
+              onOpen={() => router.push(`/tmdb/${item.r.media.mediaType}/${item.r.media.tmdbId}`)}
+              onCheck={pushUrl ? () => setChecking(item.r) : undefined}
+              rejectionReason={reasons[String(item.r.media.tmdbId)]}
+            />
+          )
+        }
+        // A heading and the first card under it belong together, so the gap
+        // there is smaller than the one between unrelated entries.
+        ItemSeparatorComponent={({ leadingItem }: { leadingItem?: Row }) => (
+          <View style={{ height: leadingItem?.kind === 'header' ? spacing.xs : spacing.md }} />
         )}
-        ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
         contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: 150 }}
         ListEmptyComponent={
           <View style={styles.center}>
@@ -376,9 +450,48 @@ export default function RequestsScreen() {
   );
 }
 
-function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
+/**
+ * The title above a series that was requested more than once.
+ *
+ * Carries the name, year and poster so the cards below can drop theirs and show
+ * only what differs between them - which seasons, and how each one is going.
+ */
+function SeriesHeader({ title, year, poster, count, onOpen }: {
+  title: string;
+  year?: string;
+  poster: string | null;
+  count: number;
+  onOpen: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <TouchableOpacity
+      style={styles.groupHeader}
+      onPress={onOpen}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel={[title, year, t('requests.group', { count })].filter(Boolean).join(', ')}
+    >
+      {poster ? (
+        <Image source={{ uri: poster }} style={styles.groupPoster} contentFit="cover" transition={200} />
+      ) : (
+        <View style={styles.groupPoster} />
+      )}
+      <View style={styles.groupText}>
+        <Text style={styles.groupTitle} numberOfLines={1}>{title}</Text>
+        <Text style={styles.groupCount}>
+          {[year, t('requests.group', { count })].filter(Boolean).join(' · ')}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason, grouped }: {
   r: EnrichedRequest;
   onOpen: () => void;
+  /** under a SeriesHeader, which already says the title - so this one omits it */
+  grouped?: boolean;
   /**
    * Ask the server what could be grabbed. Absent when jellylab-push has no
    * URL yet, which is the one case where there is nobody to ask.
@@ -636,9 +749,12 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason }: {
           <View style={[styles.poster, { backgroundColor: colors.surface }]} />
         )}
         <View style={styles.info}>
-          {year ? <Text style={styles.year}>{year}</Text> : null}
+          {year && !grouped ? <Text style={styles.year}>{year}</Text> : null}
           <View style={styles.titleRow}>
-            <Text style={styles.title} numberOfLines={1}>{title}</Text>
+            {/* The heading above already carries the title and year. Repeating
+                them on every card is what made a series look duplicated in the
+                first place, so grouped rows lead with the seasons instead. */}
+            {grouped ? null : <Text style={styles.title} numberOfLines={1}>{title}</Text>}
             {seasonNumbers.length > 0 ? (
               <View style={styles.seasonRow}>
                 {seasonNumbers.slice(0, 4).map(n => (
@@ -736,6 +852,23 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl, backgroundColor: colors.bg },
   empty: { ...t.body, color: colors.textDim },
+
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    paddingBottom: spacing.xs,
+  },
+  groupPoster: {
+    width: 28,
+    height: 42,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surface,
+  },
+  groupText: { flex: 1, gap: 1 },
+  groupTitle: { ...t.bodyStrong, color: colors.text },
+  groupCount: { ...t.caption, color: colors.textMuted, textTransform: 'uppercase' },
 
   card: {
     height: CARD_HEIGHT,

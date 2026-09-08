@@ -172,6 +172,7 @@
         "all": "Iedereen"
       }
     },
+    "group": "{{count}} aanvragen",
     "empty": "Nog geen aanvragen",
     "mediaStatus": {
       "1": "Onbekend",
