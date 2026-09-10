@@ -39,7 +39,8 @@
       "buildNumber": "4",
       "icon": {
         "light": "./assets/icon.png",
-        "dark": "./assets/icon-dark.png"
+        "dark": "./assets/icon-dark.png",
+        "tinted": "./assets/icon-tinted.png"
       }
     },
     "android": {

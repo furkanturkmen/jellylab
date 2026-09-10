@@ -143,15 +143,54 @@ opaque('icon-default', 1024, 'assets/icon.png', SUBSTRATE);
 // Dark is a backgroundless cut, so iOS puts its own backdrop behind it.
 composeCut('icon-default', 'assets/icon-dark.png');
 
-/*
- * No tinted asset, on purpose.
+/**
+ * The tinted tile: one flat grey, on the plate.
  *
- * iOS derives the tinted and Clear appearances from the default tile when an
- * app ships no tinted variant, which is what every app on the home screen next
- * to this one does. Shipping our own backgroundless cut instead left the glass
- * renderer with 33% coverage and no ground to build from, and it fell back to
- * a white tile - conspicuous in a row of dark glass ones.
+ * Tinted and Clear throw hue away and keep brightness, which turns two things
+ * the mark relies on into artefacts. The gradient reads as equally bright in
+ * colour because its stops differ in hue - #AA5CC3 and #00A4DC are 119 and 109
+ * as greys - and the veil subtracts another 15 from the lower half. In colour
+ * that is a two-tone; in monochrome it is a corner-to-corner ramp, and it is
+ * the only thing left to look at.
+ *
+ * So: no gradient, no veil, one value. Which is what every neighbouring app's
+ * tinted icon is - a flat silhouette.
+ *
+ * It keeps its plate rather than shipping as a cut. A backgroundless tinted
+ * asset leaves the Clear renderer with no ground to build from and it falls
+ * back to a white tile, which is exactly the bug this file caused earlier.
  */
+function composeTinted(dst) {
+  const src = readFileSync(p(KIT, 'icon-default.svg'), 'utf8');
+  const ds = [...src.matchAll(/\sd="([^"]+)"/g)].map(m => m[1]);
+  const [, bell, , play] = ds;   // clip copy, bell, veil, play
+  if (ds.length < 4) throw new Error('icon-default.svg is not the shape this expects');
+
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1024" height="1024">' +
+    `<rect width="512" height="512" fill="${SUBSTRATE}"/>` +
+    '<g transform="translate(5.4 -2.9) scale(0.4894)">' +
+    `<path d="${bell} ${play}" fill-rule="evenodd" fill="${TINT_GREY}"/>` +
+    '</g></svg>';
+
+  const img = PNG.sync.read(
+    new Resvg(svg, { fitTo: { mode: 'width', value: 1024 } }).render().asPng(),
+  );
+  const out = new PNG({ width: img.width, height: img.height });
+  for (let i = 0; i < img.data.length; i += 4) {
+    const a = img.data[i + 3] / 255;
+    out.data[i] = Math.round(img.data[i] * a);
+    out.data[i + 1] = Math.round(img.data[i + 1] * a);
+    out.data[i + 2] = Math.round(img.data[i + 2] * a);
+    out.data[i + 3] = 255;
+  }
+  write(out, dst, { colorType: 2 });
+}
+
+/** The midpoint of the kit's own tinted pair, flattened to a single value. */
+const TINT_GREY = '#B1B1B1';
+
+composeTinted('assets/icon-tinted.png');
 
 /*
  * Android's two adaptive layers keep their alpha, which is the one place this
@@ -249,7 +288,6 @@ for (const stale of [
   'assets/images/android-icon-foreground.png',
   'assets/images/android-icon-background.png',
   'assets/images/android-icon-monochrome.png',
-  'assets/icon-tinted.png',
 ]) {
   if (existsSync(p(stale))) {
     rmSync(p(stale));
