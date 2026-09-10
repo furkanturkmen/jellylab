@@ -139,9 +139,19 @@ function composeCut(srcName, dst) {
 // The default tile is the only one with a ground of its own, and it is opaque:
 // App Store Connect rejects an icon that merely has an alpha channel.
 opaque('icon-default', 1024, 'assets/icon.png', SUBSTRATE);
-// The other two are transparent so iOS can put its own backdrop behind them.
+
+// Dark is a backgroundless cut, so iOS puts its own backdrop behind it.
 composeCut('icon-default', 'assets/icon-dark.png');
-composeCut('icon-tinted', 'assets/icon-tinted.png');
+
+/*
+ * No tinted asset, on purpose.
+ *
+ * iOS derives the tinted and Clear appearances from the default tile when an
+ * app ships no tinted variant, which is what every app on the home screen next
+ * to this one does. Shipping our own backgroundless cut instead left the glass
+ * renderer with 33% coverage and no ground to build from, and it fell back to
+ * a white tile - conspicuous in a row of dark glass ones.
+ */
 
 /*
  * Android's two adaptive layers keep their alpha, which is the one place this
@@ -239,6 +249,7 @@ for (const stale of [
   'assets/images/android-icon-foreground.png',
   'assets/images/android-icon-background.png',
   'assets/images/android-icon-monochrome.png',
+  'assets/icon-tinted.png',
 ]) {
   if (existsSync(p(stale))) {
     rmSync(p(stale));
