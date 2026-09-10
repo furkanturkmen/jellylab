@@ -70,8 +70,25 @@ describe('bell morph', () => {
     expect(pulse(0.33).push).toBeGreaterThan(0);
   });
 
-  it('spends exactly one pulse of travel per pulse', () => {
-    expect(pulse(0.99).push).toBe(1);
+  it('spends a full pulse of travel by the end of the pulse', () => {
+    expect(pulse(0.999).push).toBeCloseTo(1, 2);
+  });
+
+  it('keeps gliding through the coast rather than stopping dead', () => {
+    /*
+     * The failure this guards against is the mark lurching on each thrust and
+     * then standing perfectly still until the next one - four jumps and four
+     * dead stops, which reads as teleporting rather than swimming. Travel must
+     * still be accumulating after the thrust has finished.
+     */
+    const afterThrust = pulse(0.63).push;
+    const midCoast = pulse(0.8).push;
+    const endCoast = pulse(0.99).push;
+    expect(midCoast).toBeGreaterThan(afterThrust);
+    expect(endCoast).toBeGreaterThan(midCoast);
+
+    // ...and decelerating while it does, rather than gliding at a constant rate.
+    expect(midCoast - afterThrust).toBeGreaterThan(endCoast - midCoast);
   });
 
   it('blends component-wise and hits both ends exactly', () => {
@@ -97,6 +114,6 @@ describe('precomputed pulse', () => {
 
   it('starts each pulse relaxed and ends it having spent its travel', () => {
     expect(PULSE_PATHS[0]).toBe(RESTING_PATH);
-    expect(PULSE_PUSH[SWIM_SAMPLES - 1]).toBe(1);
+    expect(PULSE_PUSH[SWIM_SAMPLES - 1]).toBeCloseTo(1, 2);
   });
 });

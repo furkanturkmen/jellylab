@@ -87,11 +87,24 @@ function easeOut(x: number): number {
  * direction stays a runtime value rather than something baked into a curve.
  */
 const SWIM = {
-  heading: -Math.PI / 2,  // straight up, in view space
-  sway: 0.2,              // perpendicular, as a fraction of travel
+  /*
+   * Not straight up. A heading of exactly -90 degrees reads as a UI element
+   * being dismissed upward rather than as something swimming, because nothing
+   * alive travels on a ruler.
+   */
+  heading: -Math.PI / 2 + 0.1,
+  /** Perpendicular, as a fraction of *one pulse's* travel - not of the whole. */
+  sway: 0.2,
   cycles: 4,
   duration: SWIM_DUR,
-  distance: 620,
+  /*
+   * How far it goes in 2.6s. Lower than it looks like it should be: the eye
+   * reads speed from how far the mark moves per pulse, and four hard shoves
+   * across a phone screen is a launch, not a swim.
+   */
+  distance: 460,
+  /** Degrees of tilt at peak lateral velocity. */
+  bank: 7,
 };
 
 type Props = {
@@ -185,11 +198,26 @@ export default function SplashSequence({ ready, onFinish }: Props) {
 
     const travelled = (index + push) / SWIM.cycles;
     const along = travelled * SWIM.distance;
-    const direction = index % 2 === 0 ? 1 : -1;
-    const lateral =
-      Math.sin(travelled * Math.PI * SWIM.cycles) * SWIM.sway * SWIM.distance * direction;
 
-    return { sample, along, lateral };
+    /*
+     * One lobe of sway per pulse, sized against a single pulse's travel.
+     *
+     * Scaling it to the *total* distance made every swing five times too wide,
+     * and running the sine over the whole journey put its zeroes in the middle
+     * of pulses instead of between them - so the lobes partly cancelled and
+     * what was left read as a straight line with a wobble. A lobe per pulse is
+     * zero at both boundaries, which is also what makes the direction reverse
+     * only between pulses: a jelly steers by aiming its next squeeze.
+     */
+    const perPulse = SWIM.distance / SWIM.cycles;
+    const direction = index % 2 === 0 ? 1 : -1;
+    const lateral = Math.sin(Math.PI * phase) * SWIM.sway * perPulse * direction;
+
+    // Bank comes from the *rate* of lateral movement, not its size, so the
+    // tilt leads each turn instead of lagging behind it.
+    const bank = Math.cos(Math.PI * phase) * direction * SWIM.bank;
+
+    return { sample, along, lateral, bank };
   });
 
   const bellProps = useAnimatedProps(() => {
@@ -268,10 +296,7 @@ export default function SplashSequence({ ready, onFinish }: Props) {
     const sin = Math.sin(SWIM.heading);
     const x = cos * along - sin * lateral;
     const y = sin * along + cos * lateral;
-
-    // Bank from lateral velocity, so the tilt leads each turn instead of
-    // trailing it.
-    const bank = interpolate(lateral, [-120, 120], [-7, 7], Extrapolation.CLAMP);
+    const bank = swim.value.bank;
     return {
       transform: [
         { translateX: x },

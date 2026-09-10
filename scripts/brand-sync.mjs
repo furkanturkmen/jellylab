@@ -73,6 +73,14 @@ function opaque(name, size, dst, bgHex) {
  * is the check that it has not: a corner pixel, where a flat plate and a
  * gradient plate would differ.
  */
+function declared(key) {
+  const ts = readFileSync(p('constants/brand.ts'), 'utf8');
+  const hex = new RegExp(`${key}: '(#[0-9A-Fa-f]{6})'`).exec(ts)?.[1];
+  if (!hex) throw new Error(`constants/brand.ts declares no ${key}`);
+  console.log(`  ${key.padEnd(38)} ${hex.toUpperCase()}  from constants/brand.ts`);
+  return hex;
+}
+
 function assertSubstrate(name, key) {
   const img = render(name, 512);
   const i = (512 * 4 + 4) << 2;
@@ -92,12 +100,48 @@ function assertSubstrate(name, key) {
 console.log('brand-kit-v2/ -> assets/');
 
 const SUBSTRATE = assertSubstrate('icon-default', 'substrate');
-const SUBSTRATE_DARK = assertSubstrate('icon-dark', 'substrateDark');
+
+/**
+ * A backgroundless appearance cut: the glyph, the play as a real hole, no plate.
+ *
+ * Only the default tile ships its own ground. iOS composites the dark and
+ * tinted variants over a backdrop it supplies itself, which is why every app's
+ * dark icon shares a ground - and why baking our own plate in made switching
+ * appearance look like it did nothing: we were painting a navy square over the
+ * exact place the system wanted to put its own.
+ *
+ * The veil goes with the plate, for the same reason it goes on the splash: it
+ * is the ground at 18%, so without a ground of ours it has nothing to tint.
+ */
+function composeCut(srcName, dst) {
+  const src = readFileSync(p(KIT, `${srcName}.svg`), 'utf8');
+  const grad = /<linearGradient[\s\S]*?<\/linearGradient>/.exec(src)?.[0];
+  // The space matters: `d="` also matches inside `id="`, which silently
+  // shifted the real geometry out of this list and rendered a blank plate.
+  const ds = [...src.matchAll(/\sd="([^"]+)"/g)].map(m => m[1]);
+  const [, bell, , play] = ds;   // clip copy, bell, veil, play
+  if (!grad || ds.length < 4) throw new Error(`${srcName}.svg is not the shape this expects`);
+
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1024" height="1024">' +
+    `<defs>${grad}</defs>` +
+    '<g transform="translate(5.4 -2.9) scale(0.4894)">' +
+    `<path d="${bell} ${play}" fill-rule="evenodd" fill="url(#g)"/>` +
+    '</g></svg>';
+
+  write(
+    PNG.sync.read(new Resvg(svg, { fitTo: { mode: 'width', value: 1024 } }).render().asPng()),
+    dst,
+  );
+}
 
 // The three iOS appearances. Opaque, unpadded - iOS crops corners itself.
+// The default tile is the only one with a ground of its own, and it is opaque:
+// App Store Connect rejects an icon that merely has an alpha channel.
 opaque('icon-default', 1024, 'assets/icon.png', SUBSTRATE);
-opaque('icon-dark', 1024, 'assets/icon-dark.png', SUBSTRATE_DARK);
-opaque('icon-tinted', 1024, 'assets/icon-tinted.png', SUBSTRATE);
+// The other two are transparent so iOS can put its own backdrop behind them.
+composeCut('icon-default', 'assets/icon-dark.png');
+composeCut('icon-tinted', 'assets/icon-tinted.png');
 
 /*
  * Android's two adaptive layers keep their alpha, which is the one place this

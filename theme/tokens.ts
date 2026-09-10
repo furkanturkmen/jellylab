@@ -21,8 +21,6 @@ export const brand = {
   paper: Brand.paper,
   themeColor: Brand.substrate,
   substrate: Brand.substrate,
-  /* iOS dark *appearance icon* only. Never a screen background - see brand.ts. */
-  substrateDark: Brand.substrateDark,
 } as const;
 
 export const colors = {

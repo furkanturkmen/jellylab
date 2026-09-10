@@ -21,12 +21,13 @@ export const Brand = {
    */
   substrate: '#000B25',
   /*
-   * iOS dark *appearance icon* only - the tile the system shows when Home
-   * Screen icons are set to Dark. It never goes on the splash or on a screen
-   * background; putting it there is the one seam a user actually notices,
-   * because it would no longer match the icon the splash grew out of.
+   * There is no dark-appearance ground here on purpose.
+   *
+   * iOS composites the dark and tinted icons over a backdrop it supplies, so
+   * those two variants ship as backgroundless cuts and inherit the same ground
+   * every other app's dark icon has. Painting our own plate in there is what
+   * made switching appearance look like it did nothing.
    */
-  substrateDark: '#000512',
   raised: '#0B1428',      // cards, rows, sheets
   hairline: 'rgba(241,237,231,0.12)',
   text: '#F1EDE7',

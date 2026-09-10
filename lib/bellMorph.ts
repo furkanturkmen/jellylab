@@ -85,20 +85,39 @@ export function blend(a: number[], b: number[], t: number): number[] {
  * `push` is how much of this pulse's travel has been spent, so displacement is
  * a consequence of the squeeze rather than a curve running beside it.
  */
+/** How much of a pulse's travel the thrust itself spends; the rest is glide. */
+const THRUST_SHARE = 0.55;
+
 export function pulse(phase: number): { shape: number[]; push: number } {
   'worklet';
   if (phase < 0.32) {
+    // Contract. Nothing moves yet - the squeeze completes first.
     const k = phase / 0.32;
     return { shape: blend(RELAXED, CONTRACTED, k), push: 0 };
   }
   if (phase < 0.62) {
+    // Thrust: the fast part, easing out of the squeeze. It spends a little
+    // over half the pulse's travel.
     const k = (phase - 0.32) / 0.3;
     const eased = 1 - Math.pow(1 - k, 3);
-    return { shape: blend(CONTRACTED, FLARED, eased), push: eased };
+    return { shape: blend(CONTRACTED, FLARED, eased), push: THRUST_SHARE * eased };
   }
+  /*
+   * Coast: still moving, and slowing.
+   *
+   * This is what separates swimming from teleporting. Ending the travel with
+   * the thrust makes the body lurch and then stand perfectly still for the
+   * rest of the pulse - four jumps and four dead stops - which reads as the
+   * mark being teleported four times. A real jelly keeps gliding on the water
+   * it already pushed, decelerating against drag, and the next contraction
+   * starts before it has fully stopped.
+   */
   const k = (phase - 0.62) / 0.38;
-  return { shape: blend(FLARED, RELAXED, k), push: 1 };
+  const glide = 1 - Math.pow(1 - k, 2);
+  return { shape: blend(FLARED, RELAXED, k), push: THRUST_SHARE + (1 - THRUST_SHARE) * glide };
 }
+
+
 
 /**
  * The pulse, precomputed.
