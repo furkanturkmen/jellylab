@@ -1,9 +1,11 @@
 import { useFonts } from 'expo-font';
+import { Quicksand_700Bold } from '@expo-google-fonts/quicksand';
+import { JetBrainsMono_600SemiBold } from '@expo-google-fonts/jetbrains-mono';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { HAS_LIQUID_GLASS, IS_TABLET } from '@/lib/device';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import 'react-native-reanimated';
 import '@/i18n';
@@ -14,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCurrentServer } from '@/hooks/useServer';
 import { clearJellyfinAuth, clearJellyseerrAuth } from '@/store/auth';
 import { installErrorLogging } from '@/lib/errorLog';
+import SplashSequence from '@/components/SplashSequence';
 import { colors } from '@/theme';
 
 export {
@@ -59,23 +62,52 @@ try {
 })();
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+  /*
+   * The two brand faces, and no system fallback for either.
+   *
+   * The wordmark is the brand - rendered in San Francisco it is simply a
+   * different logo - so the splash does not mount until these are in memory.
+   * Until then this returns null and the OS keeps drawing the native still,
+   * which is the correct thing to be looking at anyway.
+   */
+  const [loaded, error] = useFonts({ Quicksand_700Bold, JetBrainsMono_600SemiBold });
+  const [splashDone, setSplashDone] = useState(false);
 
   useEffect(() => {
     if (error) throw error;
   }, [error]);
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
   if (!loaded) return null;
 
-  return <RootLayoutNav />;
+  return (
+    <>
+      <RootLayoutNav />
+      {!splashDone && <SplashGate onFinish={() => setSplashDone(true)} />}
+    </>
+  );
+}
+
+/**
+ * Decides when the app behind the splash is actually ready.
+ *
+ * Ready means the stored session has been read back and the current server is
+ * known - the two things that decide which screen the user lands on. Holding
+ * for them is what stops the splash handing off to a login screen that then
+ * replaces itself with the library a moment later.
+ *
+ * Note this never *gates* startup: the sequence holds its resting frame, which
+ * is the same frame the OS was already showing, so a slow restore costs a
+ * longer still rather than a longer animation.
+ */
+function SplashGate({ onFinish }: { onFinish: () => void }) {
+  const { state } = useAuth();
+  const { ready: serverReady } = useCurrentServer();
+  return (
+    <SplashSequence
+      ready={serverReady && state.status !== 'loading'}
+      onFinish={onFinish}
+    />
+  );
 }
 
 function RootLayoutNav() {
@@ -179,6 +211,12 @@ function RootLayoutNav() {
           orientation: IS_TABLET ? 'all' : 'portrait',
           headerBackTitle: t('common.back'),
           headerTintColor: colors.text,
+          /*
+           * Every screen sits on the substrate, the same value as the icon
+           * tile and the launch screen, so there is no colour step anywhere
+           * between the home screen and the library.
+           */
+          contentStyle: { backgroundColor: colors.bg },
           headerStyle: { backgroundColor: colors.bg },
           headerTitleStyle: { color: colors.text },
           headerShadowVisible: false,

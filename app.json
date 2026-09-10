@@ -7,7 +7,7 @@
       "ios"
     ],
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/icon.png",
     "scheme": "jellylab",
     "userInterfaceStyle": "automatic",
     "primaryColor": "#00A4DC",
@@ -36,14 +36,18 @@
           "audio"
         ]
       },
-      "buildNumber": "4"
+      "buildNumber": "4",
+      "icon": {
+        "light": "./assets/icon.png",
+        "dark": "./assets/icon-dark.png",
+        "tinted": "./assets/icon-tinted.png"
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#000B25",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/adaptive-foreground.png",
+        "monochromeImage": "./assets/adaptive-monochrome.png",
+        "backgroundColor": "#000B25"
       },
       "package": "com.furkanturkmen.jellylab",
       "predictiveBackGestureEnabled": false,
@@ -52,7 +56,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png",
+      "favicon": "./assets/favicon.png",
       "name": "JellyLab",
       "shortName": "JellyLab",
       "description": "iOS client for self-hosted Jellyfin + Jellyseerr",
@@ -66,9 +70,14 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/splash.png",
+          "backgroundColor": "#000B25",
+          "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#000B25"
+          "dark": {
+            "image": "./assets/splash.png",
+            "backgroundColor": "#000B25"
+          }
         }
       ],
       "expo-secure-store",
@@ -117,6 +126,7 @@
         "projectId": "87dc2b63-b333-49f6-9785-cafbe516b90d"
       }
     },
-    "owner": "thefurkan"
+    "owner": "thefurkan",
+    "backgroundColor": "#000B25"
   }
 }

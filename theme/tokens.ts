@@ -1,40 +1,53 @@
+import { Brand, Type } from '@/constants/brand';
+
 /**
- * The JellyLab palette, from brand-kit/README.md.
+ * The JellyLab palette.
  *
- * Held separately from `colors` on purpose. The UI is deliberately monochrome
- * - Apple TV's grammar, where artwork supplies all the colour - so the brand
- * hues belong on the things that are the brand itself (the mark, the splash,
- * the icon) rather than sprayed across chrome that is meant to recede.
+ * Re-exported from `constants/brand.ts` rather than repeated: the kit's hexes
+ * live in exactly one file, and `scripts/brand-sync.mjs` checks that file
+ * against the rendered artwork on every `npm run brand`. Nothing here may
+ * introduce a literal brand hex.
+ *
+ * Held separately from `colors` on purpose. The UI is deliberately restrained
+ * - Apple TV's grammar, where artwork supplies the colour - so the gradient
+ * belongs on the things that are the brand itself (the mark, the splash, the
+ * icon) rather than sprayed across chrome that is meant to recede.
  */
 export const brand = {
   // the glyph runs as a gradient; which pair depends on what is behind it
-  glyphDark: ['#AA5CC3', '#00A4DC'] as const,   // on dark - Jellyfin's, sampled
-  glyphLight: ['#8438A4', '#00648C'] as const,  // on light
-  ink: '#14120F',      // wordmark, one-colour glyph
-  paper: '#F1EDE7',    // light surfaces
-  themeColor: '#000B25',
-  // Jellyseerr's own dark ink, darkened. Flat on purpose - the plate is not a
-  // gradient, so anything sitting behind the mark (splash ground, adaptive-icon
-  // fallback, web theme-color) is this one value. Kept in step by
-  // scripts/brand-sync.mjs, which reads it back out of the rendered icon.
-  substrate: '#000B25',
+  glyphDark: [Brand.glyphFrom, Brand.glyphTo] as const,   // on dark
+  glyphLight: [Brand.deepFrom, Brand.deepTo] as const,    // on light
+  ink: Brand.ink,
+  paper: Brand.paper,
+  themeColor: Brand.substrate,
+  substrate: Brand.substrate,
+  /* iOS dark *appearance icon* only. Never a screen background - see brand.ts. */
+  substrateDark: Brand.substrateDark,
 } as const;
 
 export const colors = {
-  bg: '#0A0A0A',
-  bgElevated: '#141414',
-  surface: '#1C1C1C',
-  surfaceRaised: '#212121',
-  border: 'rgba(245, 245, 247, 0.12)',
-  borderStrong: 'rgba(245, 245, 247, 0.24)',
-  text: '#F5F5F7',
-  textMuted: 'rgba(245, 245, 247, 0.60)',
-  textDim: 'rgba(245, 245, 247, 0.35)',
-  accent: '#F5F5F7',
-  accentContrast: '#0A0A0A',
+  /*
+   * One ground, all the way down: the icon tile, the launch screen and the
+   * app's base surface are the same value, so the tile appears to open into
+   * the splash and the splash hands off to the library with no colour step at
+   * any boundary. That handoff is the seam a user would otherwise notice.
+   */
+  bg: Brand.substrate,
+  bgElevated: Brand.raised,
+  surface: Brand.raised,
+  surfaceRaised: '#122040',   // one step above `raised`, for a card on a card
+  border: Brand.hairline,
+  borderStrong: 'rgba(241, 237, 231, 0.24)',
+  text: Brand.text,
+  textMuted: 'rgba(241, 237, 231, 0.60)',
+  textDim: 'rgba(241, 237, 231, 0.35)',
+  accent: Brand.text,
+  accentContrast: Brand.substrate,
   pink: '#F92672',
-  glassTint: 'rgba(42, 42, 42, 0.72)',
-  glassBorder: 'rgba(245, 245, 247, 0.16)',
+  // Glass over the substrate, not over grey: a neutral tint reads as a
+  // smudge on navy. This is `raised` at the same opacity the grey had.
+  glassTint: 'rgba(11, 20, 40, 0.72)',
+  glassBorder: 'rgba(241, 237, 231, 0.16)',
   // tvOS-style glass: lift the material with a white wash rather than darkening
   // it, and give the edge a brighter specular line so it reads as a surface.
   glassLift: 'rgba(255, 255, 255, 0.08)',
@@ -94,14 +107,30 @@ export const spacing = {
   xxl: 32,
 };
 
+/*
+ * Two typefaces, each with a job.
+ *
+ * Quicksand Bold carries the wordmark, headings and UI titles at the kit's -1%
+ * tracking - the tracking is written as a fraction of the size rather than a
+ * fixed number so it stays -1% at every step. JetBrains Mono carries meta and
+ * labels, uppercase at +0.12em.
+ *
+ * Body prose stays on the system face on purpose: it is read, not looked at,
+ * and San Francisco is what the platform tunes for legibility at 15px.
+ */
 export const type = {
-  display: { fontSize: 34, fontWeight: '700' as const, letterSpacing: -0.5 },
-  h1: { fontSize: 24, fontWeight: '700' as const, letterSpacing: -0.3 },
-  h2: { fontSize: 18, fontWeight: '600' as const, letterSpacing: -0.2 },
+  display: { fontFamily: Type.display, fontSize: 34, letterSpacing: Type.displayTracking(34) },
+  h1: { fontFamily: Type.display, fontSize: 24, letterSpacing: Type.displayTracking(24) },
+  h2: { fontFamily: Type.display, fontSize: 18, letterSpacing: Type.displayTracking(18) },
   body: { fontSize: 15, fontWeight: '400' as const },
   bodyStrong: { fontSize: 15, fontWeight: '600' as const },
   small: { fontSize: 13, fontWeight: '400' as const },
-  caption: { fontSize: 11, fontWeight: '500' as const, letterSpacing: 0.4 },
+  caption: {
+    fontFamily: Type.mono,
+    fontSize: 11,
+    letterSpacing: Type.monoTracking(11),
+    textTransform: 'uppercase' as const,
+  },
 };
 
 export const blur = {

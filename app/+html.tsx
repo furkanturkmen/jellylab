@@ -1,6 +1,8 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { ReactNode } from 'react';
 
+import { Brand } from '@/constants/brand';
+
 // This file is web-only and used to configure the root HTML for every
 // web page during static rendering.
 // The contents of this function only run in Node.js environments and
@@ -28,6 +30,7 @@ export default function Root({ children }: { children: ReactNode }) {
           it. iOS caches per bookmark - re-add the page to see a change.
         */}
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <meta name="theme-color" content={Brand.substrate} />
         <meta name="apple-mobile-web-app-title" content="JellyLab" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
 
@@ -40,12 +43,12 @@ export default function Root({ children }: { children: ReactNode }) {
   );
 }
 
+/*
+ * The page's ground is the substrate in both schemes - the same value as the
+ * icon tile and the launch screen, so a saved-to-home-screen bookmark opens
+ * into the same colour it was launched from.
+ */
 const responsiveBackground = `
 body {
-  background-color: #fff;
-}
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #000;
-  }
+  background-color: ${Brand.substrate};
 }`;
