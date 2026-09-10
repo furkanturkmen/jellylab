@@ -27,27 +27,31 @@ export const brand = {
 
 export const colors = {
   /*
-   * One ground, all the way down: the icon tile, the launch screen and the
-   * app's base surface are the same value, so the tile appears to open into
-   * the splash and the splash hands off to the library with no colour step at
-   * any boundary. That handoff is the seam a user would otherwise notice.
+   * The app's own surface is black, not the brand substrate.
+   *
+   * The kit asks for one ground from the icon tile through to the library, and
+   * that is genuinely seamless - but it also tints every screen navy, and this
+   * app is a media client: the surface exists to disappear behind artwork. So
+   * the substrate stays where the kit governs - the tile, the launch screen,
+   * the mark - and the app stays black behind the posters.
+   *
+   * The step that leaves at the handoff is covered by the splash cross-fading
+   * out rather than cutting, in SplashSequence.
    */
-  bg: Brand.substrate,
-  bgElevated: Brand.raised,
-  surface: Brand.raised,
-  surfaceRaised: '#122040',   // one step above `raised`, for a card on a card
-  border: Brand.hairline,
-  borderStrong: 'rgba(241, 237, 231, 0.24)',
-  text: Brand.text,
-  textMuted: 'rgba(241, 237, 231, 0.60)',
-  textDim: 'rgba(241, 237, 231, 0.35)',
-  accent: Brand.text,
-  accentContrast: Brand.substrate,
+  bg: '#0A0A0A',
+  bgElevated: '#141414',
+  surface: '#1C1C1C',
+  surfaceRaised: '#212121',
+  border: 'rgba(245, 245, 247, 0.12)',
+  borderStrong: 'rgba(245, 245, 247, 0.24)',
+  text: '#F5F5F7',
+  textMuted: 'rgba(245, 245, 247, 0.60)',
+  textDim: 'rgba(245, 245, 247, 0.35)',
+  accent: '#F5F5F7',
+  accentContrast: '#0A0A0A',
   pink: '#F92672',
-  // Glass over the substrate, not over grey: a neutral tint reads as a
-  // smudge on navy. This is `raised` at the same opacity the grey had.
-  glassTint: 'rgba(11, 20, 40, 0.72)',
-  glassBorder: 'rgba(241, 237, 231, 0.16)',
+  glassTint: 'rgba(42, 42, 42, 0.72)',
+  glassBorder: 'rgba(245, 245, 247, 0.16)',
   // tvOS-style glass: lift the material with a white wash rather than darkening
   // it, and give the edge a brighter specular line so it reads as a surface.
   glassLift: 'rgba(255, 255, 255, 0.08)',

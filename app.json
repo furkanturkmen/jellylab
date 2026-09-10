@@ -71,12 +71,12 @@
         "expo-splash-screen",
         {
           "image": "./assets/splash.png",
-          "backgroundColor": "#000B25",
+          "backgroundColor": "#0A0A0A",
           "imageWidth": 200,
           "resizeMode": "contain",
           "dark": {
             "image": "./assets/splash.png",
-            "backgroundColor": "#000B25"
+            "backgroundColor": "#0A0A0A"
           }
         }
       ],
@@ -127,6 +127,6 @@
       }
     },
     "owner": "thefurkan",
-    "backgroundColor": "#000B25"
+    "backgroundColor": "#0A0A0A"
   }
 }

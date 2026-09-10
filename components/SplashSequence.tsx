@@ -16,6 +16,7 @@ import Animated, {
 import Svg, { Circle, ClipPath, Defs, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { Brand, Mark, Type } from '@/constants/brand';
+import { colors } from '@/theme';
 import { PULSE_PATHS, PULSE_PUSH, RESTING_PATH, SWIM_SAMPLES } from '@/lib/bellMorph';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -57,7 +58,6 @@ const BEATS = {
   play: { at: 0.0, dur: 0.42 },
   iris: { at: 0.46, dur: 0.72 },
   knockout: { at: 0.54, dur: 0.2 },
-  veil: { at: 0.78, dur: 0.68 },
   line: { at: 0.96, dur: 0.66 },
   word: { at: 0.0, dur: 0.54 },   // on the text clock
   sub: { at: 0.18, dur: 0.58 },   // on the text clock
@@ -243,16 +243,6 @@ export default function SplashSequence({ ready, onFinish }: Props) {
     return { opacity: k };
   });
 
-  const veilProps = useAnimatedProps(() => {
-    const rise = interpolate(
-      markT.value,
-      [BEATS.veil.at, BEATS.veil.at + BEATS.veil.dur],
-      [300, 0],
-      Extrapolation.CLAMP,
-    );
-    return { transform: `translate(0 ${rise})` };
-  });
-
   const lineProps = useAnimatedProps(() => {
     const draw = interpolate(
       markT.value,
@@ -371,20 +361,17 @@ export default function SplashSequence({ ready, onFinish }: Props) {
             <G transform={Mark.tileTransform}>
               <AnimatedG animatedProps={bellIrisStyle}>
                 <AnimatedPath animatedProps={bellProps} fill="url(#g)" />
-                <G clipPath="url(#cb)">
-                  <AnimatedPath
-                    animatedProps={veilProps}
-                    d={Mark.veil}
-                    fill={Brand.substrate}
-                    opacity={Mark.veilOpacity}
-                  />
-                </G>
               </AnimatedG>
 
               {/* Frame 0: the triangle as a gradient shape of its own. */}
               <AnimatedPath animatedProps={playProps} d={Mark.play} fill="url(#g)" />
-              {/* The knockout it becomes. Substrate-filled, never a third colour. */}
-              <AnimatedPath animatedProps={knockoutProps} d={Mark.play} fill={Brand.substrate} />
+              {/*
+                The knockout it becomes. Filled with the ground behind it and
+                never a third colour - on this splash that ground is the app's
+                own black rather than the substrate, because the mark here is
+                the kit's backgroundless cut rather than the tile.
+              */}
+              <AnimatedPath animatedProps={knockoutProps} d={Mark.play} fill={colors.bg} />
 
               {/* The press ring, pushed out of the play hole's own centre. */}
               <AnimatedCircle
@@ -423,7 +410,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: Brand.substrate,
+    backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -211,11 +211,8 @@ function RootLayoutNav() {
           orientation: IS_TABLET ? 'all' : 'portrait',
           headerBackTitle: t('common.back'),
           headerTintColor: colors.text,
-          /*
-           * Every screen sits on the substrate, the same value as the icon
-           * tile and the launch screen, so there is no colour step anywhere
-           * between the home screen and the library.
-           */
+          // Every screen sits on the app's own ground rather than inheriting
+          // whatever the navigator defaults to.
           contentStyle: { backgroundColor: colors.bg },
           headerStyle: { backgroundColor: colors.bg },
           headerTitleStyle: { color: colors.text },

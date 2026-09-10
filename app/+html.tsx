@@ -2,6 +2,7 @@ import { ScrollViewStyleReset } from 'expo-router/html';
 import type { ReactNode } from 'react';
 
 import { Brand } from '@/constants/brand';
+import { colors } from '@/theme';
 
 // This file is web-only and used to configure the root HTML for every
 // web page during static rendering.
@@ -44,11 +45,11 @@ export default function Root({ children }: { children: ReactNode }) {
 }
 
 /*
- * The page's ground is the substrate in both schemes - the same value as the
- * icon tile and the launch screen, so a saved-to-home-screen bookmark opens
- * into the same colour it was launched from.
+ * The page's ground is the app's own, matching what the native surface does.
+ * The substrate stays on the browser chrome via theme-color, where it is the
+ * tile the bookmark was launched from.
  */
 const responsiveBackground = `
 body {
-  background-color: ${Brand.substrate};
+  background-color: ${colors.bg};
 }`;

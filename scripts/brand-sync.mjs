@@ -116,15 +116,60 @@ write(render('android-monochrome', 1024), 'assets/adaptive-monochrome.png');
 opaque('favicon', 48, 'assets/favicon.png', SUBSTRATE);
 
 /*
- * The launch screen, and the animation's frame 0.
+ * The launch screen, composed rather than taken whole.
  *
- * `splash.png` is the sequence's resting frame - the still the OS draws before
- * any JS runs. `splash-seed.png` is the play triangle alone, which is where
- * the animation starts; it is generated so that which frame the OS holds is a
- * one-line change in app.json rather than a re-render. See SplashSequence.
+ * The kit's `splash-still.svg` carries the substrate plate, which is right when
+ * the app behind it is also the substrate. This app's surface is black, so the
+ * splash uses the *backgroundless* cut on the app's own ground instead - the
+ * mark, no plate - and the step that would otherwise land at the splash-to-app
+ * boundary disappears. What is given up is the tile-opens-into-the-splash
+ * continuity, which iOS covers with its own zoom anyway; what is kept is the
+ * boundary you actually watch.
+ *
+ * Composed from `glyph-gradient.svg`, which is the kit's own cut with the play
+ * as a real even-odd hole, wrapped in the splash's 62% transform and given the
+ * level line. It deliberately carries no veil: the veil is the substrate at
+ * 18%, so on any other ground it is a navy smudge rather than a two-tone.
  */
-opaque('splash-still', 1024, 'assets/splash.png', SUBSTRATE);
-opaque('splash-play-seed', 1024, 'assets/splash-seed.png', SUBSTRATE);
+function composeSplash(dst, { markOnly = false } = {}) {
+  const cut = readFileSync(p(KIT, 'glyph-gradient.svg'), 'utf8');
+  const grad = /<linearGradient[\s\S]*?<\/linearGradient>/.exec(cut)?.[0];
+  const glyph = /<g transform="translate\(5\.4[\s\S]*?<\/g>/.exec(cut)?.[0];
+  if (!grad || !glyph) throw new Error('glyph-gradient.svg is not the shape this expects');
+
+  /*
+   * The seed is the play triangle on its own - the animation's frame 0, before
+   * the bell has irised out of it. The kit draws bell and play as two subpaths
+   * of one even-odd path, so the triangle is the part after the second `M`.
+   */
+  let body = glyph;
+  if (markOnly) {
+    const d = /d="([^"]+)"/.exec(glyph)?.[1] ?? '';
+    const play = d.slice(d.indexOf('M', 1)).trim();
+    if (!play) throw new Error('could not find the play subpath in glyph-gradient.svg');
+    body = `<g transform="translate(5.4 -2.9) scale(0.4894)"><path d="${play}" fill="url(#g)"/></g>`;
+  }
+
+  const line = markOnly
+    ? ''
+    : '<rect x="0" y="253.5" width="512" height="1" fill="#8FB6D8" opacity="0.42"/>';
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1024" height="1024">' +
+    `<defs>${grad}</defs>` +
+    `<g transform="translate(256 256) scale(0.62) translate(-256 -256)">${body}</g>` +
+    line +
+    '</svg>';
+
+  const img = PNG.sync.read(
+    new Resvg(svg, { fitTo: { mode: 'width', value: 1024 } }).render().asPng(),
+  );
+  write(img, dst);
+}
+
+// Alpha kept: the plugin draws this over its own backgroundColor, and the
+// play hole has to show that ground through rather than a colour of its own.
+composeSplash('assets/splash.png');
+composeSplash('assets/splash-seed.png', { markOnly: true });
 
 // The mark as drawn inside the app: the login header, and the About screen.
 write(render('glyph-gradient', 512), 'assets/images/mark.png');
