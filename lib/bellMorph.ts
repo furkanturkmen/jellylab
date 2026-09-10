@@ -99,3 +99,28 @@ export function pulse(phase: number): { shape: number[]; push: number } {
   const k = (phase - 0.62) / 0.38;
   return { shape: blend(FLARED, RELAXED, k), push: 1 };
 }
+
+/**
+ * The pulse, precomputed.
+ *
+ * Interpolating the outline and re-serialising it on every frame means two
+ * 50-number arrays and a path string allocated 60 times a second on the UI
+ * thread, and it shows: the swim stutters because the frame is spent in the
+ * allocator rather than in the renderer. The shapes never depend on anything
+ * but `phase`, so they can all be built once at module load and indexed.
+ *
+ * 48 samples is a shade over one per frame for a 1.5 Hz pulse at 60fps, so
+ * nothing is quantised that the eye could catch.
+ */
+export const SWIM_SAMPLES = 48;
+
+export const PULSE_PATHS: string[] = [];
+export const PULSE_PUSH: number[] = [];
+for (let i = 0; i < SWIM_SAMPLES; i++) {
+  const { shape, push } = pulse(i / SWIM_SAMPLES);
+  PULSE_PATHS.push(toPath(shape));
+  PULSE_PUSH.push(push);
+}
+
+/** The resting outline, serialised once - the frame the sequence holds on. */
+export const RESTING_PATH = toPath(RELAXED);

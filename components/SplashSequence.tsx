@@ -16,7 +16,7 @@ import Animated, {
 import Svg, { Circle, ClipPath, Defs, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { Brand, Mark, Type } from '@/constants/brand';
-import { RELAXED, pulse, toPath } from '@/lib/bellMorph';
+import { PULSE_PATHS, PULSE_PUSH, RESTING_PATH, SWIM_SAMPLES } from '@/lib/bellMorph';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedG = Animated.createAnimatedComponent(G);
@@ -178,7 +178,10 @@ export default function SplashSequence({ ready, onFinish }: Props) {
     const p = swimT.value * SWIM.cycles;
     const index = Math.floor(p);
     const phase = p - index;
-    const { shape, push } = pulse(phase);
+    // An index into the precomputed pulse, not a shape built here: this runs
+    // every frame, and allocating an outline per frame is what made it stutter.
+    const sample = Math.min(SWIM_SAMPLES - 1, Math.floor(phase * SWIM_SAMPLES));
+    const push = PULSE_PUSH[sample];
 
     const travelled = (index + push) / SWIM.cycles;
     const along = travelled * SWIM.distance;
@@ -186,7 +189,7 @@ export default function SplashSequence({ ready, onFinish }: Props) {
     const lateral =
       Math.sin(travelled * Math.PI * SWIM.cycles) * SWIM.sway * SWIM.distance * direction;
 
-    return { shape, along, lateral };
+    return { sample, along, lateral };
   });
 
   const bellProps = useAnimatedProps(() => {
@@ -199,7 +202,7 @@ export default function SplashSequence({ ready, onFinish }: Props) {
       Extrapolation.CLAMP,
     );
     return {
-      d: toPath(swimT.value > 0 ? swim.value.shape : RELAXED),
+      d: swimT.value > 0 ? PULSE_PATHS[swim.value.sample] : RESTING_PATH,
       opacity: iris,
     };
   });

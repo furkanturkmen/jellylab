@@ -1,4 +1,18 @@
-import { BELL, BELL_NUMBERS, CONTRACTED, FLARED, RELAXED, blend, pulse, toPath, warp } from '../bellMorph';
+import {
+  BELL,
+  BELL_NUMBERS,
+  CONTRACTED,
+  FLARED,
+  PULSE_PATHS,
+  PULSE_PUSH,
+  RELAXED,
+  RESTING_PATH,
+  SWIM_SAMPLES,
+  blend,
+  pulse,
+  toPath,
+  warp,
+} from '../bellMorph';
 
 /*
  * The morph is interpolated numerically rather than by a path-morph library,
@@ -69,5 +83,20 @@ describe('bell morph', () => {
 
   it('warps nothing when asked for nothing', () => {
     expect(warp(0, 0)).toEqual(RELAXED);
+  });
+});
+
+describe('precomputed pulse', () => {
+  it('samples the same outlines the live pulse would produce', () => {
+    for (let i = 0; i < SWIM_SAMPLES; i += 7) {
+      const live = pulse(i / SWIM_SAMPLES);
+      expect(PULSE_PATHS[i]).toBe(toPath(live.shape));
+      expect(PULSE_PUSH[i]).toBeCloseTo(live.push, 10);
+    }
+  });
+
+  it('starts each pulse relaxed and ends it having spent its travel', () => {
+    expect(PULSE_PATHS[0]).toBe(RESTING_PATH);
+    expect(PULSE_PUSH[SWIM_SAMPLES - 1]).toBe(1);
   });
 });
