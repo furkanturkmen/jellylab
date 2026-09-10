@@ -33,10 +33,10 @@ rounding or shadow; place the mark on Jellyfin's or Jellyseerr's gradients.
 ```
 glyph gradient   #AA5CC3 → #00A4DC   (on dark grounds)
 glyph on light   #8438A4 → #00648C
-substrate        #002766 → #00132F
+substrate        #000B25   (flat — Jellyfin's own plate, never a gradient) (flat)
 paper            #F1EDE7
 ink              #14120F
-theme-color      #002766
+theme-color      #000B25
 ```
 
 The glyph gradient is Jellyfin's, sampled; the substrate is Jellyseerr's navy.
@@ -63,3 +63,9 @@ Dark navy is the default ground for product and marketing; paper `#F1EDE7` is
 the light ground. One or two grounds per piece, never more. Clear space around
 the mark is one stopper width (120u at tile scale). Text on navy is
 `#F1EDE7`; secondary text `#8FB6D8`. Minimum contrast 4.5:1.
+
+## Web icon
+
+`apple-touch-icon` must be a **180 × 180 opaque PNG** — no SVG, no alpha, no
+padding (iOS crops corners only). Rasterize `svg/icon-dark.svg`, which carries
+the `#000B25` plate. iOS caches per bookmark; re-add to home screen to refresh.

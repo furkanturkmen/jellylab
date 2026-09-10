@@ -40,7 +40,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#001D4A",
+        "backgroundColor": "#000B25",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -56,8 +56,8 @@
       "name": "JellyLab",
       "shortName": "JellyLab",
       "description": "iOS client for self-hosted Jellyfin + Jellyseerr",
-      "themeColor": "#002766",
-      "backgroundColor": "#001D4A",
+      "themeColor": "#000B25",
+      "backgroundColor": "#000B25",
       "display": "standalone",
       "lang": "en"
     },
@@ -68,7 +68,7 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#001D4A"
+          "backgroundColor": "#000B25"
         }
       ],
       "expo-secure-store",

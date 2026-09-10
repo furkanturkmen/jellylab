@@ -12,14 +12,12 @@ export const brand = {
   glyphLight: ['#8438A4', '#00648C'] as const,  // on light
   ink: '#14120F',      // wordmark, one-colour glyph
   paper: '#F1EDE7',    // light surfaces
-  themeColor: '#002766',
-  // The kit gives the substrate as a gradient because the icon tile is one.
-  // 'night' is what it reads at the tile's centre, for anything that can only
-  // take a single colour - splash ground, adaptive-icon fallback. Kept in step
-  // by scripts/brand-sync.mjs, which samples it out of the rendered icon.
-  substrateTop: '#002766',
-  substrateBottom: '#00132F',
-  night: '#001D4A',
+  themeColor: '#000B25',
+  // Jellyseerr's own dark ink, darkened. Flat on purpose - the plate is not a
+  // gradient, so anything sitting behind the mark (splash ground, adaptive-icon
+  // fallback, web theme-color) is this one value. Kept in step by
+  // scripts/brand-sync.mjs, which reads it back out of the rendered icon.
+  substrate: '#000B25',
 } as const;
 
 export const colors = {

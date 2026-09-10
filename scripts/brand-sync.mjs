@@ -41,13 +41,14 @@ function write(png, dst, opts = {}) {
 const hexToRgb = hex => [0, 2, 4].map(i => parseInt(hex.replace('#', '').slice(i, i + 2), 16));
 const rgbToHex = rgb => '#' + rgb.map(v => v.toString(16).padStart(2, '0').toUpperCase()).join('');
 
-/** The substrate at the tile's centre, which is the flat colour anything that
- * cannot take a gradient gets - splash ground, the adaptive icon's fallback,
- * web theme-color. Sampled rather than written down, so it cannot drift from
- * the artwork the way a second copy of a hex would. */
-function substrateMidpoint() {
+/** The substrate, read off the rendered tile rather than written down, so it
+ * cannot drift from the artwork the way a second copy of a hex would. The kit
+ * gives it flat, but this samples anyway: it is what the splash ground, the
+ * adaptive icon's fallback and web theme-color all have to match, and sampling
+ * keeps that true if the plate ever goes back to being a gradient. */
+function substrate() {
   const img = render('icon-dark', 512);
-  const i = (512 * 256 + 256) << 2;
+  const i = (512 * 4 + 4) << 2;  // a corner, which a gradient plate would differ at
   return rgbToHex([img.data[i], img.data[i + 1], img.data[i + 2]]);
 }
 
@@ -74,8 +75,8 @@ function flattenOpaque(name, size, dst, bgHex) {
 
 console.log('brand-kit/ -> assets/images/');
 
-const NIGHT = substrateMidpoint();
-console.log(`  substrate midpoint ${NIGHT} (app.json backgroundColor, theme.brand.night)`);
+const NIGHT = substrate();
+console.log(`  substrate ${NIGHT} (app.json backgroundColor, theme.brand.substrate)`);
 
 // iOS + App Store. Flattened: the render is RGBA, which App Store Connect refuses.
 flattenOpaque('icon-dark', 1024, 'assets/images/icon.png', NIGHT);
@@ -101,5 +102,12 @@ write(render('glyph-gradient', 512), 'assets/images/mark.png');
 // Web favicon. Larger than a favicon needs to be, so it stays sharp if Expo
 // downsamples it for the tab and for the PWA install prompt.
 write(render('icon-dark', 192), 'assets/images/favicon.png');
+
+// apple-touch-icon, for a page saved to the home screen. iOS refuses an SVG
+// here, composites any transparency over black, and crops the corners itself -
+// so this is 180 square, opaque, and unpadded, exactly as the kit specifies.
+// It lands in public/ because it has to be served at a fixed path for the
+// <link> in app/+html.tsx; a bundled asset gets a hashed name instead.
+flattenOpaque('icon-dark', 180, 'public/apple-touch-icon.png', NIGHT);
 
 console.log('done');

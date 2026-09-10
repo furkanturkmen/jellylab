@@ -19,6 +19,18 @@ export default function Root({ children }: { children: ReactNode }) {
         */}
         <ScrollViewStyleReset />
 
+        {/*
+          Saved to an iOS home screen, the bookmark takes its icon from here and
+          nowhere else: iOS refuses an SVG, composites transparency over black,
+          and crops the corners itself, so this is a 180-square opaque PNG with
+          no padding. It is served from public/ at a fixed path because a
+          bundled asset would get a hashed name. scripts/brand-sync.mjs writes
+          it. iOS caches per bookmark - re-add the page to see a change.
+        */}
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-title" content="JellyLab" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+
         {/* Using raw CSS styles as an escape-hatch to ensure the background color never flickers in dark-mode. */}
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
         {/* Add any additional <head> elements that you want globally available on web... */}

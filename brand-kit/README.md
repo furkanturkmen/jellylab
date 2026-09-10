@@ -45,10 +45,10 @@ is shipped, so the type stays selectable and localisable.
 | --- | --- |
 | Glyph gradient | `#AA5CC3` → `#00A4DC` (Jellyfin's, sampled) |
 | Glyph on light | `#8438A4` → `#00648C` |
-| Substrate | `#002766` → `#00132F` (Jellyseerr's navy, sampled) |
+| Substrate | `#000B25` (flat) (Jellyseerr's own dark ink #000B25, darkened) |
 | Paper | `#F1EDE7` |
 | Ink | `#14120F` |
-| Theme colour | `#002766` |
+| Theme colour | `#000B25` |
 
 Gradients are pinned in user space (104,88 → 408,424 for the glyph; 0,0 → 512,512
 for the substrate), never to the glyph bounding box — that is what keeps a row of
@@ -61,3 +61,20 @@ icons consistent.
 - Never redraw the wall weight to fix a size problem — swap to the solid cut at ≤20px.
 - Let each platform apply its own mask and shadow; ship no baked rounding or shadow.
 - Never place the mark on the siblings' own gradients.
+
+## Shipping the web icon
+
+```sh
+# 180 x 180, opaque, no alpha
+rsvg-convert -w 180 -h 180 svg/icon-dark.svg -o apple-touch-icon.png
+```
+
+```html
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="JellyLab">
+<meta name="apple-mobile-web-app-capable" content="yes">
+```
+
+iOS will not accept an SVG here, composites any transparency over black, crops
+corners only (do not pad), and caches per bookmark — re-add to the home screen to
+see a change. The label truncates after two lines at 11pt, so keep the short name.
