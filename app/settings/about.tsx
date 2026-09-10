@@ -88,7 +88,7 @@ export default function AboutSettings() {
       />
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Image source={require('@/brand/png/icon/icon-180.png')} style={styles.mark} />
+          <Image source={require('@/assets/images/icon-180.png')} style={styles.mark} />
           <Text style={styles.name}>JellyLab</Text>
           <Text style={styles.version}>{APP_BUILD_LABEL}</Text>
         </View>

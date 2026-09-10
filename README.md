@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="brand/png/social/wide-banner-1920x720.png" width="100%" alt="JellyLab — browse, play, request">
+  <img src="brand-kit/svg/icon-dark.svg" width="128" alt="JellyLab — browse, play, request">
 </p>
 
 Built with Expo Router (SDK 57), React Native 0.86, and TypeScript. iOS-first; Android builds but isn't polished.

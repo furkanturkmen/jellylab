@@ -1,5 +1,5 @@
 /**
- * The JellyLab palette, from brand/BRAND.md.
+ * The JellyLab palette, from brand-kit/README.md.
  *
  * Held separately from `colors` on purpose. The UI is deliberately monochrome
  * - Apple TV's grammar, where artwork supplies all the colour - so the brand
@@ -7,19 +7,19 @@
  * the icon) rather than sprayed across chrome that is meant to recede.
  */
 export const brand = {
-  // the flask body runs as a gradient; which pair depends on what is behind it
-  glassDark: ['#C45BEA', '#0FB6F2'] as const,   // on dark
-  glassLight: ['#A63FD6', '#0094C8'] as const,  // on light
-  cap: '#9B7BE8',
-  iris: '#B79CF2',
-  ink: '#0B1B33',      // play pupil, wordmark
-  sclera: '#FFFFFF',
-  mist: '#F4F1FB',     // light surfaces
-  // The kit gives Night as a gradient because the icon tile is one. 'night' is
-  // its midpoint, for anything that can only take a single colour.
-  nightTop: '#14121C',
-  nightBottom: '#05070C',
-  night: '#0D0D14',
+  // the glyph runs as a gradient; which pair depends on what is behind it
+  glyphDark: ['#AA5CC3', '#00A4DC'] as const,   // on dark - Jellyfin's, sampled
+  glyphLight: ['#8438A4', '#00648C'] as const,  // on light
+  ink: '#14120F',      // wordmark, one-colour glyph
+  paper: '#F1EDE7',    // light surfaces
+  themeColor: '#002766',
+  // The kit gives the substrate as a gradient because the icon tile is one.
+  // 'night' is what it reads at the tile's centre, for anything that can only
+  // take a single colour - splash ground, adaptive-icon fallback. Kept in step
+  // by scripts/brand-sync.mjs, which samples it out of the rendered icon.
+  substrateTop: '#002766',
+  substrateBottom: '#00132F',
+  night: '#001D4A',
 } as const;
 
 export const colors = {
