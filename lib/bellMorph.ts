@@ -43,8 +43,8 @@ export function warp(amount: number, lift: number): number[] {
 }
 
 export const RELAXED = BELL_NUMBERS;
-export const CONTRACTED = warp(-0.2, 0.06);   // rim 20% in, bell 6% shorter
-export const FLARED = warp(0.12, -0.03);      // the recoil's over-flare
+export const CONTRACTED = warp(-0.28, 0.09);  // rim 28% in, bell 9% shorter
+export const FLARED = warp(0.16, -0.05);      // the recoil's over-flare
 
 /**
  * Rebuild the path string from a flat number list.

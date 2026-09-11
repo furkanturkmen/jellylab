@@ -102,9 +102,9 @@ const SWIM = {
    * reads speed from how far the mark moves per pulse, and four hard shoves
    * across a phone screen is a launch, not a swim.
    */
-  distance: 460,
+  distance: 300,
   /** Degrees of tilt at peak lateral velocity. */
-  bank: 7,
+  bank: 5,
 };
 
 type Props = {
@@ -279,7 +279,14 @@ export default function SplashSequence({ ready, onFinish }: Props) {
       Extrapolation.CLAMP,
     );
     const w = 512 * draw;
-    return { x: (512 - w) / 2, width: w };
+    // It dims as the bell pushes off it, so the horizon is not still sitting
+    // there at full strength once the thing it belonged to has gone.
+    const leaving = interpolate(swimT.value, [0, 0.35], [1, 0], Extrapolation.CLAMP);
+    return {
+      x: (512 - w) / 2,
+      width: w,
+      opacity: Mark.levelLine.opacity * leaving,
+    };
   });
 
   // Press: the whole mark dips, and a ring pushes out of the play hole.
@@ -410,12 +417,22 @@ export default function SplashSequence({ ready, onFinish }: Props) {
             </G>
           </G>
 
+        </Svg>
+      </Animated.View>
+
+      {/*
+        The level line is a horizon, so it does not go with the bell.
+        Drawn in its own untransformed layer: inside the mark's <Svg> it
+        inherited the swim's bank and travel, which tilted the horizon and
+        dragged it up the screen behind the mark.
+      */}
+      <Animated.View style={[styles.line, { width: size, height: size }]} pointerEvents="none">
+        <Svg width={size} height={size} viewBox="0 0 512 512">
           <AnimatedRect
             animatedProps={lineProps}
             y={Mark.levelLine.y}
             height={Mark.levelLine.height}
             fill={Mark.levelLine.color}
-            opacity={Mark.levelLine.opacity}
           />
         </Svg>
       </Animated.View>
@@ -440,6 +457,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   mark: { alignItems: 'center', justifyContent: 'center' },
+  line: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   copy: { position: 'absolute', bottom: '18%', alignItems: 'center' },
   word: {
     fontFamily: Type.display,
