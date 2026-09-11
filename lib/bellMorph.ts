@@ -18,8 +18,15 @@ import { Mark } from '@/constants/brand';
 
 export const BELL_NUMBERS = (Mark.bell.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
 
-/** Extents in the 1024 authoring grid, read off the path itself. */
-export const BELL = { top: 152, bottom: 906, cx: 512 };
+/**
+ * Extents in the 1024 authoring grid, read off the path itself.
+ *
+ * `widest` is the band where the outline is at its broadest - the control
+ * points at x=872 and x=152 sit there. It matters because that band is what a
+ * silhouette *is*: squeezing anywhere else changes numbers without changing
+ * what the eye sees.
+ */
+export const BELL = { top: 152, bottom: 906, widest: 468, cx: 512 };
 
 /**
  * Warp the rim inward (negative `amount`) or outward (positive), leaving the
@@ -35,7 +42,16 @@ export function warp(amount: number, lift: number): number[] {
   for (let i = 0; i < out.length; i += 2) {
     const x = out[i];
     const y = out[i + 1];
-    const w = Math.min(1, Math.max(0, (y - BELL.top) / (BELL.bottom - BELL.top)));
+    /*
+     * Weight reaches full strength at the widest band and stays there below it,
+     * rather than ramping all the way to the rim.
+     *
+     * Ramping to the rim is the version that looked like nothing: the weight at
+     * the bell's widest point was only 0.42, so a 28% squeeze moved the
+     * silhouette by 11% and the eye read a rigid shape sliding. The bell has to
+     * narrow where it is actually wide.
+     */
+    const w = Math.min(1, Math.max(0, (y - BELL.top) / (BELL.widest - BELL.top)));
     out[i] = BELL.cx + (x - BELL.cx) * (1 + amount * w);
     out[i + 1] = y - (y - BELL.top) * lift * w;
   }

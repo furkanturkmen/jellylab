@@ -30,9 +30,9 @@ describe('bell morph', () => {
     expect(shape(toPath(FLARED))).toBe(shape(toPath(RELAXED)));
   });
 
-  it('moves the rim and leaves the apex', () => {
+  it('moves the body and leaves the apex', () => {
     const apex = (n: number[]) => ({ x: n[0], y: n[1] });
-    // The path starts at the crown, which is the point that must barely move.
+    // The path starts at the apex, which is the point that must not move.
     expect(apex(CONTRACTED).x).toBeCloseTo(apex(RELAXED).x, 6);
     expect(apex(CONTRACTED).y).toBeCloseTo(apex(RELAXED).y, 6);
 
@@ -44,19 +44,22 @@ describe('bell morph', () => {
      * nothing about the squeeze.
      */
     const inset = (i: number) => 1 - (CONTRACTED[i] - BELL.cx) / (RELAXED[i] - BELL.cx);
-    const rim = BELL_NUMBERS.findIndex((v, i) => i % 2 === 0 && v === 660 && BELL_NUMBERS[i + 1] === 796);
-    const crown = BELL_NUMBERS.findIndex((v, i) => i % 2 === 0 && v === 872 && BELL_NUMBERS[i + 1] === 292);
-    expect(rim).toBeGreaterThan(-1);
-    expect(crown).toBeGreaterThan(-1);
+    const at = (x: number, y: number) =>
+      BELL_NUMBERS.findIndex((v, i) => i % 2 === 0 && v === x && BELL_NUMBERS[i + 1] === y);
 
     /*
-     * Asserted as a relationship rather than as numbers: the amplitude is a
-     * tuning knob and pinning it here means every adjustment to how the swim
-     * reads breaks a test that was not about that.
+     * The widest band is the one that has to move, because that band is what
+     * the silhouette is. An earlier weighting put full strength at the bottom
+     * rim instead, which squeezed the outline hardest where it is narrow
+     * anyway - 28% of inset produced 11% of visible change, and the mark read
+     * as a rigid shape sliding rather than a body contracting.
      */
-    expect(inset(rim)).toBeGreaterThan(0.15);          // the rim genuinely moves
-    expect(inset(crown)).toBeLessThan(0.06);           // the crown barely does
-    expect(inset(rim)).toBeGreaterThan(inset(crown) * 3);
+    const widest = at(872, 468);
+    const rim = at(660, 796);
+    expect(widest).toBeGreaterThan(-1);
+    expect(rim).toBeGreaterThan(-1);
+    expect(inset(widest)).toBeGreaterThan(0.2);
+    expect(inset(rim)).toBeGreaterThan(0.2);
   });
 
   it('flares past the resting outline rather than back to it', () => {
