@@ -8,6 +8,48 @@ Pre-1.0 on purpose: Downloads works per item but has no eviction and no way to
 take a whole season (`docs/downloads.md`), and 1.0 should mean the tabs all do
 what they say.
 
+## 0.19.0 - a new mark, and a launch screen that moves
+
+The flask is gone. 47A is a bell with the play triangle knocked out of it, and
+it arrived twice in one evening - first as a stoppered flask, then as this -
+so the pipeline that turns a kit into app assets was rebuilt to make the next
+swap cheap rather than to make this one work.
+
+The mark:
+
+- **One kit, rendered rather than exported.** `brand-kit-v2/` ships SVG only, so
+  `npm run brand` renders every size instead of pasting pre-exported PNGs. The
+  script reads the substrate back out of the rendered artwork and refuses to run
+  if `constants/brand.ts` disagrees with it, which is the check that a
+  written-down palette cannot quietly drift from the artwork it was copied from.
+- **Every brand hex lives in `constants/brand.ts`** and nowhere else.
+- **The dark and Clear appearances are the system's to ground.** Baking our own
+  plate into those variants is why switching appearance appeared to do nothing:
+  iOS composites them over a backdrop it supplies, and we were painting a navy
+  square exactly where that backdrop goes. The dark tile ships as a
+  backgroundless cut; tinted ships flat, because tinted and Clear keep
+  brightness and throw hue away, and the mark's gradient and veil both survive
+  that conversion as a corner-to-corner ramp nothing else on the home screen has.
+- The app's own surface stays black. The kit asks for one ground from tile to
+  library, which is genuinely seamless, but this is a media client - the surface
+  exists to disappear behind artwork.
+
+The launch screen:
+
+- **The static frame and the animated view are the same frame.** iOS draws a
+  launch image before any JavaScript exists; the sequence mounts on that exact
+  frame and the swap shows nothing. The image is the animation's frame 0 - the
+  play triangle alone - so the build-up is seen rather than skipped.
+- **It never gates startup.** The sequence holds its resting frame until the
+  stored session and the current server are restored, so a slow launch costs a
+  longer still rather than a longer animation. Reduced motion goes straight to
+  that frame and cross-fades.
+- **The bell swims off.** Four pulses of contract, thrust, coast, with the
+  outline morphing between three warped variants of one 25-point path -
+  arithmetic on a shared command structure rather than a path-morph library. The
+  trajectory comes from five numbers in the kit's own units, so the heading is a
+  runtime value and the exit can be pointed anywhere without redrawing anything.
+
 ## 0.18.1 - the picker, and which track it picks
 
 The Up Next work in 0.18.0 was shipped without being used. Using it turned up

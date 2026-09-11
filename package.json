@@ -1,7 +1,7 @@
 {
   "name": "jellylab",
   "main": "expo-router/entry",
-  "version": "0.18.1",
+  "version": "0.19.0",
   "dependencies": {
     "@expo-google-fonts/jetbrains-mono": "^0.4.1",
     "@expo-google-fonts/quicksand": "^0.4.1",
