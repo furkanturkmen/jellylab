@@ -65,29 +65,34 @@ const BEATS = {
 const REST_AT = BEATS.sub.at + BEATS.sub.dur - SEED_OFFSET;
 
 const PRESS_DUR = 260;
-const SWIM_DUR = 2600;
 
 /** The bell irises out of the triangle's centre, from a point rather than from nothing. */
 const IRIS_FROM = 0.06;
 
 /*
- * The swim, from five numbers rather than authored keyframes, so the exit
- * direction stays a runtime value rather than something baked into a curve.
+ * The swim, in the kit's own five numbers and its own units.
+ *
+ * `sway` and `distance` are user units - the mark's authoring grid, the same
+ * ones SPLASH.md counts the veil's 300u rise in - so these read straight across
+ * from the kit's tuner instead of being a conversion someone has to trust. The
+ * factor below is the whole transform chain: the tile transform, the splash's
+ * 62%, and the 512 viewBox drawn at 200pt.
  */
 const SWIM = {
-  /*
-   * Not straight up. A heading of exactly -90 degrees reads as a UI element
-   * being dismissed upward rather than as something swimming, because nothing
-   * alive travels on a ruler.
-   */
-  heading: -Math.PI / 2 + 0.1,
-  /** Perpendicular, as a fraction of *one pulse's* travel - not of the whole. */
-  sway: 0.2,
+  /** Degrees, 0 = up, positive clockwise. The kit's convention. */
+  heading: 11,
+  /** Lateral amplitude, absolute - not a fraction of the travel. */
+  sway: 150,
   cycles: 4,
-  distance: 300,
+  duration: 3,
+  distance: 2100,
   /** Degrees of tilt at peak lateral velocity. */
   bank: 5,
 };
+
+const MARK_SIZE = 200;
+const UNIT_PT = 0.4894 * 0.62 * (MARK_SIZE / 512);
+const SWIM_DUR = SWIM.duration * 1000;
 
 type Props = {
   /** Held at the resting frame until this is true. Never gates startup. */
@@ -192,11 +197,12 @@ export default function SplashSequence({ ready, onFinish }: Props) {
     const push = PULSE_PUSH[sample];
 
     const travelled = (index + push) / SWIM.cycles;
-    const along = travelled * SWIM.distance;
+    const along = travelled * SWIM.distance * UNIT_PT;
 
-    const perPulse = SWIM.distance / SWIM.cycles;
+    // One lobe of sway per pulse: zero at both boundaries, which is what makes
+    // the direction reverse only between pulses.
     const direction = index % 2 === 0 ? 1 : -1;
-    const lateral = Math.sin(Math.PI * phase) * SWIM.sway * perPulse * direction;
+    const lateral = Math.sin(Math.PI * phase) * SWIM.sway * UNIT_PT * direction;
     const bank = Math.cos(Math.PI * phase) * direction * SWIM.bank;
 
     return { sample, along, lateral, bank };
@@ -248,14 +254,18 @@ export default function SplashSequence({ ready, onFinish }: Props) {
     const dip = 1 - 0.038 * Math.sin(press.value * Math.PI);
     const { along, lateral, bank } = swim.value;
 
-    // Travel along the heading, sway perpendicular to it - as vectors, so that
-    // `heading` stays a real runtime parameter.
-    const cos = Math.cos(SWIM.heading);
-    const sin = Math.sin(SWIM.heading);
+    /*
+     * Travel along the heading, sway perpendicular to it, as vectors - so
+     * `heading` stays a real runtime parameter rather than "up" hardcoded.
+     * The kit's convention: 0 degrees is up the screen, positive clockwise.
+     */
+    const th = (SWIM.heading * Math.PI) / 180;
+    const hx = Math.sin(th);
+    const hy = -Math.cos(th);
     return {
       transform: [
-        { translateX: cos * along - sin * lateral },
-        { translateY: sin * along + cos * lateral },
+        { translateX: hx * along + -hy * lateral },
+        { translateY: hy * along + hx * lateral },
         { rotateZ: `${bank}deg` },
         { scale: dip },
       ],
@@ -281,9 +291,9 @@ export default function SplashSequence({ ready, onFinish }: Props) {
 
   if (reduceMotion === null) return null;
 
-  // 200pt, matching the plugin's imageWidth, so our mark lands where the OS
-  // drew the launch image's.
-  const size = 200;
+  // Matches the plugin's imageWidth, so our mark lands where the OS drew the
+  // launch image's.
+  const size = MARK_SIZE;
 
   return (
     <Animated.View
