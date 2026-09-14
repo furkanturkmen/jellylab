@@ -8,6 +8,60 @@ Pre-1.0 on purpose: Downloads works per item but has no eviction and no way to
 take a whole season (`docs/downloads.md`), and 1.0 should mean the tabs all do
 what they say.
 
+## 0.19.1 - Requests on the first try
+
+Moving the app's servers from a hostname to a VPN address turned a handful of
+quiet bugs into a broken Requests tab: signed into Jellyfin, "Sign in to
+Jellyseerr" on Requests, Discover empty, and an account switch that answered
+every Jellyseerr call with 403 until the app was reloaded. None of it was the
+server.
+
+Signing in to Jellyseerr:
+
+- **The session is no longer sent by hand.** Every call carried the connect.sid
+  in a Cookie header of the app's own as well as in iOS's cookie jar, and on
+  iOS every call with that header was refused - including calls carrying
+  exactly the session the login had just made. Leaving the header off and
+  letting the jar attach it is the whole fix. It is why Requests only loaded
+  after "try again" on Search, and why switching accounts only seemed to work
+  after a reload.
+- **Jellyseerr screens wait for Jellyseerr's half of a sign-in.** Saving the
+  Jellyfin session wakes every screen, and on a slow link they asked for their
+  data before the Jellyseerr login had finished - then settled on "not signed
+  in" for a sign-in seconds from succeeding.
+- **A late reply cannot undo a sign-in.** A call sent before a sign-out and
+  answered after the next sign-in could delete the new account's session.
+- **A dropped login is reported as one.** A timeout used to retry the login
+  with a hostname, which a configured Jellyseerr refuses, so a lost connection
+  surfaced as a hostname error.
+- **Changing the address of the server you are signed into signs you out**,
+  after asking. A Jellyseerr session belongs to the address that made it, and
+  saving a new one left Requests and Discover dead with Jellyfin still working.
+- Sign-in, sign-out and every refused call now log which session was involved -
+  the first eight characters of its id, never the signature - so a report can
+  be matched against Jellyseerr's own session table.
+
+Requests:
+
+- **A finished season request no longer wears a later season's download.** A
+  series is one Jellyseerr entry however many seasons it has, so the request
+  for seasons one and two showed the season three bar, identical to the request
+  it belonged to. A completed request for a partly available series is now
+  available.
+
+Elsewhere:
+
+- **The homelab service follows Jellyfin's address.** A push address typed into
+  a notifications screen that no longer exists still outranked it, so after a
+  server move the download bars, release checks and storage readout kept going
+  to the old address and timing out.
+- **Search waits for someone to be signed in** before loading Discover, instead
+  of firing five failing calls on every signed-out launch, and loads it again
+  when the account changes.
+
+Still true: two unfinished requests for different seasons of one series share a
+download bar, because the homelab service reports its queue per series.
+
 ## 0.19.0 - a new mark, and a launch screen that moves
 
 The flask is gone. 47A is a bell with the play triangle knocked out of it, and
