@@ -7,6 +7,8 @@ export const REQUEST_PENDING = 1;
 export const REQUEST_APPROVED = 2;
 export const REQUEST_DECLINED = 3;
 export const REQUEST_FAILED = 4;
+/** Everything the request asked for has arrived - per request, not per series. */
+export const REQUEST_COMPLETED = 5;
 
 export const MEDIA_PROCESSING = 3;
 export const MEDIA_PARTIAL = 4;
@@ -218,6 +220,28 @@ export function requestState(
 
   // Settled, and nothing else to say about it.
   if (media.status === MEDIA_AVAILABLE) return { kind: 'available' };
+
+  /*
+   * A finished request for a series that is still arriving.
+   *
+   * A series is one media entry however many seasons it has, so its status is
+   * shared by every request for it - and so is the download below, which
+   * jellylab-push keys on the series' TMDB id. Ted Lasso had seasons one and
+   * two in the library and three and four downloading: the series read
+   * "partly available", and the request for one and two showed the season
+   * three download, bar and all, identical to the request it belonged to.
+   *
+   * The request's own status is the per-season answer. Jellyseerr marks it
+   * completed once the seasons it covers are available, and its request list
+   * carries no per-season media status to work that out from instead. Only
+   * for a partly available series: anywhere else the media status above
+   * already says it, and a completed film whose file has since gone should not
+   * be called available on the strength of an old request.
+   */
+  if (media.mediaType === 'tv' && media.status === MEDIA_PARTIAL
+    && request.status === REQUEST_COMPLETED) {
+    return { kind: 'available' };
+  }
 
   const live = fromPush(request, push);
   if (live) {

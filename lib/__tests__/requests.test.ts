@@ -211,6 +211,30 @@ describe('requestState', () => {
     expect(requestState(request({ status: 2, media: { status: 5 } })).kind).toBe('available');
   });
 
+  describe('two requests for one series', () => {
+    // Ted Lasso: seasons one and two in the library, three and four coming
+    // down as one series-wide download. Both cards showed the same bar.
+    const series = { tmdbId: 97546, mediaType: 'tv', status: 4 };
+    const downloading = push({ tv: { 97546: dl({ percent: 0.031 }) } });
+
+    it('does not lend a finished request the download of a later season', () => {
+      const done = request({ status: 5, media: series, seasons: [{ seasonNumber: 1 }, { seasonNumber: 2 }] });
+      expect(requestState(done, NOW, downloading)).toEqual({ kind: 'available' });
+    });
+
+    it('keeps the download on the request it belongs to', () => {
+      const coming = request({ status: 2, media: series, seasons: [{ seasonNumber: 3 }, { seasonNumber: 4 }] });
+      expect(requestState(coming, NOW, downloading)).toEqual({ kind: 'downloading', percent: 0.031 });
+    });
+
+    it('does not take a completed request as proof for a film', () => {
+      // A film has one status for one file, already read above. A request that
+      // completed once says nothing about a file that has since gone.
+      const film = request({ status: 5, media: { tmdbId: 5, mediaType: 'movie', status: 3 } });
+      expect(requestState(film, NOW).kind).not.toBe('available');
+    });
+  });
+
   it('tells a stalled download from a moving one', () => {
     const moving = requestState(request({ media: { tmdbId: 1, mediaType: 'tv', status: 3 } }), NOW,
       push({ tv: { 1: dl() } }));
