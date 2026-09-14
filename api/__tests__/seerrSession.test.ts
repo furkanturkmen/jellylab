@@ -131,19 +131,34 @@ describe('authClient, when a reply outlives the session it was sent with', () =>
     expect(mockStored).toEqual(next);
   });
 
-  it('still drops a stale cookie of its own', async () => {
-    mockStored = previous;
-    await authClient();
-
-    await expect(authInterceptor()(rejection(403, previous.cookie))).rejects.toBeDefined();
-    expect(mockStored).toEqual({ ...previous, cookie: '' });
-  });
-
-  it('logs which session a rejected call carried', async () => {
+  it('still signs out over a 401 of its own', async () => {
     mockStored = next;
     await authClient();
 
-    await expect(authInterceptor()(rejection(403, 'connect.sid=s%3AurYinxrS.sig'))).rejects.toBeDefined();
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('seerr 403: header=urYinxrS stored=vfoyZDZy user=4'));
+    await expect(authInterceptor()(rejection(401))).rejects.toThrow('Not signed in to Jellyseerr');
+    expect(mockStored).toBeNull();
+  });
+
+  it('logs which session the app holds when a call is refused', async () => {
+    mockStored = next;
+    await authClient();
+
+    await expect(authInterceptor()(rejection(403))).rejects.toBeDefined();
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('seerr 403: session=vfoyZDZy user=4'));
+  });
+});
+
+describe('the session cookie', () => {
+  // Every call that carried it by hand was refused with 403 on iOS, even with
+  // the session the login had just made; the jar alone carries it.
+  it('is never sent as a header, even when the app knows it', async () => {
+    const axios = jest.requireMock('axios').default;
+    axios.create.mockClear();
+    mockStored = { cookie: 'connect.sid=s%3Ax1VTgjMJ.sig', userId: 1, email: 'furkan' };
+
+    await authClient();
+
+    const config = axios.create.mock.calls[0][0];
+    expect(Object.keys(config.headers ?? {}).map(k => k.toLowerCase())).not.toContain('cookie');
   });
 });
