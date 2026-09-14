@@ -5,6 +5,7 @@ import i18n from '@/i18n';
 import { metadataLanguage } from '@/lib/text';
 import { loadJellyseerrAuth, saveJellyseerrAuth, clearJellyseerrAuth } from '@/store/auth';
 import { logRequestFailure } from '@/lib/errorLog';
+import { createGate } from '@/lib/gate';
 import { queryString } from '@/lib/url';
 import type { JellyseerrAuth, JellyseerrRequest, JellyseerrSearchResult } from '@/types';
 
@@ -86,7 +87,31 @@ export class NotAuthenticatedError extends Error {
   }
 }
 
+/**
+ * Shut while a sign-in is under way, so Seerr calls wait for its session rather
+ * than report that there is none.
+ *
+ * The Jellyfin half of a sign-in lands first, and saving it is what wakes every
+ * screen. Discover and Requests then asked for their data in the gap before the
+ * Seerr half had finished, found no record, and settled on "sign in to
+ * Jellyseerr" for a sign-in that was seconds from succeeding - and stayed there
+ * until the app was reloaded. On a LAN the gap was too short to lose; over a
+ * relayed VPN link the Seerr login took fifteen seconds and every screen lost.
+ */
+const signingIn = createGate();
+
+/**
+ * Hold Seerr calls for the length of a sign-in. Call the returned function once
+ * the Seerr login has succeeded or failed - in a finally, or they wait forever.
+ */
+export function beginSignIn(): () => void {
+  return signingIn.close();
+}
+
 export async function authClient(): Promise<AxiosInstance> {
+  // Never awaited by the sign-in itself - loginJellyfin and its helpers build
+  // their clients with makeClient - so this cannot wait on its own release.
+  await signingIn.wait();
   const auth = await loadJellyseerrAuth();
   if (!auth) throw new NotAuthenticatedError();
   const client = await makeClient(auth.cookie);

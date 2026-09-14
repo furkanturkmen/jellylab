@@ -29,15 +29,23 @@ export function useAuth() {
   }, []);
 
   const signIn = useCallback(async (username: string, password: string) => {
-    const auth = await Jellyfin.login(username, password);
+    // Shut before Jellyfin's session is saved, because saving it is what sends
+    // every screen off to fetch - see Jellyseerr.beginSignIn.
+    const seerrSettled = Jellyseerr.beginSignIn();
+    let auth: JellyfinAuth;
     try {
-      await Jellyseerr.loginJellyfin(username, password);
-      setSeerrError(null);
-    } catch (e) {
-      // Still non-fatal - Jellyfin is what the app is for, and it must keep
-      // working when only Seerr is down. But the reason is kept now instead of
-      // dropped, so the screens that go empty because of it can say why.
-      setSeerrError(describeSeerrError(e, getJellyseerrUrl()));
+      auth = await Jellyfin.login(username, password);
+      try {
+        await Jellyseerr.loginJellyfin(username, password);
+        setSeerrError(null);
+      } catch (e) {
+        // Still non-fatal - Jellyfin is what the app is for, and it must keep
+        // working when only Seerr is down. But the reason is kept now instead of
+        // dropped, so the screens that go empty because of it can say why.
+        setSeerrError(describeSeerrError(e, getJellyseerrUrl()));
+      }
+    } finally {
+      seerrSettled();
     }
     // Remembered so the switcher can offer this person by name next time.
     // Nothing secret: a name, a server and an avatar tag.
