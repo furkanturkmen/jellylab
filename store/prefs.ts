@@ -51,8 +51,6 @@ export type Prefs = {
   preferredEngine: PlayerEngine;
   uiLanguage: string; // 'system' or one of SUPPORTED_LANGS
   maxBitrateMbps: number; // 0 = unlimited: always direct play the original file
-  /** jellylab-push base URL, e.g. http://192.168.1.10:8099 - used for the storage readout */
-  pushUrl: string;
   /**
    * Why a request was rejected, keyed by TMDB id.
    *
@@ -88,7 +86,6 @@ export const DEFAULT_PREFS: Prefs = {
   preferredEngine: 'auto',
   uiLanguage: 'system',
   maxBitrateMbps: 0,
-  pushUrl: '',
   rejectionReasons: {},
   downloadCapGb: DEFAULT_CAP_GB,
 };

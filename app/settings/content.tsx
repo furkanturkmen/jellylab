@@ -10,7 +10,6 @@ import * as Jellyseerr from '@/api/jellyseerr';
 import * as Push from '@/api/push';
 import { getJellyfinUrl, getJellyseerrUrl } from '@/config';
 import { useAuth } from '@/hooks/useAuth';
-import { loadPrefs } from '@/store/prefs';
 import { colors } from '@/theme';
 
 /**
@@ -72,8 +71,7 @@ export default function ContentSettings() {
   const syncLibrary = useCallback(async () => {
     if (state.status !== 'signed-in' || !state.auth.isAdmin) return;
     try {
-      const prefs = await loadPrefs();
-      const url = Push.resolveUrl(prefs.pushUrl, getJellyfinUrl());
+      const url = Push.resolveUrl(getJellyfinUrl());
       if (!url) return;
       const out = await Push.applyFilters(url, state.auth.accessToken);
       console.log(

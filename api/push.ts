@@ -27,14 +27,14 @@ const PUSH_PORT = 8099;
  * IP on the LAN, a NetBird address, or a hostname, since the hostname resolves
  * to the same host either way.
  *
- * There is a `pushUrl` preference and it still wins, for the case where the
- * service lives somewhere else. But it had no way of being set: nothing in the
- * app ever wrote it, so it stayed empty and every feature behind it - the
- * storage readout included - quietly did nothing. Deriving it means the
- * default case needs no configuring at all.
+ * Always derived, never read from a preference. There used to be a `pushUrl`
+ * one that won when set, and an old notifications screen let it be typed in -
+ * then the screen went and the value stayed. A phone moved from the NetBird
+ * address to the LAN one kept sending push traffic to the NetBird address,
+ * timing out through a tunnel Jellyfin and Jellyseerr no longer used, with
+ * nothing left in the app that could change it.
  */
-export function resolveUrl(configured: string, jellyfinUrl: string): string {
-  if (configured.trim()) return base(configured.trim());
+export function resolveUrl(jellyfinUrl: string): string {
   if (!jellyfinUrl.trim()) return '';
   try {
     const u = new URL(jellyfinUrl);

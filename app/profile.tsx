@@ -11,7 +11,6 @@ import { buttonStyle, foregroundColor, frame, scrollContentBackground, tint } fr
 import * as Jellyfin from '@/api/jellyfin';
 import * as Push from '@/api/push';
 import { getJellyfinUrl, getJellyseerrUrl } from '@/config';
-import { loadPrefs } from '@/store/prefs';
 import { useAuth } from '@/hooks/useAuth';
 import { loadJellyfinAuth, saveJellyfinAuth } from '@/store/auth';
 import { formatBytes } from '@/lib/bytes';
@@ -52,9 +51,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const prefs = await loadPrefs();
-        // Derived when unset, which it always was - see Push.resolveUrl.
-        const url = Push.resolveUrl(prefs.pushUrl, getJellyfinUrl());
+        const url = Push.resolveUrl(getJellyfinUrl());
         if (!url) return;
         setStorage(await Push.storage(url));
       } catch {}

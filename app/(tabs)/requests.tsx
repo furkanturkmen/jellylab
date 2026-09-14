@@ -175,7 +175,7 @@ export default function RequestsScreen() {
         // filter - a screen that cannot determine permissions should offer
         // fewer controls, not fail.
         setMe(await Jellyseerr.currentUser());
-        const url = Push.resolveUrl(prefs.pushUrl, getJellyfinUrl());
+        const url = Push.resolveUrl(getJellyfinUrl());
         setPushUrl(url);
         if (!url) {
           console.log('[jellylab] downloads: no url (jellyfin url not resolved yet)');

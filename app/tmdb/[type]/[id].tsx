@@ -15,7 +15,6 @@ import { formatDate } from '@/lib/date';
 import { kindKey, tmdbKind } from '@/lib/kind';
 import { deleteCancelsDownload, onDiskComplete } from '@/lib/requests';
 import { plainText } from '@/lib/text';
-import { loadPrefs } from '@/store/prefs';
 import { openSeasonSheet } from '@/store/sheet';
 import { colors, radius, spacing, type } from '@/theme';
 import { MEDIA_STATUS } from '@/types';
@@ -143,7 +142,7 @@ export default function TmdbDetailScreen() {
     let alive = true;
     (async () => {
       try {
-        const url = Push.resolveUrl((await loadPrefs()).pushUrl, getJellyfinUrl());
+        const url = Push.resolveUrl(getJellyfinUrl());
         if (!url) return;
         const d = await Push.downloads(url);
         if (alive) setOnDisk(d.onDisk?.[String(tmdbId)]);
@@ -236,7 +235,7 @@ export default function TmdbDetailScreen() {
    */
   async function stopDownload(seasons?: { seasonNumber: number }[]) {
     try {
-      const url = Push.resolveUrl((await loadPrefs()).pushUrl, getJellyfinUrl());
+      const url = Push.resolveUrl(getJellyfinUrl());
       if (!url) return;
       // A request is filed per season, so cancel the seasons this one covers
       // rather than the series - the rest were not cancelled by anybody.

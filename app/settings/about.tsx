@@ -9,7 +9,6 @@ import * as Push from '@/api/push';
 import { APP_BUILD_LABEL, getJellyfinUrl } from '@/config';
 import { useAuth } from '@/hooks/useAuth';
 import { asText, lines } from '@/lib/logStore';
-import { loadPrefs } from '@/store/prefs';
 import { colors, radius, spacing, type } from '@/theme';
 
 const REPO = 'https://github.com/furkanturkmen/jellylab';
@@ -47,7 +46,7 @@ export default function AboutSettings() {
     }
     setSending(true);
     try {
-      const url = Push.resolveUrl((await loadPrefs()).pushUrl, getJellyfinUrl());
+      const url = Push.resolveUrl(getJellyfinUrl());
       if (!url) throw new Error('the homelab service address is not known');
       const token = state.status === 'signed-in' ? state.auth.accessToken : '';
       const out = await Push.sendLogs(
