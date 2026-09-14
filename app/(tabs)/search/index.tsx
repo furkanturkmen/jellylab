@@ -68,11 +68,28 @@ export default function SearchScreen() {
   );
   const clearQuery = useCallback(() => setQuery(''), []);
 
+  /*
+   * Discover loads once someone is signed in, and again when that someone
+   * changes.
+   *
+   * It used to load on mount, and this tab mounts before the root layout has
+   * sent a signed-out user to the login screen - so every signed-out launch
+   * fired five Seerr calls with no session and logged five failures, which
+   * twice read as a live fault while one was being chased. It also kept the
+   * first account's rows after switching to another, whose filters differ.
+   */
   useEffect(() => {
+    if (!userId) {
+      // Nothing to show anyone signed out, and nothing coming to clear the spinner.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDiscover([]);
+      setDiscoverLoading(false);
+      return;
+    }
     loadDiscover();
-  // Discover is loaded once, on mount.
+  // loadDiscover is rebuilt every render; the account is what should trigger it.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userId]);
 
   async function loadDiscover() {
     setDiscoverLoading(true);
