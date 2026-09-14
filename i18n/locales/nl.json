@@ -54,7 +54,10 @@
     "hint": "Vul het schema in (http:// of https://) zonder afsluitende slash. Beide servers moeten bereikbaar zijn vanaf dit toestel — LAN, VPN of publiek.",
     "missingTitle": "Ontbrekende velden",
     "missingBody": "Vul een naam en beide URLs in.",
-    "testConnection": "Verbinding testen"
+    "testConnection": "Verbinding testen",
+    "addressChangedTitle": "Opnieuw inloggen?",
+    "addressChangedMessage": "Als je het adres van deze server wijzigt, word je afgemeld. Log daarna opnieuw in om Jellyfin en Jellyseerr op het nieuwe adres te verbinden.",
+    "addressChangedConfirm": "Opslaan en afmelden"
   },
   "tabs": {
     "library": "Bibliotheek",

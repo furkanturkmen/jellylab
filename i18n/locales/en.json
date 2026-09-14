@@ -54,7 +54,10 @@
     "hint": "Include the scheme (http:// or https://) and no trailing slash. Both servers must be reachable from this device — LAN, VPN mesh, or public.",
     "missingTitle": "Missing fields",
     "missingBody": "Fill in a name and both URLs.",
-    "testConnection": "Test connection"
+    "testConnection": "Test connection",
+    "addressChangedTitle": "Sign in again?",
+    "addressChangedMessage": "Changing this server's address signs you out. Sign in again to connect to Jellyfin and Jellyseerr at the new address.",
+    "addressChangedConfirm": "Save and sign out"
   },
   "tabs": {
     "library": "Library",

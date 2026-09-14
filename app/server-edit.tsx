@@ -6,14 +6,15 @@ import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
 import { useCurrentServer } from '@/hooks/useServer';
-import { upsertServer } from '@/store/servers';
+import { clearJellyfinAuth, clearJellyseerrAuth, loadJellyfinAuth } from '@/store/auth';
+import { normalizeUrl, upsertServer } from '@/store/servers';
 import { colors, radius, spacing, type } from '@/theme';
 
 export default function ServerEditScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { servers } = useCurrentServer();
+  const { server, servers } = useCurrentServer();
 
   const existing = useMemo(() => (id ? servers.find(s => s.id === id) : null), [id, servers]);
 
@@ -57,6 +58,38 @@ export default function ServerEditScreen() {
       Alert.alert(t('serverEdit.missingTitle'), t('serverEdit.missingBody'));
       return;
     }
+
+    /*
+     * A new address for the server you are signed into ends that sign-in.
+     *
+     * Jellyfin would survive it - its token travels in a header - but the
+     * Jellyseerr session is a cookie in iOS's jar, which files it under the
+     * host it came from. Saved without this, the next Seerr call went to the
+     * new host carrying nothing, got a 401, and dropped the Seerr record: the
+     * app stayed signed into Jellyfin, and Requests and Discover went empty
+     * with no way back short of signing out. Signing in again is the only
+     * thing that gets a session for the new host, and it needs the password.
+     */
+    const readdressed = existing != null
+      && existing.id === server?.id
+      && (normalizeUrl(jellyfinUrl) !== normalizeUrl(existing.jellyfinUrl)
+        || normalizeUrl(jellyseerrUrl) !== normalizeUrl(existing.jellyseerrUrl))
+      && (await loadJellyfinAuth()) != null;
+    if (readdressed) {
+      Alert.alert(
+        t('serverEdit.addressChangedTitle'),
+        t('serverEdit.addressChangedMessage'),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('serverEdit.addressChangedConfirm'), onPress: () => save(true) },
+        ],
+      );
+      return;
+    }
+    await save(false);
+  }
+
+  async function save(signOut: boolean) {
     setBusy(true);
     const wasFirst = servers.length === 0;
     try {
@@ -66,7 +99,14 @@ export default function ServerEditScreen() {
         jellyfinUrl,
         jellyseerrUrl,
       });
-      if (wasFirst) {
+      if (signOut) {
+        // Same as switching servers, and after the save rather than before it:
+        // a save that fails leaves the old address and a sign-in that still works.
+        await clearJellyfinAuth();
+        await clearJellyseerrAuth();
+        try { if ((router as any).canDismiss?.()) (router as any).dismissAll?.(); } catch {}
+        router.replace('/login');
+      } else if (wasFirst) {
         // First server: it's auto-current, go straight to login.
         router.replace('/login');
       } else {

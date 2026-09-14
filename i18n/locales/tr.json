@@ -54,7 +54,10 @@
     "hint": "Şemayı (http:// veya https://) dahil et ve sondaki eğik çizgi olmasın. Her iki sunucu da bu cihazdan erişilebilir olmalı — LAN, VPN veya genel.",
     "missingTitle": "Eksik alanlar",
     "missingBody": "Bir ad ve iki URL'yi doldur.",
-    "testConnection": "Bağlantıyı test et"
+    "testConnection": "Bağlantıyı test et",
+    "addressChangedTitle": "Yeniden giriş yapılsın mı?",
+    "addressChangedMessage": "Bu sunucunun adresini değiştirmek oturumunu kapatır. Jellyfin ve Jellyseerr'e yeni adresten bağlanmak için tekrar giriş yap.",
+    "addressChangedConfirm": "Kaydet ve çıkış yap"
   },
   "tabs": {
     "library": "Kitaplık",

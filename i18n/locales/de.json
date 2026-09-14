@@ -54,7 +54,10 @@
     "hint": "Mit Schema (http:// oder https://), ohne Slash am Ende. Beide Server müssen von diesem Gerät erreichbar sein — LAN, VPN oder öffentlich.",
     "missingTitle": "Fehlende Felder",
     "missingBody": "Bitte Name und beide URLs ausfüllen.",
-    "testConnection": "Verbindung testen"
+    "testConnection": "Verbindung testen",
+    "addressChangedTitle": "Erneut anmelden?",
+    "addressChangedMessage": "Wenn du die Adresse dieses Servers änderst, wirst du abgemeldet. Melde dich danach erneut an, um Jellyfin und Jellyseerr unter der neuen Adresse zu verbinden.",
+    "addressChangedConfirm": "Speichern und abmelden"
   },
   "tabs": {
     "library": "Bibliothek",
