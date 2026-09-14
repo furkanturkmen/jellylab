@@ -16,7 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/lib/date';
 import { formatPercent } from '@/lib/percent';
 import { qualityFromLabel } from '@/lib/quality';
-import { attention, requestState, statePercent } from '@/lib/requests';
+import { attention, downloadFor, requestState, statePercent } from '@/lib/requests';
 import {
   isFiltered, matchesDate, matchesStatus, matchesUser,
   type DateFilter, type StatusFilter,
@@ -597,9 +597,12 @@ function RequestCard({ r, onOpen, onCheck, downloads, rejectionReason, grouped }
    * lib/download for why that is both easier and more useful. Each piece is
    * dropped rather than faked when it cannot be known, so the line shortens
    * instead of lying.
+   *
+   * The same per-season download the state was read from, so the size, speed
+   * and file count describe this request's seasons rather than the series'.
    */
   const live = state.kind === 'downloading' || state.kind === 'stalled'
-    ? (r.media.mediaType === 'movie' ? downloads?.movies : downloads?.tv)?.[String(r.media.tmdbId)]
+    ? downloadFor(r, downloads) ?? undefined
     : undefined;
   /*
    * Live speed when jellylab-push could read qBittorrent, an average since the

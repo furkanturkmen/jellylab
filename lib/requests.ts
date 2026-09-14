@@ -1,4 +1,4 @@
-import type { DownloadProgress, Downloads, OnDisk } from '@/api/push';
+import type { DownloadGrab, DownloadProgress, Downloads, OnDisk } from '@/api/push';
 import { sweptOutcome } from './candidates';
 import type { JellyseerrRequest } from '@/types';
 
@@ -81,17 +81,71 @@ export type RequestProgress =
   | { state: 'waiting'; days: number; stalled: boolean }
   | { state: 'other' };
 
+/** The seasons a request covers, specials included - an empty set for films. */
+function requestedSeasons(request: JellyseerrRequest): Set<number> {
+  return new Set((request.seasons ?? []).map(s => s.seasonNumber));
+}
+
+/**
+ * Several downloads of one series added up, the way jellylab-push adds up the
+ * whole series: sizes summed, everything descriptive from the one still going.
+ */
+function combine(grabs: DownloadGrab[]): DownloadProgress {
+  const size = grabs.reduce((a, g) => a + (g.size ?? 0), 0);
+  const sizeLeft = grabs.reduce((a, g) => a + (g.sizeLeft ?? 0), 0);
+  const lead = grabs.reduce((a, g) => ((g.sizeLeft ?? 0) > (a.sizeLeft ?? 0) ? g : a), grabs[0]);
+  const { seasons: _covered, ...described } = lead;
+  return {
+    ...described,
+    size,
+    sizeLeft,
+    percent: size > 0 ? Math.max(0, Math.min(1, (size - sizeLeft) / size)) : null,
+    parts: grabs.length,
+  };
+}
+
 /**
  * The download jellylab-push knows about for this request, if any.
  *
  * Matched on TMDB id, which both sides key on. Movies and series are kept in
  * separate maps because the two id spaces overlap - TMDB 1399 is a film and
  * also a series, and they are not the same thing.
+ *
+ * For a series, only the downloads for the seasons this request covers. A
+ * series is one entry however many seasons are coming down, and Jellyseerr
+ * files a request per season selection, so the whole-series figure put the
+ * same bar on every request for it - a request for season four showed the
+ * season three pack. A download with no season on record is kept, since
+ * nothing says it is not this request's. A service too old to list downloads
+ * separately gets the whole series, which is what it always showed.
  */
-function fromPush(request: JellyseerrRequest, push?: Downloads | null): DownloadProgress | null {
+export function downloadFor(request: JellyseerrRequest, push?: Downloads | null): DownloadProgress | null {
   if (!push) return null;
   const table = request.media.mediaType === 'movie' ? push.movies : push.tv;
-  return table?.[String(request.media.tmdbId)] ?? null;
+  const entry = table?.[String(request.media.tmdbId)] ?? null;
+  if (!entry || request.media.mediaType === 'movie') return entry;
+
+  const wanted = requestedSeasons(request);
+  if (wanted.size === 0 || !entry.grabs?.length) return entry;
+
+  const mine = entry.grabs.filter(g => g.seasons.length === 0 || g.seasons.some(n => wanted.has(n)));
+  if (mine.length === 0) return null;
+  // All of them is the series figure, already added up by the service.
+  if (mine.length === entry.grabs.length) return entry;
+  return combine(mine);
+}
+
+/**
+ * Jellyseerr's own queue for this request, when jellylab-push is not there.
+ *
+ * The same per-season narrowing as downloadFor, for the same reason: this
+ * queue is the series', and each item says which episode it is.
+ */
+function queueFor(request: JellyseerrRequest): NonNullable<JellyseerrRequest['media']['downloadStatus']> {
+  const queue = request.media.downloadStatus ?? [];
+  const wanted = requestedSeasons(request);
+  if (request.media.mediaType !== 'tv' || wanted.size === 0) return queue;
+  return queue.filter(d => d.episode?.seasonNumber == null || wanted.has(d.episode.seasonNumber));
 }
 
 /**
@@ -118,7 +172,7 @@ export function requestProgress(
 ): RequestProgress {
   const media = request.media;
 
-  const live = fromPush(request, push);
+  const live = downloadFor(request, push);
   if (live) {
     return {
       state: 'downloading',
@@ -128,7 +182,7 @@ export function requestProgress(
     };
   }
 
-  const queue = media.downloadStatus ?? [];
+  const queue = queueFor(request);
 
   if (queue.length > 0) {
     const size = queue.reduce((sum, d) => sum + (d.size ?? 0), 0);
@@ -243,7 +297,7 @@ export function requestState(
     return { kind: 'available' };
   }
 
-  const live = fromPush(request, push);
+  const live = downloadFor(request, push);
   if (live) {
     // Sonarr says importBlocked or importPending when the file arrived and
     // something is stopping it reaching the library - a state that looks
@@ -269,7 +323,7 @@ export function requestState(
     return { kind: 'downloading', percent };
   }
 
-  const queue = media.downloadStatus ?? [];
+  const queue = queueFor(request);
   if (queue.length > 0) {
     const size = queue.reduce((sum, d) => sum + (d.size ?? 0), 0);
     const left = queue.reduce((sum, d) => sum + (d.sizeLeft ?? 0), 0);

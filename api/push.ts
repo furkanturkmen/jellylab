@@ -143,6 +143,20 @@ export type DownloadProgress = {
   clientState?: string | null;
   /** seconds remaining, qBittorrent's own estimate */
   eta?: number | null;
+  /**
+   * Series only: every download on its own, with the seasons it covers.
+   *
+   * The figures above are the whole series added up, and a request is filed
+   * per season selection - so without these, two requests for one series drew
+   * the same bar. Absent from films, and from a service older than this.
+   */
+  grabs?: DownloadGrab[];
+};
+
+/** One download within a series, and the seasons its episodes belong to. */
+export type DownloadGrab = Omit<DownloadProgress, 'grabs'> & {
+  /** ascending; a multi-season pack lists each season it carries */
+  seasons: number[];
 };
 
 /** A film Radarr is deliberately not searching for yet. */

@@ -1,5 +1,5 @@
 import {
-  attention, deleteCancelsDownload, onDiskComplete, requestProgress, requestState, statePercent,
+  attention, deleteCancelsDownload, downloadFor, onDiskComplete, requestProgress, requestState, statePercent,
   STALLED_AFTER_DAYS,
 } from '../requests';
 
@@ -225,6 +225,68 @@ describe('requestState', () => {
     it('keeps the download on the request it belongs to', () => {
       const coming = request({ status: 2, media: series, seasons: [{ seasonNumber: 3 }, { seasonNumber: 4 }] });
       expect(requestState(coming, NOW, downloading)).toEqual({ kind: 'downloading', percent: 0.031 });
+    });
+
+    describe('each on its own download', () => {
+      // Seasons three and four of one series, one of them split over two files.
+      const grab = (seasons: number[], size: number, sizeLeft: number, title: string) =>
+        ({ ...dl({ size, sizeLeft, percent: (size - sizeLeft) / size, title }), seasons });
+      const queue = push({
+        tv: {
+          97546: {
+            ...dl({ size: 120, sizeLeft: 65, percent: 55 / 120, parts: 3, title: 'S03 pack' }),
+            grabs: [grab([3], 100, 60, 'S03 pack'), grab([4], 10, 0, 'S04E01'), grab([4], 10, 5, 'S04E02')],
+          },
+        },
+      });
+      const coming = (seasons: number[]) =>
+        request({ status: 2, media: { ...series, status: 3 }, seasons: seasons.map(seasonNumber => ({ seasonNumber })) });
+
+      it('shows a request only the downloads for its own seasons', () => {
+        expect(requestState(coming([3]), NOW, queue)).toEqual({ kind: 'downloading', percent: 0.4 });
+        expect(requestState(coming([4]), NOW, queue)).toEqual({ kind: 'downloading', percent: 0.75 });
+      });
+
+      it('adds up the files of a season, and says how many there are', () => {
+        expect(downloadFor(coming([4]), queue)).toMatchObject({ size: 20, sizeLeft: 5, parts: 2, title: 'S04E02' });
+      });
+
+      it('keeps the series figure for a request that covers everything coming', () => {
+        expect(downloadFor(coming([3, 4]), queue)).toMatchObject({ size: 120, parts: 3 });
+      });
+
+      it('has no download for a season nothing is fetching', () => {
+        expect(downloadFor(coming([5]), queue)).toBeNull();
+        expect(requestState(coming([5]), NOW, queue).kind).not.toBe('downloading');
+      });
+
+      it('counts a two-season pack for either season', () => {
+        const pack = push({
+          tv: { 97546: { ...dl(), grabs: [grab([1, 2], 50, 25, 'S01-S02'), grab([3], 100, 100, 'S03')] } },
+        });
+        expect(downloadFor(coming([2]), pack)).toMatchObject({ title: 'S01-S02', percent: 0.5 });
+      });
+
+      it('shows the whole series when the service does not list downloads separately', () => {
+        const older = push({ tv: { 97546: dl({ percent: 0.3 }) } });
+        expect(requestState(coming([4]), NOW, older)).toEqual({ kind: 'downloading', percent: 0.3 });
+      });
+
+      it('narrows Jellyseerr\'s own queue the same way', () => {
+        const r = request({
+          status: 2,
+          seasons: [{ seasonNumber: 4 }],
+          media: {
+            ...series,
+            status: 3,
+            downloadStatus: [
+              { size: 100, sizeLeft: 100, episode: { seasonNumber: 3, episodeNumber: 1 } },
+              { size: 10, sizeLeft: 5, episode: { seasonNumber: 4, episodeNumber: 1 } },
+            ],
+          },
+        });
+        expect(requestState(r, NOW)).toEqual({ kind: 'downloading', percent: 0.5 });
+      });
     });
 
     it('does not take a completed request as proof for a film', () => {
