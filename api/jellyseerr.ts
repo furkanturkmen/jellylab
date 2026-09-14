@@ -101,11 +101,38 @@ export class NotAuthenticatedError extends Error {
 const signingIn = createGate();
 
 /**
+ * Bumped by every sign-in and sign-out, so a reply can tell whether the session
+ * it was sent with is still the one the app holds.
+ */
+let generation = 0;
+
+/**
  * Hold Seerr calls for the length of a sign-in. Call the returned function once
  * the Seerr login has succeeded or failed - in a finally, or they wait forever.
  */
 export function beginSignIn(): () => void {
+  generation++;
   return signingIn.close();
+}
+
+/**
+ * The start of the session id in a connect.sid cookie, for the log.
+ *
+ * Enough to match against Seerr's session table, which stores the id bare, and
+ * not enough to be the cookie: the signature that makes it a credential is
+ * never included. 'none' for no cookie at all, 'other' for cookies that are not
+ * a Seerr session.
+ */
+export function sessionTag(cookie: unknown): string {
+  if (typeof cookie !== 'string' || !cookie.trim()) return 'none';
+  const m = /connect\.sid=(?:s%3A|s:)?([^.;\s]+)/.exec(cookie);
+  return m ? m[1].slice(0, 8) : 'other';
+}
+
+/** The Cookie header a failed request actually carried, as far as JS can see. */
+function sentCookie(e: any): unknown {
+  const headers = e?.config?.headers;
+  return headers?.get?.('Cookie') ?? headers?.Cookie;
 }
 
 export async function authClient(): Promise<AxiosInstance> {
@@ -114,6 +141,7 @@ export async function authClient(): Promise<AxiosInstance> {
   await signingIn.wait();
   const auth = await loadJellyseerrAuth();
   if (!auth) throw new NotAuthenticatedError();
+  const born = generation;
   const client = await makeClient(auth.cookie);
 
   /**
@@ -129,6 +157,38 @@ export async function authClient(): Promise<AxiosInstance> {
   client.interceptors.response.use(
     r => r,
     async (e: any) => {
+      const status = e?.response?.status;
+      const outdated = born !== generation;
+
+      /*
+       * Which session a rejected call carried, against the one the app holds.
+       *
+       * Seerr logs no requests, so the server can only say which sessions were
+       * *used*; this is the other half. A switch between accounts left calls
+       * answering 403 while the session the login had just made sat untouched,
+       * and nothing on either side could say what was being sent instead.
+       */
+      if (status === 401 || status === 403) {
+        const current = await loadJellyseerrAuth();
+        console.log(
+          `[jellylab] seerr ${status}: header=${sessionTag(sentCookie(e))}` +
+          ` stored=${sessionTag(current?.cookie)} user=${current?.userId ?? 'none'}` +
+          (outdated ? ' — sent before the latest sign-in or sign-out, ignored' : ''),
+        );
+      }
+
+      /*
+       * A reply to a call made before the latest sign-in or sign-out says
+       * nothing about the session held now.
+       *
+       * Over a link that loses replies these arrive late - a 403 for the
+       * session the sign-out had just destroyed, landing after the sign-in -
+       * and both branches below then acted on the new record with the old
+       * one's contents: the 403 wrote the previous account's userId back over
+       * it, and a 401 deleted it outright.
+       */
+      if (outdated) throw e;
+
       if (isStaleSession(e) && auth.cookie) {
         await saveJellyseerrAuth({ ...auth, cookie: '' });
       }
@@ -164,9 +224,9 @@ export async function authClient(): Promise<AxiosInstance> {
  *   hostname: "http://jellyfin.homelab.internal"  -> 500 Jellyfin hostname already configured
  *   hostname omitted                              -> authenticates normally
  *
- * So it is tried without first, and only retried with a hostname if that fails
- * for a reason other than the credentials being wrong. A 401 means Seerr got as
- * far as checking them, and no hostname would change that.
+ * So it is tried without first, and only retried with a hostname if Seerr
+ * answered and the answer was not about the credentials. A 401 means Seerr got
+ * as far as checking them, and no hostname would change that.
  */
 export async function loginJellyfin(username: string, password: string): Promise<JellyseerrAuth> {
   const client = await makeClient();
@@ -177,7 +237,17 @@ export async function loginJellyfin(username: string, password: string): Promise
   try {
     res = await post({ username, password });
   } catch (e: any) {
-    if (e?.response?.status === 401) throw e;
+    /*
+     * Only when Seerr actually answered.
+     *
+     * A timeout used to count as "not about the credentials" and went round
+     * again with a hostname - which a configured Seerr refuses outright, so a
+     * login lost to a dropped connection was reported as a hostname error. It
+     * was not even always lost: Seerr logged one such login and made its
+     * session while the phone had already given up on the reply. Nothing was
+     * wrong with the server to be told about.
+     */
+    if (!e?.response || e.response.status === 401) throw e;
     // Unconfigured Seerr: it wants to be told which server to bind to.
     res = await post({ username, password, hostname: await requireJellyfinUrl() });
   }
@@ -186,6 +256,7 @@ export async function loginJellyfin(username: string, password: string): Promise
   // failure - but it does mean this app cannot pin the session itself, and has
   // to trust the jar to send the right one.
   const cookie = readCookie(res.headers['set-cookie']);
+  console.log(`[jellylab] seerr login: user=${res.data?.id} set-cookie=${sessionTag(cookie)}`);
   const auth: JellyseerrAuth = {
     cookie,
     userId: res.data.id,
@@ -210,10 +281,12 @@ export async function loginJellyfin(username: string, password: string): Promise
    * holding on to.
    */
   const settled = await whoAmI(cookie);
+  console.log(`[jellylab] seerr login: session answers as ${settled ?? 'nobody'}`);
   if (settled != null && settled !== auth.userId) {
     await destroySession(cookie);
     const again = await post({ username, password });
     const retryCookie = readCookie(again.headers['set-cookie']);
+    console.log(`[jellylab] seerr login: signed in again, set-cookie=${sessionTag(retryCookie)}`);
     const retried: JellyseerrAuth = {
       cookie: retryCookie,
       userId: again.data.id,
@@ -243,7 +316,10 @@ async function whoAmI(cookie: string): Promise<number | null> {
   try {
     const client = await makeClient(cookie, /* quiet */ true);
     return (await client.get('/auth/me')).data?.id ?? null;
-  } catch {
+  } catch (e: any) {
+    // Still no failure line from makeClient, but the reason is the part worth
+    // having: a 403 here is the jar sending some other session.
+    console.log(`[jellylab] seerr login: /auth/me failed — ${e?.response?.status ?? e?.message}`);
     return null;
   }
 }
@@ -255,10 +331,14 @@ async function destroySession(cookie: string): Promise<void> {
     // is a success, not something to report.
     const client = await makeClient(cookie, /* quiet */ true);
     await client.post('/auth/logout');
-  } catch {}
+    console.log(`[jellylab] seerr logout: header=${sessionTag(cookie)} ok`);
+  } catch (e: any) {
+    console.log(`[jellylab] seerr logout: header=${sessionTag(cookie)} failed — ${e?.response?.status ?? e?.message}`);
+  }
 }
 
 export async function logout(): Promise<void> {
+  generation++;
   /*
    * Deliberately not through authClient(): that throws when there is no stored
    * record, which used to mean the server session was left alive and the
