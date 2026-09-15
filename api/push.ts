@@ -19,6 +19,9 @@ function base(url: string): string {
 /** The port jellylab-push listens on, alongside Jellyfin on the same host. */
 const PUSH_PORT = 8099;
 
+/** Where the reverse proxy serves jellylab-push under a public https name. */
+const PUBLIC_PATH = '/jellylab-push';
+
 /**
  * Where to find jellylab-push, without anyone having to say.
  *
@@ -26,6 +29,11 @@ const PUSH_PORT = 8099;
  * address is the Jellyfin one with the port swapped - true whether that is an
  * IP on the LAN, a NetBird address, or a hostname, since the hostname resolves
  * to the same host either way.
+ *
+ * Except for a public https name with no port of its own. That is a reverse
+ * proxy reached from the internet, where 8099 is not open and should not be:
+ * the proxy serves the service at /jellylab-push on the same name instead. An
+ * https address with an explicit port is still a machine, and keeps the swap.
  *
  * Always derived, never read from a preference. There used to be a `pushUrl`
  * one that won when set, and an old notifications screen let it be typed in -
@@ -38,12 +46,45 @@ export function resolveUrl(jellyfinUrl: string): string {
   if (!jellyfinUrl.trim()) return '';
   try {
     const u = new URL(jellyfinUrl);
+    if (u.protocol === 'https:' && !u.port) {
+      return `${u.origin}${PUBLIC_PATH}`;
+    }
     u.port = String(PUSH_PORT);
     u.pathname = '';
     return base(u.toString());
   } catch {
     return '';
   }
+}
+
+/**
+ * The signed-in Jellyfin token, for the service to check.
+ *
+ * At home the service asks for nothing. Reached through a public address it
+ * shows free space, downloads and filters only to someone Jellyfin recognises,
+ * so the reads carry the token everywhere rather than guessing where they are.
+ * Loaded lazily: this module's URL logic is also used where no session store
+ * exists.
+ */
+async function signedIn(): Promise<Record<string, string>> {
+  try {
+    const auth = await import('../store/auth').then(m => m.loadJellyfinAuth());
+    return auth?.accessToken ? { 'X-Emby-Token': auth.accessToken } : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Why a call was refused, in words a person can act on.
+ *
+ * Through a public address the service changes nothing - cancelling, stopping
+ * a search and release checks answer 403 there. "Server returned 403" reads
+ * like a fault; this is a rule.
+ */
+function refused(res: Response): Error {
+  if (res.status === 403) return new Error('Only available at home');
+  return new Error(`Server returned ${res.status}`);
 }
 
 export async function health(url: string): Promise<{ ok: boolean }> {
@@ -70,7 +111,7 @@ export type StorageInfo = {
  * statfs there answers it.
  */
 export async function storage(url: string): Promise<StorageInfo> {
-  const res = await fetch(`${base(url)}/storage`);
+  const res = await fetch(`${base(url)}/storage`, { headers: await signedIn() });
   if (!res.ok) throw new Error(`Server returned ${res.status}`);
   return res.json();
 }
@@ -263,7 +304,7 @@ export type Downloads = {
  * could rewrite the library.
  */
 export async function downloads(url: string): Promise<Downloads> {
-  const res = await fetch(`${base(url)}/downloads`);
+  const res = await fetch(`${base(url)}/downloads`, { headers: await signedIn() });
   if (!res.ok) throw new Error(`Server returned ${res.status}`);
   return res.json();
 }
@@ -325,7 +366,7 @@ export async function candidates(
   const q = new URLSearchParams({ tmdbId: String(tmdbId), type });
   if (type === 'tv' && season != null) q.set('season', String(season));
   const res = await fetch(`${base(url)}/candidates?${q}`, { signal });
-  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+  if (!res.ok) throw refused(res);
   return res.json();
 }
 
@@ -357,7 +398,7 @@ export async function setMonitored(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tmdbId, type: mediaType, monitored, season }),
   });
-  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+  if (!res.ok) throw refused(res);
 }
 
 /** What a cancel actually stopped. */
@@ -400,7 +441,7 @@ export async function cancel(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ tmdbId, type: mediaType, season }),
   });
-  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+  if (!res.ok) throw refused(res);
   return res.json();
 }
 
@@ -447,7 +488,7 @@ export type ResolvedFilters = {
 };
 
 export async function filters(url: string): Promise<FilterDoc> {
-  const res = await fetch(`${base(url)}/filters`);
+  const res = await fetch(`${base(url)}/filters`, { headers: await signedIn() });
   if (!res.ok) throw new Error(`Server returned ${res.status}`);
   return res.json();
 }
@@ -460,7 +501,9 @@ export async function filters(url: string): Promise<FilterDoc> {
  * nothing about anybody else.
  */
 export async function filtersFor(url: string, jellyfinUserId: string): Promise<ResolvedFilters> {
-  const res = await fetch(`${base(url)}/filters/for?user=${encodeURIComponent(jellyfinUserId)}`);
+  const res = await fetch(`${base(url)}/filters/for?user=${encodeURIComponent(jellyfinUserId)}`, {
+    headers: await signedIn(),
+  });
   if (!res.ok) throw new Error(`Server returned ${res.status}`);
   return res.json();
 }
