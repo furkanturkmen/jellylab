@@ -10,10 +10,12 @@ import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { Scrubber, formatTime } from '@/components/Scrubber';
+import { SkipIntroButton } from '@/components/SkipIntroButton';
 import { TrackPicker, type PickerRow } from '@/components/TrackPicker';
 import { IS_TABLET } from '@/lib/device';
 import { logRequestFailure } from '@/lib/errorLog';
 import { resolvedTrackLanguage, withLanguage } from '@/lib/tracks';
+import { introSkipAt, type Chapter } from '@/lib/chapters';
 import { type TrickplayInfo } from '@/lib/trickplay';
 import { CONTROLS_HIDE_MS, SPEEDS, type AudioStream } from '@/player/config';
 import { pickSubtitle } from '@/player/lang';
@@ -35,7 +37,7 @@ import { colors } from '@/theme';
  * subtitle timing control - its overlay is drawn straight off the player clock.
  */
 
-export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, activeAudioStreamIndex, onSwitchAudio, originalLanguage, delayKey, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', trickplay, onEnded, onError, onExit }: {
+export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, activeAudioStreamIndex, onSwitchAudio, originalLanguage, delayKey, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', trickplay, chapters, onEnded, onError, onExit }: {
   url: string;
   itemId: string;
   mediaSourceId?: string;
@@ -56,6 +58,8 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
   playMethod?: Jellyfin.PlayMethod;
   /** Scrub previews, with the token needed to fetch a sheet. */
   trickplay?: { info: TrickplayInfo; token: string } | null;
+  /** Chapter marks from the file, when it carries any. */
+  chapters?: Chapter[] | null;
   /** The file reached its end, as opposed to the viewer leaving. */
   onEnded?: () => void;
   onError: () => void;
@@ -558,6 +562,11 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
     }
   }
 
+  // Null unless the theme is what is playing, which is how the button knows
+  // whether to exist. Scrub value while dragging, so it answers the frame the
+  // viewer is looking at rather than the one they left.
+  const introEnd = chapters ? introSkipAt(scrubbing ? scrubValue : position, chapters) : null;
+
   return (
     <>
       <StatusBar hidden />
@@ -637,6 +646,7 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
                   position={scrubbing ? scrubValue : position}
                   duration={duration}
                   trickplay={trickplay ? { itemId, info: trickplay.info, token: trickplay.token } : null}
+                  chapters={chapters}
                   onScrubStart={() => setScrubbing(true)}
                   onScrub={(t) => setScrubValue(t)}
                   onScrubEnd={(t) => {
@@ -685,6 +695,12 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
               </View>
             </View>
         </Animated.View>
+        {/*
+          * Outside the overlay above, so it does not fade with the controls.
+          * introSkipAt answers null everywhere except inside the theme, which
+          * is the whole of this button's lifecycle.
+          */}
+        {introEnd != null ? <SkipIntroButton onPress={() => seekTo(introEnd)} /> : null}
         {pickerOpen ? (
           <TrackPicker
             onClose={closeTrackPicker}

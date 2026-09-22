@@ -31,6 +31,18 @@ export type TrickplayResolution = {
   Interval: number;
 };
 
+/**
+ * One chapter mark, exactly as Jellyfin sends it.
+ *
+ * Only a start and a name: a chapter's end is the next one's start. Name is
+ * optional because some encoders write marks with no title at all.
+ */
+export type JellyfinChapter = {
+  StartPositionTicks: number;
+  Name?: string;
+  ImageTag?: string;
+};
+
 export type JellyfinItem = {
   Id: string;
   Name: string;
@@ -72,6 +84,13 @@ export type JellyfinItem = {
    * extraction task sends {} rather than omitting the field.
    */
   Trickplay?: Record<string, Record<string, TrickplayResolution>>;
+  /**
+   * Chapter marks from the file itself, when the request asked for them.
+   *
+   * Absent on roughly half this library, because they only exist if whoever
+   * encoded the file wrote them - see lib/chapters.
+   */
+  Chapters?: JellyfinChapter[];
   ParentIndexNumber?: number;
 };
 

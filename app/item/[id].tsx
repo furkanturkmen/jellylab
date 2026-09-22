@@ -499,6 +499,7 @@ export default function ItemScreen() {
         mediaSourceId: target.Id,
         externalSubs,
         audioStreams: [],
+        chapters: Jellyfin.chaptersFor(target),
       });
       return;
     }
@@ -592,6 +593,7 @@ export default function ItemScreen() {
       preferredAudioLanguage: wantedAudio ?? undefined,
       originalLanguage: originalLanguage ?? undefined,
       trickplay: trickplayInfo ? { info: trickplayInfo, token: state.auth.accessToken } : null,
+      chapters: Jellyfin.chaptersFor(target),
     });
   }
 

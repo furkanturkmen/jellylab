@@ -1,4 +1,5 @@
 import type { Engine, PlayMode } from '@/player/decide';
+import type { Chapter } from '@/lib/chapters';
 import type { TrickplayInfo } from '@/lib/trickplay';
 
 /**
@@ -46,6 +47,13 @@ export type PlaybackConfig = {
    * async work, and a scrub cannot wait for that.
    */
   trickplay?: { info: TrickplayInfo; token: string } | null;
+  /**
+   * Chapter marks for this item, when the file carries them.
+   *
+   * Resolved here for the same reason trickplay is: the screen already holds
+   * the item, and neither engine should learn how to fetch one.
+   */
+  chapters?: Chapter[] | null;
 };
 
 /** An audio track as Jellyfin describes it, before VLC has opened the file. */

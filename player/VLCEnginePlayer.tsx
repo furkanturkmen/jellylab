@@ -11,10 +11,12 @@ import { useTranslation } from 'react-i18next';
 import * as Jellyfin from '@/api/jellyfin';
 import { cleanSubLabel } from '@/components/TrackRow';
 import { Scrubber, formatTime } from '@/components/Scrubber';
+import { SkipIntroButton } from '@/components/SkipIntroButton';
 import { TrackPicker, type PickerRow } from '@/components/TrackPicker';
 import { IS_TABLET } from '@/lib/device';
 import { logRequestFailure } from '@/lib/errorLog';
 import { resolvedTrackLanguage, withLanguage } from '@/lib/tracks';
+import { introSkipAt, type Chapter } from '@/lib/chapters';
 import { type TrickplayInfo } from '@/lib/trickplay';
 import { CONTROLS_HIDE_MS, SPEEDS, type AudioStream } from '@/player/config';
 import { matchesLanguage, pickSubtitle } from '@/player/lang';
@@ -40,7 +42,7 @@ import { colors } from '@/theme';
  * view underneath and where the position comes from.
  */
 
-export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, preferredAudioLanguage, originalLanguage, delayKey, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', trickplay, onEnded, onExit }: {
+export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, preferredAudioLanguage, originalLanguage, delayKey, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', trickplay, chapters, onEnded, onExit }: {
   /** Already resolved by the screen, so "original" means something here too. */
   preferredAudioLanguage?: string;
   /** What the title was made in - names a track the file left untagged. */
@@ -57,6 +59,8 @@ export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audi
   playMethod?: Jellyfin.PlayMethod;
   /** Scrub previews, with the token needed to fetch a sheet. */
   trickplay?: { info: TrickplayInfo; token: string } | null;
+  /** Chapter marks from the file, when it carries any. */
+  chapters?: Chapter[] | null;
   /** The file reached its end, as opposed to the viewer leaving. */
   onEnded?: () => void;
   onExit: () => void;
@@ -797,6 +801,11 @@ export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audi
     if (seekTarget != null && Math.abs(cur - seekTarget) < 2) setSeekTarget(null);
   };
 
+  // Null unless the theme is what is playing, which is how the button knows
+  // whether to exist. Scrub value while dragging, so it answers the frame the
+  // viewer is looking at rather than the one they left.
+  const introEnd = chapters ? introSkipAt(scrubbing ? scrubValue : position, chapters) : null;
+
   return (
     <>
       <StatusBar hidden />
@@ -885,6 +894,7 @@ export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audi
                   position={scrubbing ? scrubValue : position}
                   duration={duration}
                   trickplay={trickplay ? { itemId, info: trickplay.info, token: trickplay.token } : null}
+                  chapters={chapters}
                   onScrubStart={() => setScrubbing(true)}
                   onScrub={(t) => setScrubValue(t)}
                   onScrubEnd={(t) => {
@@ -953,6 +963,12 @@ export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audi
               </View>
             </View>
         </Animated.View>
+        {/*
+          * Outside the overlay above, so it does not fade with the controls.
+          * introSkipAt answers null everywhere except inside the theme, which
+          * is the whole of this button's lifecycle.
+          */}
+        {introEnd != null ? <SkipIntroButton onPress={() => seekTo(introEnd)} /> : null}
         {pickerOpen ? (
           <TrackPicker
             onClose={closeTrackPicker}
