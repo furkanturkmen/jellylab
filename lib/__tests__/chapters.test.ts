@@ -96,9 +96,27 @@ describe('introSkipAt', () => {
     expect(introSkipAt(5, UNNAMED)).toBeNull();
   });
 
-  it('distrusts an intro mark deep into the episode', () => {
+  it('distrusts an intro mark past the middle of the episode', () => {
     const marks = [{ start: 0, name: 'Part A' }, { start: 900, name: 'OP' }, { start: 990, name: 'Part B' }];
-    expect(introSkipAt(910, marks)).toBeNull();
+    expect(introSkipAt(910, marks, 1440)).toBeNull();
+  });
+
+  /*
+   * Steins;Gate S01E01: the cold open runs to 10:34, which a fixed ten-minute
+   * guard rejected - on the one episode in the library that needed it most.
+   */
+  it('accepts a theme after a very long cold open', () => {
+    const marks = [
+      { start: 0, name: 'Prologue' },
+      { start: 634, name: 'Opening' },
+      { start: 723, name: 'Part 2' },
+    ];
+    expect(introSkipAt(650, marks, 1440)).toBe(723);
+  });
+
+  it('falls back to a fixed guard when the duration is not known yet', () => {
+    const marks = [{ start: 634, name: 'Opening' }, { start: 723, name: 'Part 2' }];
+    expect(introSkipAt(650, marks)).toBeNull();
   });
 
   it('has nowhere to land when the theme is the last chapter', () => {

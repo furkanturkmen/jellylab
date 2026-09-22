@@ -42,12 +42,17 @@ export type Chapter = {
 const INTRO = /^(intro|opening(\s*credits)?|op|theme(\s*song)?)\s*\d*$/i;
 
 /**
- * An intro that starts more than ten minutes in is not an intro.
+ * A theme belongs to the first half of an episode, not to a fixed clock.
  *
- * Cheap guard against a file whose chapters were named by something other than
- * a human - a mid-episode mark called 'OP' would otherwise offer to skip the
- * viewer past the middle of the story.
+ * This was ten minutes of absolute time until Steins;Gate S01E01, whose cold
+ * open runs to 10:34 - so the one episode with the longest prologue in the
+ * library was the one episode where the button never appeared. Half the
+ * runtime is the same distrust expressed in the file's own terms, and it
+ * mirrors MIN_CREDITS_RATIO at the other end.
  */
+const MAX_INTRO_RATIO = 0.5;
+
+/** The same guard for a file whose duration is not known yet. */
 const MAX_INTRO_START = 600;
 
 /**
@@ -123,13 +128,18 @@ export function previousChapterAt(seconds: number, chapters: Chapter[]): number 
  * no timer, no dismissal state, just a question asked of the current position.
  *
  * An intro with nothing after it is not skippable: there is nowhere to land.
+ *
+ * Duration is optional because it is not always known at the moment the first
+ * frames play - the engines learn it from the file - and a missing one falls
+ * back to the fixed ten minutes.
  */
-export function introSkipAt(seconds: number, chapters: Chapter[]): number | null {
+export function introSkipAt(seconds: number, chapters: Chapter[], duration = 0): number | null {
   const marks = ordered(chapters);
+  const latest = duration > 0 ? duration * MAX_INTRO_RATIO : MAX_INTRO_START;
   for (let i = 0; i < marks.length; i += 1) {
     const c = marks[i];
     if (!INTRO.test(c.name.trim())) continue;
-    if (c.start > MAX_INTRO_START) continue;
+    if (c.start > latest) continue;
 
     const end = marks[i + 1]?.start;
     if (end == null || end <= c.start) continue;
@@ -194,7 +204,7 @@ export function segmentSkipAt(
 ): SegmentSkip | null {
   if (!chapters || chapters.length === 0) return null;
 
-  const intro = introSkipAt(seconds, chapters);
+  const intro = introSkipAt(seconds, chapters, duration);
   if (intro != null) return { segment: 'intro', to: intro };
 
   const credits = creditsSkipAt(seconds, chapters, duration);
