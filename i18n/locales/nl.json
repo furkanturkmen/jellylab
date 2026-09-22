@@ -422,6 +422,7 @@
     "castHint": "De AirPlay-kiezer zit in de speler.",
     "pipUnavailable": "Picture in picture vereist AVPlayer",
     "pipUnavailableBody": "Dit bestand speelt via VLC, dat geen picture in picture heeft. Instellingen → Afspelen → Altijd AVPlayer laat de server het transcoderen zodat PiP werkt, ten koste van wat werk voor de server.",
+    "skipCredits": "Aftiteling overslaan",
     "skipIntro": "Intro overslaan",
     "upNext": "Hierna",
     "playNext": "Afspelen",

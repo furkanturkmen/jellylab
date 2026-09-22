@@ -16,6 +16,12 @@
  * So a "skip the first chapter" button would eat plot on 57 of 186 episodes.
  * INTRO matches the theme song and nothing else; Prologue and Recap are content
  * and are deliberately absent from it.
+ *
+ * The end of an episode is the same idea with one extra case. 99 of those 186
+ * episodes have a credits chapter; 69 are followed by something - Preview (49),
+ * a post-credits scene (18) - and on the other 30 the credits are the last
+ * chapter, with nothing to seek to. Those 30 are not a dead button: the episode
+ * is over, so skipping asks the player to end it and let Up Next take over.
  */
 
 /** A chapter mark, in seconds, after the ticks have been divided out. */
@@ -51,6 +57,23 @@ const MAX_INTRO_START = 600;
  * previous chapter, press it later and you return to the start of this one.
  */
 const RESTART_WINDOW = 3;
+
+/**
+ * The closing theme, the credits, and the silent versions of both.
+ *
+ * Deliberately not Preview or PV: a next-episode teaser is something people
+ * choose to watch, and it is what usually *follows* the credits here.
+ */
+const CREDITS = /^(ed|ending(\s*credits)?|credits|outro|nced)\s*\d*$/i;
+
+/**
+ * Credits do not run in the first half of an episode.
+ *
+ * Same distrust as MAX_INTRO_START, from the other end: a mark called 'ED'
+ * early on is a mislabelled file, not an ending, and skipping from it would
+ * throw away most of the story.
+ */
+const MIN_CREDITS_RATIO = 0.5;
 
 /** Start times ascending, with unusable marks dropped. */
 function ordered(chapters: Chapter[]): Chapter[] {
@@ -112,5 +135,70 @@ export function introSkipAt(seconds: number, chapters: Chapter[]): number | null
     if (end == null || end <= c.start) continue;
     if (seconds >= c.start && seconds < end) return end;
   }
+  return null;
+}
+
+/**
+ * What the player is currently sitting in, when it is something skippable.
+ *
+ * `to` is a position to seek to, except for the last-chapter credits case,
+ * where there is no later mark and the honest answer is "this episode is
+ * finished" - which the player already knows how to handle, because that is
+ * what it does when the file runs out.
+ */
+export type SegmentSkip = {
+  segment: 'intro' | 'credits';
+  to: number | 'end';
+};
+
+/**
+ * Where to seek to skip the closing credits, or null when they are not playing.
+ *
+ * Needs the duration for two reasons: to reject a credits mark that sits too
+ * early to be real, and because when the credits are the last chapter their end
+ * is the end of the file rather than another mark.
+ */
+export function creditsSkipAt(
+  seconds: number,
+  chapters: Chapter[],
+  duration: number,
+): number | 'end' | null {
+  if (!Number.isFinite(duration) || duration <= 0) return null;
+  const marks = ordered(chapters);
+
+  for (let i = 0; i < marks.length; i += 1) {
+    const c = marks[i];
+    if (!CREDITS.test(c.name.trim())) continue;
+    if (c.start < duration * MIN_CREDITS_RATIO) continue;
+
+    const end = marks[i + 1]?.start ?? duration;
+    if (end <= c.start) continue;
+    if (seconds < c.start || seconds >= end) continue;
+
+    return marks[i + 1] ? end : 'end';
+  }
+  return null;
+}
+
+/**
+ * The one question each engine asks, every render.
+ *
+ * Both ends of an episode collapse to a single button, because they can never
+ * be skippable at the same moment - one is a theme at the top, the other is
+ * credits at the bottom.
+ */
+export function segmentSkipAt(
+  seconds: number,
+  chapters: Chapter[] | null | undefined,
+  duration: number,
+): SegmentSkip | null {
+  if (!chapters || chapters.length === 0) return null;
+
+  const intro = introSkipAt(seconds, chapters);
+  if (intro != null) return { segment: 'intro', to: intro };
+
+  const credits = creditsSkipAt(seconds, chapters, duration);
+  if (credits != null) return { segment: 'credits', to: credits };
+
   return null;
 }

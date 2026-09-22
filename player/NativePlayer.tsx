@@ -10,12 +10,12 @@ import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { Scrubber, formatTime } from '@/components/Scrubber';
-import { SkipIntroButton } from '@/components/SkipIntroButton';
+import { SkipSegmentButton } from '@/components/SkipSegmentButton';
 import { TrackPicker, type PickerRow } from '@/components/TrackPicker';
 import { IS_TABLET } from '@/lib/device';
 import { logRequestFailure } from '@/lib/errorLog';
 import { resolvedTrackLanguage, withLanguage } from '@/lib/tracks';
-import { introSkipAt, type Chapter } from '@/lib/chapters';
+import { segmentSkipAt, type Chapter } from '@/lib/chapters';
 import { type TrickplayInfo } from '@/lib/trickplay';
 import { CONTROLS_HIDE_MS, SPEEDS, type AudioStream } from '@/player/config';
 import { pickSubtitle } from '@/player/lang';
@@ -562,10 +562,10 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
     }
   }
 
-  // Null unless the theme is what is playing, which is how the button knows
-  // whether to exist. Scrub value while dragging, so it answers the frame the
-  // viewer is looking at rather than the one they left.
-  const introEnd = chapters ? introSkipAt(scrubbing ? scrubValue : position, chapters) : null;
+  // Null unless a theme or the credits are what is playing, which is how the
+  // button knows whether to exist. Scrub value while dragging, so it answers
+  // the frame the viewer is looking at rather than the one they left.
+  const skippable = segmentSkipAt(scrubbing ? scrubValue : position, chapters, duration);
 
   return (
     <>
@@ -700,7 +700,18 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
           * introSkipAt answers null everywhere except inside the theme, which
           * is the whole of this button's lifecycle.
           */}
-        {introEnd != null ? <SkipIntroButton onPress={() => seekTo(introEnd)} /> : null}
+        {skippable ? (
+          <SkipSegmentButton
+            segment={skippable.segment}
+            /*
+              * 'end' is the 30-in-186 case where the credits are the last
+              * chapter: there is no mark to seek to, and the episode is over,
+              * so this hands over to whatever already happens at the end of a
+              * file - the Up Next card, or leaving the player.
+              */
+            onPress={() => (skippable.to === 'end' ? onEnded?.() : seekTo(skippable.to))}
+          />
+        ) : null}
         {pickerOpen ? (
           <TrackPicker
             onClose={closeTrackPicker}

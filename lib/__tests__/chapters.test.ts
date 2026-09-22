@@ -1,4 +1,4 @@
-import { introSkipAt, nextChapterAt, previousChapterAt, type Chapter } from '../chapters';
+import { creditsSkipAt, introSkipAt, nextChapterAt, previousChapterAt, segmentSkipAt, type Chapter } from '../chapters';
 
 /**
  * Tokyo Ghoul: Jack (OVA), as the server actually returns it, with the ticks
@@ -103,5 +103,67 @@ describe('introSkipAt', () => {
 
   it('has nowhere to land when the theme is the last chapter', () => {
     expect(introSkipAt(5, [{ start: 0, name: 'Intro' }])).toBeNull();
+  });
+});
+
+/** Runtime of the OVA above, in seconds: the ED starts at 96% of it. */
+const ANIME_DURATION = 1802.7;
+
+/** The common anime shape: credits, then a teaser for next week. */
+const WITH_PREVIEW: Chapter[] = [
+  { start: 0, name: 'Intro' },
+  { start: 90, name: 'Part A' },
+  { start: 1300, name: 'ED' },
+  { start: 1390, name: 'Preview' },
+];
+
+describe('creditsSkipAt', () => {
+  it('seeks past the credits to whatever follows them', () => {
+    expect(creditsSkipAt(1310, WITH_PREVIEW, 1440)).toBe(1390);
+  });
+
+  it('ends the episode when the credits are the last chapter', () => {
+    expect(creditsSkipAt(1740, ANIME, ANIME_DURATION)).toBe('end');
+  });
+
+  it('is null before the credits start', () => {
+    expect(creditsSkipAt(1200, WITH_PREVIEW, 1440)).toBeNull();
+  });
+
+  it('is null inside the preview that follows them', () => {
+    expect(creditsSkipAt(1400, WITH_PREVIEW, 1440)).toBeNull();
+  });
+
+  it('distrusts a credits mark in the first half', () => {
+    const marks = [{ start: 0, name: 'Part A' }, { start: 100, name: 'ED' }, { start: 200, name: 'Part B' }];
+    expect(creditsSkipAt(120, marks, 1400)).toBeNull();
+  });
+
+  it('leaves the next-episode teaser alone', () => {
+    const marks = [{ start: 0, name: 'Part A' }, { start: 1300, name: 'Preview' }];
+    expect(creditsSkipAt(1350, marks, 1400)).toBeNull();
+  });
+
+  it('is null without a duration to measure against', () => {
+    expect(creditsSkipAt(1740, ANIME, 0)).toBeNull();
+  });
+});
+
+describe('segmentSkipAt', () => {
+  it('offers the theme at the top of the episode', () => {
+    expect(segmentSkipAt(10, ANIME, ANIME_DURATION)).toEqual({ segment: 'intro', to: 90.4 });
+  });
+
+  it('offers the credits at the bottom of it', () => {
+    expect(segmentSkipAt(1740, ANIME, ANIME_DURATION)).toEqual({ segment: 'credits', to: 'end' });
+  });
+
+  it('offers nothing in between', () => {
+    expect(segmentSkipAt(600, ANIME, ANIME_DURATION)).toBeNull();
+  });
+
+  it('offers nothing when the file has no chapters', () => {
+    expect(segmentSkipAt(600, [], ANIME_DURATION)).toBeNull();
+    expect(segmentSkipAt(600, null, ANIME_DURATION)).toBeNull();
   });
 });
