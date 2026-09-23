@@ -422,6 +422,8 @@
     "castHint": "The AirPlay picker is inside the player.",
     "pipUnavailable": "Picture in picture needs AVPlayer",
     "pipUnavailableBody": "This file plays through VLC, which has no picture in picture. Settings → Playback → Always use AVPlayer will transcode it on the server so PiP works, at the cost of some work for the server.",
+    "skipCredits": "Skip credits",
+    "skipIntro": "Skip intro",
     "upNext": "Up next",
     "playNext": "Play",
     "upNextIn": "Starting in {{seconds}}s"

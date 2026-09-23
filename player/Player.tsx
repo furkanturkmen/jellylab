@@ -97,6 +97,8 @@ export function Player({
           resumeSeconds={resumeSeconds}
           playMethod={config.mode === 'transcode' ? 'Transcode' : 'DirectPlay'}
           trickplay={config.trickplay}
+          chapters={config.chapters}
+          segments={config.segments}
           onEnded={onEnded}
           onError={onNativeError}
           onExit={onExit}
@@ -116,6 +118,8 @@ export function Player({
           initialDuration={initialDuration}
           playMethod={config.mode === 'transcode' ? 'Transcode' : 'DirectPlay'}
           trickplay={config.trickplay}
+          chapters={config.chapters}
+          segments={config.segments}
           onEnded={onEnded}
           onExit={onExit}
         />

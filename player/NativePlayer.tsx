@@ -10,10 +10,13 @@ import { useTranslation } from 'react-i18next';
 
 import * as Jellyfin from '@/api/jellyfin';
 import { Scrubber, formatTime } from '@/components/Scrubber';
+import { SkipSegmentButton } from '@/components/SkipSegmentButton';
 import { TrackPicker, type PickerRow } from '@/components/TrackPicker';
 import { IS_TABLET } from '@/lib/device';
 import { logRequestFailure } from '@/lib/errorLog';
 import { resolvedTrackLanguage, withLanguage } from '@/lib/tracks';
+import { segmentSkipAt, type Chapter } from '@/lib/chapters';
+import { serverSkipAt, type Segment } from '@/lib/segments';
 import { type TrickplayInfo } from '@/lib/trickplay';
 import { CONTROLS_HIDE_MS, SPEEDS, type AudioStream } from '@/player/config';
 import { pickSubtitle } from '@/player/lang';
@@ -35,7 +38,7 @@ import { colors } from '@/theme';
  * subtitle timing control - its overlay is drawn straight off the player clock.
  */
 
-export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, activeAudioStreamIndex, onSwitchAudio, originalLanguage, delayKey, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', trickplay, onEnded, onError, onExit }: {
+export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, activeAudioStreamIndex, onSwitchAudio, originalLanguage, delayKey, title, subtitle, artworkUri, resumeSeconds, playMethod = 'DirectPlay', trickplay, chapters, segments, onEnded, onError, onExit }: {
   url: string;
   itemId: string;
   mediaSourceId?: string;
@@ -56,6 +59,10 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
   playMethod?: Jellyfin.PlayMethod;
   /** Scrub previews, with the token needed to fetch a sheet. */
   trickplay?: { info: TrickplayInfo; token: string } | null;
+  /** Chapter marks from the file, when it carries any. */
+  chapters?: Chapter[] | null;
+  /** What the server's segment provider found, when one is installed. */
+  segments?: Segment[] | null;
   /** The file reached its end, as opposed to the viewer leaving. */
   onEnded?: () => void;
   onError: () => void;
@@ -558,6 +565,17 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
     }
   }
 
+  // Null unless a theme or the credits are what is playing, which is how the
+  // button knows whether to exist. Scrub value while dragging, so it answers
+  // the frame the viewer is looking at rather than the one they left.
+  /*
+   * The server's answer wins where it exists: a provider measured this
+   * episode, while a chapter mark is whatever the encoder happened to name.
+   * Chapters cover the rest, which on this library is still the larger half.
+   */
+  const at = scrubbing ? scrubValue : position;
+  const skippable = serverSkipAt(at, segments, duration) ?? segmentSkipAt(at, chapters, duration);
+
   return (
     <>
       <StatusBar hidden />
@@ -637,6 +655,7 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
                   position={scrubbing ? scrubValue : position}
                   duration={duration}
                   trickplay={trickplay ? { itemId, info: trickplay.info, token: trickplay.token } : null}
+                  chapters={chapters}
                   onScrubStart={() => setScrubbing(true)}
                   onScrub={(t) => setScrubValue(t)}
                   onScrubEnd={(t) => {
@@ -685,6 +704,23 @@ export function NativePlayer({ url, itemId, mediaSourceId, externalSubs, audioSt
               </View>
             </View>
         </Animated.View>
+        {/*
+          * Outside the overlay above, so it does not fade with the controls.
+          * introSkipAt answers null everywhere except inside the theme, which
+          * is the whole of this button's lifecycle.
+          */}
+        {skippable ? (
+          <SkipSegmentButton
+            segment={skippable.segment}
+            /*
+              * 'end' is the 30-in-186 case where the credits are the last
+              * chapter: there is no mark to seek to, and the episode is over,
+              * so this hands over to whatever already happens at the end of a
+              * file - the Up Next card, or leaving the player.
+              */
+            onPress={() => (skippable.to === 'end' ? onEnded?.() : seekTo(skippable.to))}
+          />
+        ) : null}
         {pickerOpen ? (
           <TrackPicker
             onClose={closeTrackPicker}

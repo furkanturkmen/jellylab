@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { PanResponder, StyleSheet, View } from 'react-native';
 
 import { PREVIEW_WIDTH, TrickplayPreview } from '@/components/TrickplayPreview';
+import { type Chapter } from '@/lib/chapters';
 import { trickplayTileAt, type TrickplayInfo } from '@/lib/trickplay';
 import { colors } from '@/theme';
 
@@ -26,12 +27,14 @@ export function formatTime(seconds: number): string {
 }
 
 export function Scrubber({
-  position, duration, trickplay, onScrubStart, onScrub, onScrubEnd,
+  position, duration, trickplay, chapters, onScrubStart, onScrub, onScrubEnd,
 }: {
   position: number;
   duration: number;
   /** Scrub previews, when the server has them for what is playing. */
   trickplay?: { itemId: string; info: TrickplayInfo; token: string } | null;
+  /** Chapter marks, when the file carries them. Drawn as ticks on the track. */
+  chapters?: Chapter[] | null;
   onScrubStart: () => void;
   onScrub: (t: number) => void;
   onScrubEnd: (t: number) => void;
@@ -117,6 +120,15 @@ export function Scrubber({
   // memoised on the cell: a drag that has not crossed into the next thumbnail
   // then costs nothing to draw.
   const cell = dragging && trickplay ? trickplayTileAt(position, trickplay.info) : null;
+  // Percentages, not seconds, because that is what the track lays out in. Kept
+  // off the render path with useMemo: chapters never change mid-episode, and
+  // this list would otherwise be rebuilt four times a second by the position.
+  const marks = useMemo(() => {
+    if (!chapters || duration <= 0) return [];
+    return chapters
+      .filter(c => c.start > 0 && c.start < duration)
+      .map(c => (c.start / duration) * 100);
+  }, [chapters, duration]);
 
   return (
     <View
@@ -165,6 +177,13 @@ export function Scrubber({
         */}
       <View style={styles.scrubberTrack} pointerEvents="none">
         <View style={[styles.scrubberFill, { width: `${pct}%` }]} />
+        {/*
+          * A mark at zero is every episode's first chapter and says nothing,
+          * so it is left off rather than drawn under the thumb at rest.
+          */}
+        {marks.map(m => (
+          <View key={m} style={[styles.scrubberChapter, { left: `${m}%` }]} />
+        ))}
         <View style={[styles.scrubberThumb, { left: `${pct}%` }]} />
       </View>
     </View>
@@ -184,6 +203,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   scrubberFill: { height: '100%', backgroundColor: colors.text, borderRadius: 2 },
+  // A gap in the bar rather than a line on top of it: it reads as a division
+  // whether it sits on the played side or the unplayed one.
+  scrubberChapter: {
+    position: 'absolute',
+    width: 2,
+    height: '100%',
+    marginLeft: -1,
+    backgroundColor: colors.bg,
+  },
   // Clear of the 32pt hit area, so a thumb never covers the frame it picked.
   scrubberPreview: { position: 'absolute', bottom: 34 },
   scrubberThumb: {

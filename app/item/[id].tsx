@@ -499,6 +499,7 @@ export default function ItemScreen() {
         mediaSourceId: target.Id,
         externalSubs,
         audioStreams: [],
+        chapters: Jellyfin.chaptersFor(target),
       });
       return;
     }
@@ -586,12 +587,19 @@ export default function ItemScreen() {
       ` audioStreams=${JSON.stringify(audioStreams.map(a => ({ i: a.index, l: a.language })))}`,
     );
     const trickplayInfo = Jellyfin.trickplayFor(target, source?.Id);
+    /*
+     * Second request, and a failure costs nothing: an empty list simply means
+     * the player falls back to the file's own chapter marks.
+     */
+    const segments = await Jellyfin.getMediaSegments(target.Id).catch(() => []);
     setPlayback({
       url, engine, mode, mediaSourceId: source?.Id, externalSubs, audioStreams,
       audioStreamIndex: audioIndex,
       preferredAudioLanguage: wantedAudio ?? undefined,
       originalLanguage: originalLanguage ?? undefined,
       trickplay: trickplayInfo ? { info: trickplayInfo, token: state.auth.accessToken } : null,
+      chapters: Jellyfin.chaptersFor(target),
+      segments,
     });
   }
 

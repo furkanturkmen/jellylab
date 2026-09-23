@@ -3,6 +3,8 @@ import { CONFIG, getJellyfinUrl, requireJellyfinUrl } from '@/config';
 import { episodeAfter } from '@/player/upnext';
 import { getDeviceId, loadJellyfinAuth, saveJellyfinAuth, clearJellyfinAuth } from '@/store/auth';
 import { logRequestFailure } from '@/lib/errorLog';
+import { type Chapter } from '@/lib/chapters';
+import { type Segment } from '@/lib/segments';
 import { pickTrickplay, type TrickplayInfo } from '@/lib/trickplay';
 
 import type { JellyfinAuth, JellyfinItem, JellyfinView } from '@/types';
@@ -226,7 +228,7 @@ export async function getItem(userId: string, itemId: string): Promise<JellyfinI
   // MediaSources so the screen can say "Full HD" without a second request for
   // playback info it does not otherwise need.
   const res = await client.get(`/Users/${userId}/Items/${itemId}`, {
-    params: { Fields: 'MediaSources,Overview,ProviderIds,Trickplay' },
+    params: { Fields: 'MediaSources,Overview,ProviderIds,Trickplay,Chapters' },
   });
   return res.data;
 }
@@ -564,6 +566,48 @@ export function trickplayFor(
     };
   }
   return pickTrickplay(normalised, maxWidth);
+}
+
+/**
+ * What a segment provider plugin found in this episode, if one is installed.
+ *
+ * Absent on a server with no provider - the endpoint answers with an empty
+ * list rather than a 404, and an older server 404s - so every failure here
+ * means the same thing to the player: nothing to offer, fall back to chapters.
+ * Only the two types the player has a button for survive the mapping.
+ */
+export async function getMediaSegments(itemId: string): Promise<Segment[]> {
+  const client = await authClient();
+  try {
+    const res = await client.get(`/MediaSegments/${itemId}`, {
+      params: { includeSegmentTypes: 'Intro,Outro' },
+    });
+    const items: { Type?: string; StartTicks?: number; EndTicks?: number }[] = res.data?.Items ?? [];
+    const out: Segment[] = [];
+    for (const s of items) {
+      const type = s.Type === 'Intro' ? 'intro' : s.Type === 'Outro' ? 'credits' : null;
+      if (!type || s.StartTicks == null || s.EndTicks == null) continue;
+      out.push({ type, start: ticksToSeconds(s.StartTicks), end: ticksToSeconds(s.EndTicks) });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Chapter marks in the unit the player thinks in.
+ *
+ * Ticks are a hundred nanoseconds, which is a resolution nothing on a phone
+ * can act on, so they are divided out once here rather than at every call
+ * site. An unnamed mark keeps its place on the scrub bar with an empty name;
+ * lib/chapters simply never matches it.
+ */
+export function chaptersFor(item: Pick<JellyfinItem, 'Chapters'>): Chapter[] {
+  return (item.Chapters ?? []).map(c => ({
+    start: ticksToSeconds(c.StartPositionTicks),
+    name: c.Name ?? '',
+  }));
 }
 
 /**
