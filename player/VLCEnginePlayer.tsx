@@ -17,6 +17,7 @@ import { IS_TABLET } from '@/lib/device';
 import { logRequestFailure } from '@/lib/errorLog';
 import { resolvedTrackLanguage, withLanguage } from '@/lib/tracks';
 import { segmentSkipAt, type Chapter } from '@/lib/chapters';
+import { serverSkipAt, type Segment } from '@/lib/segments';
 import { type TrickplayInfo } from '@/lib/trickplay';
 import { CONTROLS_HIDE_MS, SPEEDS, type AudioStream } from '@/player/config';
 import { matchesLanguage, pickSubtitle } from '@/player/lang';
@@ -42,7 +43,7 @@ import { colors } from '@/theme';
  * view underneath and where the position comes from.
  */
 
-export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, preferredAudioLanguage, originalLanguage, delayKey, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', trickplay, chapters, onEnded, onExit }: {
+export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audioStreams, preferredAudioLanguage, originalLanguage, delayKey, title, resumeSeconds, initialDuration, playMethod = 'DirectPlay', trickplay, chapters, segments, onEnded, onExit }: {
   /** Already resolved by the screen, so "original" means something here too. */
   preferredAudioLanguage?: string;
   /** What the title was made in - names a track the file left untagged. */
@@ -61,6 +62,8 @@ export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audi
   trickplay?: { info: TrickplayInfo; token: string } | null;
   /** Chapter marks from the file, when it carries any. */
   chapters?: Chapter[] | null;
+  /** What the server's segment provider found, when one is installed. */
+  segments?: Segment[] | null;
   /** The file reached its end, as opposed to the viewer leaving. */
   onEnded?: () => void;
   onExit: () => void;
@@ -804,7 +807,13 @@ export function VLCEnginePlayer({ url, itemId, mediaSourceId, externalSubs, audi
   // Null unless a theme or the credits are what is playing, which is how the
   // button knows whether to exist. Scrub value while dragging, so it answers
   // the frame the viewer is looking at rather than the one they left.
-  const skippable = segmentSkipAt(scrubbing ? scrubValue : position, chapters, duration);
+  /*
+   * The server's answer wins where it exists: a provider measured this
+   * episode, while a chapter mark is whatever the encoder happened to name.
+   * Chapters cover the rest, which on this library is still the larger half.
+   */
+  const at = scrubbing ? scrubValue : position;
+  const skippable = serverSkipAt(at, segments, duration) ?? segmentSkipAt(at, chapters, duration);
 
   return (
     <>

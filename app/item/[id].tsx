@@ -587,6 +587,11 @@ export default function ItemScreen() {
       ` audioStreams=${JSON.stringify(audioStreams.map(a => ({ i: a.index, l: a.language })))}`,
     );
     const trickplayInfo = Jellyfin.trickplayFor(target, source?.Id);
+    /*
+     * Second request, and a failure costs nothing: an empty list simply means
+     * the player falls back to the file's own chapter marks.
+     */
+    const segments = await Jellyfin.getMediaSegments(target.Id).catch(() => []);
     setPlayback({
       url, engine, mode, mediaSourceId: source?.Id, externalSubs, audioStreams,
       audioStreamIndex: audioIndex,
@@ -594,6 +599,7 @@ export default function ItemScreen() {
       originalLanguage: originalLanguage ?? undefined,
       trickplay: trickplayInfo ? { info: trickplayInfo, token: state.auth.accessToken } : null,
       chapters: Jellyfin.chaptersFor(target),
+      segments,
     });
   }
 

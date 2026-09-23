@@ -98,6 +98,7 @@ export function Player({
           playMethod={config.mode === 'transcode' ? 'Transcode' : 'DirectPlay'}
           trickplay={config.trickplay}
           chapters={config.chapters}
+          segments={config.segments}
           onEnded={onEnded}
           onError={onNativeError}
           onExit={onExit}
@@ -118,6 +119,7 @@ export function Player({
           playMethod={config.mode === 'transcode' ? 'Transcode' : 'DirectPlay'}
           trickplay={config.trickplay}
           chapters={config.chapters}
+          segments={config.segments}
           onEnded={onEnded}
           onExit={onExit}
         />

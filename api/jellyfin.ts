@@ -4,6 +4,7 @@ import { episodeAfter } from '@/player/upnext';
 import { getDeviceId, loadJellyfinAuth, saveJellyfinAuth, clearJellyfinAuth } from '@/store/auth';
 import { logRequestFailure } from '@/lib/errorLog';
 import { type Chapter } from '@/lib/chapters';
+import { type Segment } from '@/lib/segments';
 import { pickTrickplay, type TrickplayInfo } from '@/lib/trickplay';
 
 import type { JellyfinAuth, JellyfinItem, JellyfinView } from '@/types';
@@ -565,6 +566,33 @@ export function trickplayFor(
     };
   }
   return pickTrickplay(normalised, maxWidth);
+}
+
+/**
+ * What a segment provider plugin found in this episode, if one is installed.
+ *
+ * Absent on a server with no provider - the endpoint answers with an empty
+ * list rather than a 404, and an older server 404s - so every failure here
+ * means the same thing to the player: nothing to offer, fall back to chapters.
+ * Only the two types the player has a button for survive the mapping.
+ */
+export async function getMediaSegments(itemId: string): Promise<Segment[]> {
+  const client = await authClient();
+  try {
+    const res = await client.get(`/MediaSegments/${itemId}`, {
+      params: { includeSegmentTypes: 'Intro,Outro' },
+    });
+    const items: { Type?: string; StartTicks?: number; EndTicks?: number }[] = res.data?.Items ?? [];
+    const out: Segment[] = [];
+    for (const s of items) {
+      const type = s.Type === 'Intro' ? 'intro' : s.Type === 'Outro' ? 'credits' : null;
+      if (!type || s.StartTicks == null || s.EndTicks == null) continue;
+      out.push({ type, start: ticksToSeconds(s.StartTicks), end: ticksToSeconds(s.EndTicks) });
+    }
+    return out;
+  } catch {
+    return [];
+  }
 }
 
 /**
