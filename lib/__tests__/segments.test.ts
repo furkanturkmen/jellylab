@@ -42,3 +42,30 @@ describe('serverSkipAt', () => {
     expect(serverSkipAt(1400, SEGMENTS, 0)).toEqual({ segment: 'credits', to: 1438 });
   });
 });
+
+describe('serverSkipAt distrusts a segment in the wrong half', () => {
+  /*
+   * Exactly what SkipMe.db returned for No Game No Life S01E01: an Intro at
+   * 21:44 of a 24 minute episode, which is the ending theme mislabelled. The
+   * app offered to skip it, on the phone, before this guard existed.
+   */
+  it('ignores an intro sitting in the back half of the episode', () => {
+    const bad: Segment[] = [{ type: 'intro', start: 1304, end: 1368 }];
+    expect(serverSkipAt(1310, bad, 1440)).toBeNull();
+  });
+
+  it('ignores credits sitting in the front half', () => {
+    const bad: Segment[] = [{ type: 'credits', start: 100, end: 190 }];
+    expect(serverSkipAt(120, bad, 1440)).toBeNull();
+  });
+
+  it('still trusts both when they sit where they belong', () => {
+    expect(serverSkipAt(70, SEGMENTS, DURATION)).toEqual({ segment: 'intro', to: 150 });
+    expect(serverSkipAt(1400, SEGMENTS, DURATION)).toEqual({ segment: 'credits', to: 'end' });
+  });
+
+  it('takes the provider at its word when the duration is unknown', () => {
+    const bad: Segment[] = [{ type: 'intro', start: 1304, end: 1368 }];
+    expect(serverSkipAt(1310, bad, 0)).toEqual({ segment: 'intro', to: 1368 });
+  });
+});
